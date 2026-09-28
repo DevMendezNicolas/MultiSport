@@ -427,3 +427,12 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Node / Frontend artifacts
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/*.local
+.env.local
+.env.*.local
+
