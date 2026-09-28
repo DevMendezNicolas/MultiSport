@@ -66,6 +66,12 @@ Diseñado con un enfoque comercial (*product-ready*), el sistema resuelve el cic
 
 ---
 
+## 🤝 Contribución y Flujo de Trabajo
+
+Para conocer el modelo de ramas (GitFlow simplificado), convenciones de commits y el protocolo de Pull Requests, consulta nuestra [Guía de Contribución](CONTRIBUTING.md).
+
+---
+
 ## 🏛️ Arquitectura del Sistema
 
 La solución está desacoplada en proyectos modulares, organizando la API bajo el patrón **Vertical Slice / Feature Folders**:
@@ -89,7 +95,3 @@ MultiSport/
 │       │   ├── services/                # Clientes Axios y tipado TS de la API
 │       │   └── routes/                  # Enrutamiento protegido de la aplicación
 └── docker-compose.yml                   # Contenedor para instancia local de PostgreSQL
-
-## 🤝 Contribución y Flujo de Trabajo
-
-Para conocer el modelo de ramas (GitFlow simplificado), convenciones de commits y el protocolo de Pull Requests, consulta nuestra [Guía de Contribución](CONTRIBUTING.md).
