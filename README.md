@@ -6,38 +6,38 @@
 
 ---
 
-## 📌 Contexto del Proyecto
+## 📌 Visión del Producto
 
-**MultiSport** es una aplicación web desarrollada para la cátedra de **Algoritmos y Estructuras de Datos III**. 
+**MultiSport** es una plataforma web integral diseñada para digitalizar, optimizar y profesionalizar la operativa diaria de complejos deportivos. 
 
-El software está concebido como una herramienta de administración interna para complejos deportivos (*single-tenant* con usuario único administrador), centralizando la gestión de canchas, reservas de turnos y resolviendo la lógica algorítmica requerida para coordinar eventos y competencias deportivas.
+Si bien su desarrollo inicial se enmarca en la cátedra de **Algoritmos y Estructuras de Datos III**, el proyecto está concebido bajo estándares de ingeniería de software comercial con visión de producto productivo (*go-to-market*). Centraliza la administración de espacios físicos, la agenda de reservas y resuelve de forma algorítmica y automatizada la organización de eventos y torneos competitivos.
 
 ---
 
-## 🚀 Funcionalidades Principales
+## 🚀 Módulos y Funcionalidades
 
-### 🏟️ Configuración y Gestión de Canchas
-- **Modelo dinámico:** El complejo inicia sin canchas predefinidas.
-- **Multidisciplina:** Alta y parametrización de canchas por deporte (fútbol 5/7/11, pádel, tenis, básquet, etc.), contemplando canchas que comparten distintas disciplinas en un mismo espacio físico.
-- **Parametrización:** Configuración de tarifas y horarios operativos.
+### 🏟️ Gestión Dinámica de Espacios y Canchas
+- **Modelo flexible:** El complejo se inicializa en blanco, permitiendo parametrizar la infraestructura desde cero.
+- **Multidisciplina y uso compartido:** Configuración de canchas por disciplina (fútbol 5/7/11, pádel, tenis, básquet, etc.) con soporte para espacios híbridos que alternan diferentes deportes en una misma superficie.
+- **Tarifas y disponibilidad:** Definición de esquemas de precios, franjas horarias y reglas de uso.
 
-### 📅 Turnos y Gestión de Disponibilidad
-- **Tipos de reserva:** Soporte para turnos eventuales y turnos fijos semanales.
-- **Control de señas y cobros:** Registro administrativo manual de señas y pagos recibidos (efectivo, transferencias).
-- **Políticas de cancelación:** Penalización directa mediante la retención de la seña ante cancelaciones.
-- **Control de solapamiento:** Algoritmo de validación para evitar colisiones horarias entre turnos, canchas y eventos.
+### 📅 Control Operativo de Turnos
+- **Modalidades de reserva:** Coexistencia de turnos eventuales y reservas fijas semanales.
+- **Gestión financiera manual:** Registro administrativo de pagos y cobro de señas (efectivo, transferencias bancarias).
+- **Políticas de cancelación:** Control de penalidades mediante retención automática de seña.
+- **Prevención de colisiones:** Motor de validación horaria para asegurar solapamiento cero entre turnos, reservas fijas y eventos.
 
-### 🏆 Eventos y Generación de Torneos (Módulo Algorítmico)
-- **Eventos sociales:** Bloqueo de franjas horarias y canchas para cumpleaños, exhibiciones y jornadas recreativas.
-- **Formatos de competencia soportados:**
+### 🏆 Motor Algorítmico de Eventos y Torneos
+- **Eventos sociales y corporativos:** Bloqueo integral de canchas e instalaciones para cumpleaños, exhibiciones y jornadas recreativas.
+- **Formatos de competencia configurables:**
   - **Liga (Round-Robin):** Todos contra todos a rueda simple o ida y vuelta.
-  - **Playoffs:** Eliminación directa con armado de llaves y cruces jerárquicos.
-  - **Combinado:** Fase de grupos clasificatoria + fase de playoffs.
-- **Lógica de gestión:**
-  - Carga y registro de equipos, listas de buena fe y jugadores.
-  - Sorteo algorítmico automatizado del fixture con flexibilidad para ediciones manuales.
-  - Asignación manual de los partidos del fixture a los turnos y canchas disponibles en el complejo.
-  - Carga de resultados, cómputo dinámico de tablas de posiciones (puntos, diferencia de gol, desempates) y avance en llaves eliminatorias.
+  - **Playoffs:** Cuadros de eliminación directa con generación de llaves jerárquicas.
+  - **Mixto:** Fase de grupos clasificatoria integrada a cuadro eliminatorio final.
+- **Automatización algorítmica:**
+  - Padrón de equipos, planteles y listas de buena fe.
+  - Generación y sorteo automatizado de fixtures con soporte para reordenamiento y ajustes manuales.
+  - Asignación flexible de cruces a turnos y canchas disponibles del complejo.
+  - Cómputo de resultados en tiempo real: cálculo dinámico de tablas de posiciones (puntos, diferencia de gol, criterios de desempate) y avance automático en cuadros eliminatorios.
 
 ---
 
@@ -45,30 +45,30 @@ El software está concebido como una herramienta de administración interna para
 
 | Componente | Tecnología | Rol / Justificación |
 | :--- | :--- | :--- |
-| **Backend** | .NET (C#) | Minimal APIs para un diseño liviano y de alto rendimiento |
-| **Acceso a Datos** | Dapper | Micro-ORM para ejecución de consultas SQL optimizadas |
-| **Base de Datos** | PostgreSQL / MySQL | Persistencia relacional y consistencia transaccional |
+| **Backend** | .NET (C#) | Minimal APIs orientadas a baja latencia, escalabilidad y alto rendimiento |
+| **Acceso a Datos** | Dapper | Micro-ORM de alto rendimiento para consultas SQL precisas y control transaccional |
+| **Base de Datos** | PostgreSQL / MySQL | Persistencia relacional, integridad referencial y atomicidad |
 | **Seguridad** | JWT (JSON Web Tokens) | Autenticación y autorización para la sesión de administración |
-| **Frontend** | React | Single Page Application (SPA) para el panel de gestión |
+| **Frontend** | React | SPA modular y reactiva para el panel operativo del complejo |
 
 ---
 
 ## 🏛️ Arquitectura del Backend
 
-El backend se estructura mediante **Vertical Slice / Feature Folders**, organizando el código por capacidades funcionales en lugar de capas técnicas dispersas:
+El backend está estructurado mediante **Vertical Slice / Feature Folders**, priorizando la cohesión del dominio sobre la dispersión en capas técnicas tradicionales:
 
 ```text
 src/
 └── MultiSport.Api/
-    ├── Common/               # Middlewares, filtros y utilidades compartidas
-    ├── Infrastructure/       # Conexión a BD (Dapper) y migraciones
+    ├── Common/               # Middlewares, filtros y utilidades transversales
+    ├── Infrastructure/       # Gestión de conexiones de datos (Dapper) y migraciones
     └── Features/
         ├── Auth/             # Autenticación, generación y validación de tokens JWT
         ├── Canchas/          # Endpoints, DTOs, Repository y Service de canchas
-        ├── Turnos/           # Validación de solapamientos, señas y grilla de reservas
-        ├── Eventos/          # Bloqueo de canchas para eventos sociales y cumpleaños
+        ├── Turnos/           # Reglas de solapamiento, señas y grilla operativa
+        ├── Eventos/          # Bloqueo de instalaciones para eventos sociales
         └── Torneos/          # Lógica algorítmica de fixtures, llaves y tablas
             ├── Endpoints/    # Mapeo de rutas (MapGroup / Minimal APIs)
-            ├── Models/       # Modelos de dominio y DTOs de request/response
-            ├── Repositories/ # Consultas SQL y operaciones con Dapper
-            └── Services/     # Lógica de sorteos, validaciones y cálculos
+            ├── Models/       # Modelos de dominio y DTOs de entrada/salida
+            ├── Repositories/ # Operaciones SQL optimizadas con Dapper
+            └── Services/     # Lógica algorítmica de sorteos, llaves y cálculos
