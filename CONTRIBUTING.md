@@ -60,6 +60,30 @@ chore(deps): actualizar fluentmigrator a la ultima version estable
 
 ---
 
+## 4. Estándares de Backend (.NET 8)
+
+El desarrollo del backend sigue el enfoque de **Vertical Slice Architecture**, inmutabilidad en DTOs (`record`), consultas parametrizadas con Dapper, validaciones declarativas con FluentValidation y manejo global de excepciones (`IExceptionHandler`). Todo cambio debe alinearse con las [Convenciones de Backend](docs/BACKEND_CONVENTIONS.md).
+
+---
+
+## 5. Estándares de Frontend (React + Vite + TypeScript)
+
+El desarrollo del cliente web se organiza bajo **Feature-Driven Structure**, tipado estricto con interfaces espejo de los DTOs de C# en formato `camelCase`, gestión del estado del servidor con **TanStack Query** (custom hooks), primitivas de **shadcn/ui** y componentes estilizados con Tailwind CSS. Todo cambio debe alinearse con las [Convenciones de Frontend](docs/FRONTEND_CONVENTIONS.md).
+
+---
+
 ## 6. Estándares de Base de Datos
 
 Todo diseño de tablas, índices, constraints y migraciones con FluentMigrator debe alinearse de forma estricta con las [Convenciones de Base de Datos](docs/DATABASE_CONVENTIONS.md).
+
+---
+
+## 7. Estrategia de Pruebas y Calidad
+
+El código crítico (algoritmos de fixture de torneos, penalización de señas, validaciones y colisiones concurrentes mediante GiST) debe respaldarse con pruebas unitarias e integración según la [Estrategia de Testing](docs/TESTING_STRATEGY.md).
+
+---
+
+## 8. Seguridad y Gestión de Secretos
+
+Prohibido almacenar credenciales o contraseñas en Git. El flujo de variables de entorno y secretos se detalla en [Seguridad y Secretos](docs/SECURITY_AND_SECRETS.md).
