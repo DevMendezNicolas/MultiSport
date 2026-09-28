@@ -1,23 +1,23 @@
-## 📌 Tipo de Cambio
-- [ ] `feat`: Nueva funcionalidad
-- [ ] `fix`: Corrección de error
-- [ ] `refactor`: Refactorización de código sin cambio funcional
-- [ ] `chore`: Mantenimiento / dependencias / migraciones
+## 📌 Type of Change
+- [ ] `feat`: New feature
+- [ ] `fix`: Bug fix
+- [ ] `refactor`: Code refactoring without functional changes
+- [ ] `chore`: Maintenance / dependencies / migrations
 
-## 📝 Descripción
-<!-- Resumen conciso de los cambios introducidos y motivación -->
+## 📝 Description
+<!-- Concise summary of changes introduced and motivation -->
 
-## 🔗 Issues Vinculados
+## 🔗 Linked Issues
 Closes #
 
-## 🧪 Pruebas Realizadas
-- [ ] Compilación limpia de la solución en backend y frontend
-- [ ] Migraciones ejecutadas sin errores (`Up` y `Down`)
-- [ ] Captura de pantalla / video / respuesta Swagger adjunta (si aplica)
+## 🧪 Testing Performed
+- [ ] Clean compilation for both backend and frontend solutions
+- [ ] Migrations executed without errors (`Up` and `Down`)
+- [ ] Screenshot / video / Swagger response attached (if applicable)
 
-## 🛡️ Checklist de Calidad
-- [ ] Sin uso de `any` en TypeScript
-- [ ] Sin llamadas `useEffect` para fetching de datos
-- [ ] Sin sentencias SQL interpoladas a mano (Dapper parametrizado)
-- [ ] Fechas manejadas en UTC (`TIMESTAMPTZ` / `ISO 8601`)
-- [ ] Cero emojis agregados a la UI
+## 🛡️ Quality Checklist
+- [ ] No use of TypeScript `any`
+- [ ] No `useEffect` calls for data fetching
+- [ ] No manual string interpolation in SQL (parameterized Dapper)
+- [ ] Timestamps handled in UTC (`TIMESTAMPTZ` / `ISO 8601`)
+- [ ] Zero emojis added to the UI

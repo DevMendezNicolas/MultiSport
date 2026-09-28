@@ -1,30 +1,30 @@
 # Frontend Engineering & UI Guidelines (React + Vite + TypeScript)
 
-Este documento define la arquitectura, convenciones técnicas, estándares de tipado y políticas de interfaz para el desarrollo de la aplicación web cliente de **MultiSport**. El cumplimiento de estas normas es obligatorio para asegurar coherencia, mantenibilidad y calidad comercial en el frontend.
+This document establishes the official architectural standards, technical conventions, typing policies, and user interface guidelines for developing the **MultiSport** client web application using **React 18+, Vite, TypeScript, Tailwind CSS, shadcn/ui, and TanStack Query**. Compliance with these rules is mandatory to guarantee consistency, maintainability, and commercial-grade quality.
 
 ---
 
-## 1. Arquitectura: Feature-Driven Structure
+## 1. Architecture: Feature-Driven Structure
 
-El proyecto no agrupa archivos por tipos técnicos genéricos (`hooks/`, `views/`, `services/` globales). Se organiza por **módulos de negocio (Features)** dentro del directorio `src/features/`.
+The project does not organize files by generic technical folders (global `hooks/`, `views/`, `services/`). Code is organized around **business domains (Features)** inside `src/features/`.
 
-### Estructura de Directorios
+### Directory Structure
 ```text
 src/
-├── assets/                 # SVGs estáticos, logos e iconografía estática
-├── components/             # Componentes transversales compartidos
-│   ├── ui/                 # Primitivas shadcn/ui (Button, Dialog, Sheet, etc.)
-│   └── feedback/           # Skeletons genéricos, ErrorBoundaries
-├── features/               # Dominios funcionales del sistema
+├── assets/                 # Static SVGs, logos, static assets
+├── components/             # Shared cross-cutting components
+│   ├── ui/                 # shadcn/ui primitives (Button, Dialog, Sheet, etc.)
+│   └── feedback/           # Generic Skeletons, ErrorBoundaries
+├── features/               # Functional business modules
 │   ├── auth/
-│   │   ├── api/            # Login, refresh token, sesión
+│   │   ├── api/            # Login, token refresh, session requests
 │   │   ├── components/     # LoginForm, ProtectedRoute
 │   │   └── types/          # AuthCredentials, UserSession
 │   ├── courts/
-│   │   ├── api/            # Hooks de React Query (useCourts, useCourtMutations)
+│   │   ├── api/            # React Query hooks (useCourts, useCourtMutations)
 │   │   ├── components/     # CourtCard, CourtFormModal, SportBadge
-│   │   ├── types/          # Interfaces TypeScript del módulo
-│   │   └── index.ts        # Barril público de exportación
+│   │   ├── types/          # Feature TypeScript interfaces
+│   │   └── index.ts        # Public module barrel export
 │   ├── bookings/
 │   │   ├── api/
 │   │   ├── components/     # BookingCalendarGrid, BookingDetailSheet, PaymentForm
@@ -33,23 +33,23 @@ src/
 │       ├── api/
 │       ├── components/     # TournamentBracket, StandingsTable, FixtureList
 │       └── types/
-├── hooks/                  # Hooks globales no atados a una feature (useDebounce, useMediaQuery)
-├── lib/                    # Configuración de librerías externas (axios.ts, utils.ts)
-├── routes/                 # Árbol de enrutamiento con react-router-dom
+├── hooks/                  # Global hooks not tied to a single feature (useDebounce, useMediaQuery)
+├── lib/                    # External library configs (axios.ts, utils.ts for cn())
+├── routes/                 # Routing tree with react-router-dom
 └── App.tsx
 ```
 
-### Reglas de Aislamiento
+### Isolation Rules
 
-* **Autocontención:** Componentes específicos de un dominio (ej. `TournamentBracket`) deben residir exclusivamente en `features/tournaments/components/`.
-* **Barriles de exportación (`index.ts`):** Una feature expone al resto de la aplicación únicamente lo indispensable mediante su archivo `index.ts`. No se permiten importaciones que naveguen por la estructura interna de otra feature.
+* **Self-containment:** Domain-specific components (e.g., `TournamentBracket`) must reside exclusively inside `features/tournaments/components/`.
+* **Barrel Exports (`index.ts`):** A feature only exposes public contracts and entry points through its `index.ts`. Deep imports navigating the internal structure of another feature are forbidden.
 
 ---
 
-## 2. Tipado Estricto con TypeScript
+## 2. Strict Typing with TypeScript
 
-* **Prohibición de `any` y `unknown` no validado:** Queda terminantemente prohibido el uso del tipo `any`.
-* **Espejo estricto de DTOs del Backend:** Los modelos de respuesta y petición deben coincidir exactamente con los contratos C# de la API, utilizando `camelCase`:
+* **Zero `any` and Unguarded `unknown`:** The use of `any` is strictly prohibited.
+* **1:1 Mirror of Backend DTOs:** Request and response models must match the C# API contracts exactly, using JavaScript-standard `camelCase`:
 
 ```typescript
 export interface CourtResponse {
@@ -59,7 +59,7 @@ export interface CourtResponse {
   hasLighting: boolean;
   hourlyRate: number;
   isActive: boolean;
-  createdAt: string; // Formato ISO 8601 UTC
+  createdAt: string; // ISO 8601 UTC string
 }
 
 export interface CreateBookingPayload {
@@ -72,26 +72,26 @@ export interface CreateBookingPayload {
 }
 ```
 
-* **Manejo de Fechas y Zonas Horarias:** Todas las marcas temporales se reciben y envían a la API en formato UTC (`ISO 8601`). La conversión a hora local se resuelve exclusivamente en la vista mediante helpers de formateo (ej. `date-fns`).
+* **Date & Timezone Handling:** All timestamps are sent and received in UTC (`ISO 8601`). Conversion to the user's local timezone occurs strictly in the presentation layer using utility helpers (e.g., `date-fns`).
 
 ---
 
-## 3. Manejo de Estado del Servidor con TanStack Query
+## 3. Server State Management with TanStack Query
 
-Queda prohibido utilizar la combinación `useEffect` + `useState` para obtener y sincronizar datos del backend.
+Using `useEffect` + `useState` to fetch and synchronize server data is strictly prohibited.
 
-* **Consultas (`useQuery`):** Se encapsulan en custom hooks con claves descriptivas e inmutables:
+* **Queries (`useQuery`):** Encapsulated into dedicated custom hooks with descriptive, immutable query keys:
 ```typescript
 export const useCourts = () => {
   return useQuery({
     queryKey: ['courts'],
     queryFn: courtsApi.getAll,
-    staleTime: 1000 * 60 * 5, // 5 minutos de validez en caché
+    staleTime: 1000 * 60 * 5, // 5 minutes cache validity
   });
 };
 ```
 
-* **Mutaciones e Invalidación (`useMutation`):** Toda acción de escritura (`POST`, `PUT`, `DELETE`) debe invalidar las consultas afectadas para mantener la UI sincronizada:
+* **Mutations & Invalidation (`useMutation`):** Write operations (`POST`, `PUT`, `DELETE`) must invalidate related queries on success to keep UI state automatically synchronized:
 ```typescript
 export const useCreateCourt = () => {
   const queryClient = useQueryClient();
@@ -105,40 +105,38 @@ export const useCreateCourt = () => {
 };
 ```
 
-* **Renderizado condicional semántico:** Utilizar las propiedades nativas `isLoading`, `isPending`, `isError` y `error` para renderizar esqueletos de carga y estados vacíos o de fallo.
+* **Semantic Conditional Rendering:** Leverage native flags (`isLoading`, `isPending`, `isError`, `error`) to render animated skeletons and error/empty states cleanly.
 
 ---
 
-## 4. Cliente HTTP Centralizado con Axios
+## 4. Centralized HTTP Client with Axios
 
-Toda llamada externa se realiza a través de la instancia compartida en `src/lib/axios.ts`:
+All remote API calls must go through the shared instance configured in `src/lib/axios.ts`:
 
-* **Inyección de JWT (Request Interceptor):** Configurar `withCredentials: true` para permitir el transporte seguro de cookies de sesión/refresh token (`SameSite=Strict`, `HttpOnly`), y adjuntar el header `Authorization: Bearer <token>` cuando se use el token de acceso en memoria.
-* **Manejo de Errores RFC 7807 (Response Interceptor):**
-  * `401 Unauthorized`: Limpia la sesión en memoria y redirige a la pantalla de login (o intenta renovar credenciales mediante endpoint de refresh).
-  * `409 Conflict`: Extrae y muestra el mensaje del `ProblemDetails` devuelto por el backend (ej. superposición de turnos).
-  * `400 Bad Request`: Procesa el objeto de errores de validación de FluentValidation para mostrarlo en los formularios.
-
----
-
-## 5. UI, Componentes y Estándares Visuales
-
-* **Cero Emojis:** Queda prohibido el uso de emojis en botones, títulos, insignias o tarjetas.
-* **Iconografía Profesional:** Toda iconografía debe implementarse mediante **Lucide React**, estandarizando el trazo (`strokeWidth={1.75}` o `2`) y tamaños proporcionales (`size={16}` para botones, `size={20}` para navegación).
-* **shadcn/ui y Utilidad `cn()`:**
-  * Los componentes se agregan mediante CLI en `src/components/ui/`.
-  * La composición de estilos condicionales debe realizarse obligatoriamente con la función helper `cn(...)` (`clsx` + `tailwind-merge`).
-
-* **Micro-interacciones y Animación:**
-  * Emplear **Framer Motion** para transiciones fluidas en modales, despliegue de paneles laterales (*Sheets*) y animación de llaves en los cuadros de torneos.
-  * Implementar **Sonner** para toasts de confirmación, advertencia y fallo de red.
-
-* **Skeletons obligatorios:** Tablas, calendarios y tarjetas deben implementar componentes `<Skeleton />` animados durante los tiempos de carga; no utilizar spinners aislados en pantalla completa.
+* **JWT & Credentials (Request Interceptor):** Configure `withCredentials: true` to support safe transport of `HttpOnly; SameSite=Strict` session/refresh cookies, and automatically attach the `Authorization: Bearer <token>` header when an in-memory access token is present.
+* **RFC 7807 Error Handling (Response Interceptor):**
+  * `401 Unauthorized`: Clear in-memory state and trigger login redirection (or initiate a token refresh request).
+  * `409 Conflict`: Extract and display the `ProblemDetails` collision message (e.g., booking slot overlap).
+  * `400 Bad Request`: Parse the FluentValidation error dictionary to provide direct feedback on forms.
 
 ---
 
-## 6. Variables de Entorno
+## 5. UI, Components & Visual Standards
 
-* Las variables de entorno para el cliente deben comenzar con el prefijo `VITE_` (ejemplo: `VITE_API_BASE_URL`).
-* Debe mantenerse un archivo `.env.example` versionado en el repositorio con las claves requeridas sin valores sensibles.
-* El archivo `.env.local` debe estar estrictamente ignorado por Git en el `.gitignore`.
+* **Zero Emojis:** Using emojis in buttons, titles, badges, or cards is prohibited.
+* **Professional Iconography:** All icons must be implemented using **Lucide React**, with consistent stroke width (`strokeWidth={1.75}` or `2`) and proportional sizing (`size={16}` for buttons, `size={20}` for navigation).
+* **shadcn/ui & the `cn()` Utility:**
+  * Components are installed via CLI into `src/components/ui/`.
+  * Conditional styling composition must exclusively use the `cn(...)` helper (`clsx` + `tailwind-merge`).
+* **Micro-interactions & Animation:**
+  * Use **Framer Motion** for smooth transitions in modals, side panels (*Sheets*), and tournament bracket progressions.
+  * Use **Sonner** for confirmation, warning, and network error toasts.
+* **Mandatory Skeletons:** Tables, calendars, and cards must display animated `<Skeleton />` placeholders during data loading; full-screen isolated spinners are prohibited.
+
+---
+
+## 6. Environment Variables & Secrets
+
+* Client environment variables must use the `VITE_` prefix (e.g., `VITE_API_BASE_URL`).
+* An `.env.example` file must be maintained and tracked in Git as a template with dummy keys.
+* `.env.local` must remain strictly gitignored to prevent leaking local ports or sensitive endpoints.

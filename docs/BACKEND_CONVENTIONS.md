@@ -1,49 +1,49 @@
-# Directrices y Estándares de Ingeniería Backend (.NET 8)
+# Backend Engineering Guidelines & Standards (.NET 8)
 
-Este documento define la arquitectura, convenciones técnicas y políticas de desarrollo para la API del sistema **MultiSport**. El objetivo es garantizar un código performante, libre de acoplamientos innecesarios, seguro y preparado para estándares comerciales.
+This document establishes the official architectural standards, technical conventions, and development guidelines for the **MultiSport** backend API built on **.NET 8** with **Minimal APIs, Dapper, PostgreSQL, FluentValidation, and FluentMigrator**. The goal is to guarantee performant, decoupled, secure, and production-ready code.
 
 ---
 
-## 1. Arquitectura: Vertical Slice Architecture
+## 1. Architecture: Vertical Slice Architecture
 
-El proyecto no utiliza la arquitectura tradicional en capas horizontales (`Controllers`, `Services`, `Repositories` globales). Se estructura en torno a **capacidades de negocio (Features)** dentro de `MultiSport.Api/Features/`.
+The project does not use traditional horizontal technical layers (global `Controllers/`, `Services/`, `Repositories/`). Code is organized around **business capabilities (Features)** inside `src/MultiSport.Api/Features/`.
 
-### Estructura de un Módulo
-Cada funcionalidad debe estar autocontenida:
+### Module Structure
+Each feature must be self-contained:
 
 ```text
 Features/
 └── Bookings/
-    ├── BookingsEndpoints.cs      # Mapeo de rutas Minimal API
-    ├── CreateBookingRequest.cs   # DTO de entrada (record)
-    ├── BookingResponse.cs        # DTO de salida (record)
-    ├── CreateBookingValidator.cs # FluentValidation
-    ├── IBookingRepository.cs     # Contrato Dapper de la feature
-    ├── BookingRepository.cs      # Consultas SQL con Dapper
-    └── Booking.cs                # Modelo de dominio de la feature
+    ├── BookingsEndpoints.cs      # Minimal API route definitions
+    ├── CreateBookingRequest.cs   # Input DTO (sealed record)
+    ├── BookingResponse.cs        # Output DTO (sealed record)
+    ├── CreateBookingValidator.cs # FluentValidation rules
+    ├── IBookingRepository.cs     # Feature Dapper repository contract
+    ├── BookingRepository.cs      # Dapper SQL persistence
+    └── Booking.cs                # Feature domain entity
 ```
 
-### Reglas de la Arquitectura
+### Architectural Rules
 
-* **Aislamiento:** Una feature no debe depender directamente de los repositorios internos de otra. Si se requiere compartir lógica cross-cutting (autenticación, extensiones, manejo de excepciones), esta debe residir en `Common/`.
-* **Zero AutoMapper:** Queda prohibido el uso de AutoMapper u otras librerías basadas en reflexión. Los mapeos se resuelven de forma explícita mediante constructores tipados, métodos de extensión (`ToResponse()`) o funciones puras estáticas para maximizar rendimiento y detectar fallos en compilación.
+* **Isolation:** A feature must not depend directly on internal repositories of another feature. Shared cross-cutting concerns (authentication, extension methods, error handling) must reside in `Common/`.
+* **Zero AutoMapper:** Using AutoMapper or reflection-based object mappers is strictly forbidden. Mappings must be resolved explicitly using typed constructors, extension methods (`court.ToResponse()`), or pure static functions to maximize throughput and catch errors at compile-time.
 
 ---
 
-## 2. Minimal APIs y Contratos HTTP
+## 2. Minimal APIs & HTTP Contracts
 
-### Agrupación y Documentación
+### Grouping & Documentation
 
-* Cada módulo registra sus endpoints extendiendo `IEndpointRouteBuilder` mediante métodos de extensión (por ejemplo, `app.MapBookingEndpoints()`).
-* Se debe usar `MapGroup` con versionado y etiquetas de Swagger:
+* Each feature registers its endpoints by extending `IEndpointRouteBuilder` through extension methods (e.g., `app.MapBookingEndpoints()`).
+* Endpoints must be grouped with versioning and Swagger tags:
 ```csharp
 var group = app.MapGroup("/api/v1/bookings")
                .WithTags("Bookings");
 ```
 
-### Tipado Estricto de Respuestas (`TypedResults`)
+### Strictly Typed Responses (`TypedResults`)
 
-* Prohibido retornar `Results.Ok(...)` sin tipar. Siempre se debe utilizar `TypedResults` y la firma explícita `Results<T1, T2, ...>` para que OpenAPI/Swagger documente con exactitud los códigos HTTP y los esquemas JSON devueltos:
+* Returning untyped `Results.Ok(...)` is prohibited. Always use `TypedResults` and explicit `Results<T1, T2, ...>` signatures so OpenAPI/Swagger generates accurate HTTP status codes and response schemas:
 ```csharp
 public static async Task<Results<Ok<BookingResponse>, NotFound, Conflict<ProblemDetails>>> GetById(
     Guid id, 
@@ -51,13 +51,13 @@ public static async Task<Results<Ok<BookingResponse>, NotFound, Conflict<Problem
     CancellationToken ct)
 ```
 
-### Cancelación Cooperativa (`CancellationToken`)
+### Cooperative Cancellation (`CancellationToken`)
 
-* Todo endpoint asíncrono y todo método de persistencia **debe recibir un `CancellationToken`** y pasarlo a las llamadas asíncronas de Dapper y ASP.NET. Si la petición es cancelada por el cliente, la consulta a PostgreSQL se aborta de inmediato liberando la conexión.
+* Every asynchronous endpoint and repository method **must accept a `CancellationToken`** and forward it to Dapper and ASP.NET async calls. If a client aborts the request, the PostgreSQL query is canceled immediately, freeing database resources.
 
-### Inmutabilidad en DTOs
+### Immutable DTOs
 
-* Todo contrato de entrada y salida debe definirse como un `record`:
+* All input and output contracts must be defined as immutable `record` types:
 ```csharp
 public sealed record CreateBookingRequest(
     Guid CourtId,
@@ -71,84 +71,84 @@ public sealed record CreateBookingRequest(
 
 ---
 
-## 3. Acceso a Datos con Dapper y PostgreSQL
+## 3. Data Access with Dapper & PostgreSQL
 
-### Ciclo de Vida de las Conexiones
+### Connection Lifetime
 
-* **Efímeras y seguras:** Las conexiones no se mantienen abiertas más tiempo del necesario. Se inyecta una fábrica `NpgsqlDataSource` o `IDbConnectionFactory` con ciclo de vida `Scoped`.
-* Se debe utilizar siempre `await using` sobre la conexión y las transacciones:
+* **Ephemeral & Scoped:** Connections must not remain open longer than necessary. Inject a connection factory `NpgsqlDataSource` or `IDbConnectionFactory` with a `Scoped` lifetime.
+* Always wrap connections and transactions in `await using`:
 ```csharp
 await using var connection = await connectionFactory.CreateConnectionAsync(ct);
 ```
 
-### Parámetros Estrictos y Cero Inyección SQL
+### Strict Parameterization & Zero SQL Injection
 
-* Queda terminantemente prohibida la concatenación o interpolación de variables directas en strings SQL (`$"SELECT ... WHERE id = '{id}'"`).
-* Toda consulta debe parametrizarse mediante `CommandDefinition` o tipos anónimos de Dapper:
+* String concatenation or interpolation in SQL queries (`$"SELECT ... WHERE id = '{id}'"`) is strictly forbidden.
+* All queries must be parameterized via `CommandDefinition` or Dapper anonymous objects:
 ```csharp
 var command = new CommandDefinition(sql, new { CourtId = courtId }, cancellationToken: ct);
 return await connection.QueryFirstOrDefaultAsync<CourtResponse>(command);
 ```
 
-### Mapeo Snake Case
+### Snake Case Mapping
 
-* Dapper se configura globalmente al inicio de la aplicación en `Program.cs` para enlazar columnas `snake_case` de la base de datos con propiedades `PascalCase` de C# sin necesidad de escribir alias SQL manuales:
+* Configure Dapper globally in `Program.cs` to match snake_case database columns with PascalCase C# properties without requiring manual SQL aliases:
 ```csharp
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 ```
 
-### Concurrencia y Transacciones
+### Concurrency & Transactions
 
-* Operaciones atómicas que afecten a dos o más tablas deben encapsularse en una transacción explícita:
+* Atomic operations affecting two or more tables must be encapsulated in an explicit transaction:
 ```csharp
 await using var tx = await connection.BeginTransactionAsync(ct);
-// Operaciones SQL asociadas a 'tx'
+// Dapper operations executed within 'tx'...
 await tx.CommitAsync(ct);
 ```
 
-* El solapamiento de turnos se previene a nivel de base de datos mediante la constraint de exclusión `exc_bookings_no_overlap`. La capa de repositorio no debe implementar cerrojos artificiales lentos.
+* Booking schedule overlaps are prevented at the database engine level via the GiST exclusion constraint `exc_bookings_no_overlap`. The repository layer must not implement artificial, slow table locks.
 
 ---
 
-## 4. Validación de Entrada (FluentValidation)
+## 4. Input Validation (FluentValidation)
 
-* Toda clase request debe contar con su correspondiente `AbstractValidator<T>`.
-* La validación debe evaluarse antes de ingresar a la lógica del dominio o repositorio. Si falla, el pipeline responde inmediatamente con `TypedResults.ValidationProblem(result.ToDictionary())` (`HTTP 400`).
-* No mezclar validaciones de formato (FluentValidation) con lógica de persistencia que requiera llamadas asíncronas pesadas; estas últimas se verifican dentro de la feature correspondiente.
-
----
-
-## 5. Manejo Global de Excepciones (`IExceptionHandler`)
-
-* Queda prohibido el uso indiscriminado de bloques `try / catch` vacíos o con respuestas HTTP manuales en cada endpoint.
-* Todo error no controlado es interceptado por un manejador global que implementa `Microsoft.AspNetCore.Diagnostics.IExceptionHandler` configurado bajo el estándar **RFC 7807 (`ProblemDetails`)**:
-
-| Tipo de Excepción | Código HTTP | Detalle del ProblemDetails |
-| --- | --- | --- |
-| `ValidationException` | `400 Bad Request` | Lista de campos no conformes |
-| `KeyNotFoundException` | `404 Not Found` | Entidad o recurso inexistente |
-| `PostgresException` (código `23P01` exclusion_violation) | `409 Conflict` | El turno colisiona con una reserva activa |
-| `PostgresException` (código `23505` unique_violation) | `409 Conflict` | Registro duplicado en la base de datos |
-| `UnauthorizedAccessException` | `401 Unauthorized` | Credenciales no válidas o ausentes |
-| Cualquier otra no contemplada | `500 Internal Server Error` | Mensaje genérico en prod; detalles solo en Dev |
+* Every request DTO must have an associated `AbstractValidator<T>`.
+* Validation must be executed before entering domain or persistence logic. On failure, the pipeline must immediately return `TypedResults.ValidationProblem(result.ToDictionary())` (`HTTP 400`).
+* Do not mix format/contract validations (FluentValidation) with heavy database checks; the latter belong in the feature handler or domain logic.
 
 ---
 
-## 6. Seguridad y Configuración
+## 5. Centralized Exception Handling (`IExceptionHandler`)
 
-* **Secretos:** Queda prohibido commitear contraseñas, connection strings o claves secretas en `appsettings.json`. En entorno de desarrollo se debe emplear `dotnet user-secrets`; en despliegues, variables de entorno.
-* **Tokens JWT:**
-  * Los endpoints protegidos deben requerir autenticación explícita (`.RequireAuthorization()`).
-  * La validación del token no debe admitir desfase temporal de reloj (`ClockSkew = TimeSpan.Zero`).
+* Using generic or empty `try/catch` blocks inside endpoints is prohibited.
+* All unhandled exceptions are intercepted by a global handler implementing `Microsoft.AspNetCore.Diagnostics.IExceptionHandler` returning standardized RFC 7807 `ProblemDetails`:
+
+| Exception Type | HTTP Status | ProblemDetails Details |
+| :--- | :--- | :--- |
+| `ValidationException` | `400 Bad Request` | List of non-compliant fields |
+| `KeyNotFoundException` | `404 Not Found` | Non-existent entity or resource |
+| `PostgresException` (code `23P01` exclusion_violation) | `409 Conflict` | Booking slot overlaps with an active booking |
+| `PostgresException` (code `23505` unique_violation) | `409 Conflict` | Duplicate record in database |
+| `UnauthorizedAccessException` | `401 Unauthorized` | Invalid or missing credentials |
+| Any other unhandled exception | `500 Internal Server Error` | Generic message in prod; stack trace only in dev |
 
 ---
 
-## 7. Versionado de Esquema con FluentMigrator
+## 6. Security & Configuration
 
-* Las migraciones residen exclusivamente en el proyecto `MultiSport.Database.Migrations`.
-* **Identificador de migración:** Se utiliza el formato temporal unívoco `YYYYMMDDHHMM` para prevenir colisiones entre ramas concurrentes:
+* **Secrets:** Committing database passwords, connection strings, or JWT keys in `appsettings.json` is strictly forbidden. Use `dotnet user-secrets` in local development and environment variables in Docker or production.
+* **JWT Tokens:**
+  * Protected endpoints must require authorization (`.RequireAuthorization()`).
+  * Token validation must enforce zero clock skew (`ClockSkew = TimeSpan.Zero`).
+
+---
+
+## 7. Schema Versioning with FluentMigrator
+
+* Migrations reside exclusively in the `MultiSport.Database.Migrations` project.
+* **Migration Identifier:** Use timestamp-based numbering `YYYYMMDDHHMM` to prevent collision across concurrent branches:
 ```csharp
-[Migration(202609281830)] // Año Mes Día Hora Minuto
+[Migration(202609281830)] // Year Month Day Hour Minute
 public class Migration_202609281830_CreateBookingsTable : Migration
 {
     public override void Up() { /* ... */ }
@@ -156,4 +156,4 @@ public class Migration_202609281830_CreateBookingsTable : Migration
 }
 ```
 
-* Todo cambio introducido mediante `Up()` debe tener su contraparte destructiva o reversiva en `Down()`.
+* Every schema modification introduced in `Up()` must have its clean reversible counterpart in `Down()`.

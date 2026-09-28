@@ -1,62 +1,62 @@
-# Estrategia de Pruebas Automatizadas y Calidad (Testing Strategy)
+# Automated Testing Strategy & Quality Assurance
 
-Este documento define las políticas de testing, alcance y estándares de validación para **MultiSport** en backend y frontend.
+This document establishes the testing policies, scope, and quality standards for **MultiSport** across both backend and frontend layers.
 
 ---
 
-## 1. Pirámide de Pruebas y Enfoque
+## 1. Testing Pyramid & Focus
 
-El objetivo del testing en MultiSport es proteger la integridad de los algoritmos de negocio críticos y validar el comportamiento ante concurrencia sin sobrecargar los tiempos de compilación ni generar tests frágiles.
+Testing in MultiSport aims to protect the integrity of critical algorithmic logic and validate concurrent behavior without bloating build times or creating brittle tests.
 
 ```text
        / \
-      / E2E \          (Mínimos flujos críticos)
+      / E2E \          (Minimal critical end-to-end flows)
      /-------\
-    /  Integ  \        (Testcontainers + PostgreSQL GiST)
+    /  Integ  \        (Testcontainers + PostgreSQL GiST concurrency)
    /-----------\
-  /   Unitarias \      (Algoritmos de torneos, señas, validadores)
+  /   Unit      \      (Tournament fixtures, deposit rules, validators)
  /---------------\
 ```
 
 ---
 
-## 2. Pruebas Unitarias Prioritarias (Backend - xUnit + FluentAssertions)
+## 2. Priority Unit Tests (Backend - xUnit + FluentAssertions)
 
-Las pruebas unitarias deben concentrarse en lógica pura y determinista:
+Unit tests must focus on pure, deterministic business logic:
 
-### 1. Algoritmos de Fixture de Torneos
-- **Round-Robin:** Validar que el algoritmo de rueda simple o ida y vuelta garantice que:
-  - Cada equipo juegue exactamente una vez contra cada rival (o dos en ida y vuelta).
-  - Los equipos descansen de manera equitativa si el número de participantes es impar.
-  - No existan cruces duplicados en la misma fecha o jornada.
-- **Playoffs:** Comprobar la correcta asignación de llaves, propagación de ganadores y cálculo de posiciones/diferencia de gol.
+### 1. Tournament Fixture Algorithms
+- **Round-Robin:** Verify that single and double round-robin algorithms guarantee that:
+  - Every team plays against each opponent exactly once (or twice in double round-robin).
+  - Teams receive fair bye distributions when the number of participants is odd.
+  - No duplicate match pairings occur within the same round or match day.
+- **Playoffs:** Verify accurate bracket pairing, winner propagation, and standings computation (points, goal difference, head-to-head tiebreakers).
 
-### 2. Reglas de Cancelación y Retención de Seña
-- Probar que la política de cancelación deduzca o retenga la seña de forma exacta según la antelación:
-  - Cancelación con más de $X$ horas $\rightarrow$ Reembolso o crédito según regla.
-  - Cancelación tardía $\rightarrow$ Retención total de la seña.
+### 2. Cancellation & Deposit Retention Rules
+- Verify that cancellation rules accurately deduct or retain deposits according to notice time:
+  - Cancellation with more than $X$ hours notice $\rightarrow$ Full or partial refund/credit.
+  - Late cancellation $\rightarrow$ 100% deposit forfeiture.
 
-### 3. Validadores de FluentValidation
-- Pruebas unitarias directas sobre `AbstractValidator<T>`:
-  - Fechas válidas (`end_time_utc > start_time_utc`).
-  - Precios y depósitos no negativos (`total_price >= 0`, `deposit_amount >= 0`).
-  - Formato y longitud de nombres, teléfonos y emails.
-
----
-
-## 3. Pruebas de Integración con Base de Datos
-
-### Concurrencia y Restricciones de Exclusión GiST
-La integridad de los turnos no se delega a validaciones en memoria sino al motor PostgreSQL.
-
-- **Stack:** Uso de **Testcontainers for .NET** para levantar una instancia real de PostgreSQL con la extensión `btree_gist`.
-- **Caso Crítico:** Ejecutar dos inserciones asíncronas concurrentes para la misma cancha (`court_id`) con rangos horarios superpuestos (`tstzrange`).
-- **Aserción:** Verificar que la segunda inserción lance `PostgresException` con código `23P01` (`exclusion_violation`) y sea mapeada a `HTTP 409 Conflict`.
+### 3. FluentValidation Contract Validators
+- Unit test `AbstractValidator<T>` implementations directly:
+  - Valid date ranges (`end_time_utc > start_time_utc`).
+  - Non-negative amounts (`total_price >= 0`, `deposit_amount >= 0`).
+  - Required formats, regexes, and character limits for customer details.
 
 ---
 
-## 4. Pruebas de Frontend (Vitest + Testing Library)
+## 3. Database Integration Testing (Testcontainers)
 
-- **Helpers y Formateadores:** Pruebas unitarias exhaustivas sobre funciones de conversión de marcas temporales UTC (`ISO 8601`) a formatos locales.
-- **Formularios y Validaciones:** Comprobación del renderizado de errores devueltos por la API (`ProblemDetails` con código 400).
-- **Custom Hooks:** Validar que los hooks de TanStack Query ejecuten las invalidaciones de caché esperadas tras mutaciones exitosas.
+### Concurrency & GiST Exclusion Constraints
+Booking schedule integrity must not rely on fragile in-memory locks; it is enforced directly by PostgreSQL.
+
+- **Stack:** Use **Testcontainers for .NET** to spin up an authentic PostgreSQL instance with the `btree_gist` extension enabled.
+- **Critical Test Case:** Execute two concurrent asynchronous inserts targeting the same court (`court_id`) with overlapping time ranges (`tstzrange`).
+- **Assertion:** Ensure that the second insert throws a `PostgresException` with error code `23P01` (`exclusion_violation`) and is cleanly mapped to `HTTP 409 Conflict`.
+
+---
+
+## 4. Frontend Testing (Vitest + Testing Library)
+
+- **Utility Helpers & Formatters:** Unit tests for conversion between UTC ISO 8601 timestamps and local presentation timezones.
+- **Form Validation & Error Rendering:** Verification of form feedback when the backend returns RFC 7807 `ProblemDetails` (HTTP 400).
+- **Custom React Query Hooks:** Verify that TanStack Query hooks trigger the expected cache invalidations upon successful mutations.

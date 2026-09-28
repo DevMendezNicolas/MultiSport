@@ -1,48 +1,48 @@
-# Seguridad, Gestión de Secretos y Variables de Entorno
+# Security, Secrets Management & Environment Variables
 
-Este documento define la política de manejo de credenciales, configuración y variables de entorno para **MultiSport**.
-
----
-
-## 1. Regla de Oro (Zero Secrets in Git)
-
-Queda estrictamente prohibido versionar credenciales reales, contraseñas de base de datos o claves criptográficas en el repositorio Git.
-
-- Únicamente se versionan archivos de plantilla con valores dummy:
-  - `appsettings.example.json` (o sección de ejemplo en la documentación).
-  - `.env.example` en la raíz del cliente web.
-- Archivos como `.env`, `.env.local` y configuraciones con credenciales locales deben figurar en el `.gitignore`.
+This document establishes the official policy for credentials management, configuration, and environment variables across **MultiSport**.
 
 ---
 
-## 2. Mapa de Variables y Secretos por Entorno
+## 1. Golden Rule (Zero Secrets in Git)
 
-| Variable / Secreto | Entorno Local (Desarrollo) | Entorno Producción / Docker |
+Committing real credentials, database passwords, API keys, or private cryptographic secrets to Git is strictly forbidden.
+
+- Only template files with dummy/placeholder values may be tracked:
+  - `appsettings.example.json` (or sample configurations in documentation).
+  - `.env.example` in the client root.
+- Files containing real local values (`.env`, `.env.local`, `appsettings.Development.json` with sensitive data) must be strictly gitignored.
+
+---
+
+## 2. Environment Variables & Secrets Mapping
+
+| Variable / Secret | Local Environment (Dev) | Production / Docker Environment |
 | :--- | :--- | :--- |
-| **Connection String BD** | `appsettings.Development.json` o `dotnet user-secrets` | Variable de entorno (`ConnectionStrings__DefaultConnection`) |
-| **JWT Secret Key** | `dotnet user-secrets` (mínimo 32 caracteres / 256 bits) | Variable de entorno (`Jwt__Key`) |
-| **JWT Issuer / Audience** | `appsettings.Development.json` | Variable de entorno (`Jwt__Issuer`, `Jwt__Audience`) |
-| **Frontend API URL** | `.env.local` (`VITE_API_URL=http://localhost:5000`) | Inyectado en el build de Vite / contenedor Docker |
+| **Database Connection String** | `appsettings.Development.json` or `dotnet user-secrets` | Environment variable (`ConnectionStrings__DefaultConnection`) |
+| **JWT Secret Key** | `dotnet user-secrets` (minimum 32 characters / 256 bits) | Environment variable (`Jwt__Key`) |
+| **JWT Issuer / Audience** | `appsettings.Development.json` | Environment variable (`Jwt__Issuer`, `Jwt__Audience`) |
+| **Frontend API URL** | `.env.local` (`VITE_API_URL=http://localhost:5000`) | Injected during Vite build / Docker container config |
 
 ---
 
-## 3. Uso de `dotnet user-secrets` en Desarrollo Local
+## 3. Local Development with `dotnet user-secrets`
 
-Para evitar modificar accidentalmente `appsettings.json`, inicializar y registrar los secretos en el proyecto de la API:
+To avoid accidental edits or commits to `appsettings.json`, initialize and register secrets inside the API project:
 
 ```bash
 cd src/MultiSport.Api
 dotnet user-secrets init
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=multisport_dev;Username=postgres;Password=tu_password_local"
-dotnet user-secrets set "Jwt:Key" "ClaveSuperSecretaDeAlMenos32CaracteresDeLargo!"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=multisport_dev;Username=postgres;Password=your_local_password"
+dotnet user-secrets set "Jwt:Key" "SuperSecretKeyWithAtLeast32CharactersLength!"
 dotnet user-secrets set "Jwt:Issuer" "MultiSportApi"
 dotnet user-secrets set "Jwt:Audience" "MultiSportClient"
 ```
 
 ---
 
-## 4. Parámetros Criptográficos para JWT
+## 4. Cryptographic Settings for JWT
 
-Al registrar la autenticación en `Program.cs`:
-- La clave debe contar con una entropía de al menos 256 bits (32 caracteres).
-- Debe configurarse `ClockSkew = TimeSpan.Zero` para evitar que un token expirado siga siendo aceptado durante la ventana de gracia predeterminada de 5 minutos.
+When configuring JWT bearer authentication in `Program.cs`:
+- Symmetric signing keys must have an entropy of at least 256 bits (32 characters).
+- Always configure `ClockSkew = TimeSpan.Zero` to prevent expired tokens from being honored during the default 5-minute grace period.
