@@ -56,3 +56,10 @@ feat(turnos): agregar validacion para retencion automatica de seña
 fix(torneos): corregir calculo de diferencia de gol en fase de grupos
 refactor(canchas): simplificar queries de seleccion con dapper
 chore(deps): actualizar fluentmigrator a la ultima version estable
+```
+
+---
+
+## 6. Estándares de Base de Datos
+
+Todo diseño de tablas, índices, constraints y migraciones con FluentMigrator debe alinearse de forma estricta con las [Convenciones de Base de Datos](docs/DATABASE_CONVENTIONS.md).
