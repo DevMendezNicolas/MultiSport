@@ -79,19 +79,22 @@ La solución está desacoplada en proyectos modulares, organizando la API bajo e
 ```text
 MultiSport/
 ├── src/
-│   ├── MultiSport.Api/                  # Host web y Minimal APIs
+│   ├── MultiSport.Api/                  # Host web y Minimal APIs (.NET 8)
 │   │   ├── Common/                      # Middlewares, IExceptionHandler, Helpers
-│   │   └── Features/
-│   │       ├── Auth/                    # Generación y validación de tokens JWT
-│   │       ├── Canchas/                 # Endpoints, Models, Dapper Repositories y Services
-│   │       ├── Turnos/                  # Validaciones de solapamiento, señas y agenda
-│   │       ├── Eventos/                 # Bloqueo de turnos para cumpleaños y jornadas
-│   │       └── Torneos/                 # Lógica de sorteos, tablas y llaves de playoffs
+│   │   └── Features/                    # Vertical Slice Architecture (100% en inglés)
+│   │       ├── Auth/                    # Autenticación, generación y validación de tokens JWT
+│   │       ├── Courts/                  # Canchas: endpoints, models, Dapper repositories
+│   │       ├── Bookings/                # Turnos: validaciones de solapamiento GiST, señas y agenda
+│   │       ├── Events/                  # Bloqueo de turnos para cumpleaños y eventos sociales
+│   │       └── Tournaments/             # Sorteos algorítmicos, tablas de posiciones y playoffs
 │   ├── MultiSport.Database.Migrations/  # Proyecto ClassLib con migraciones de FluentMigrator
-│   └── client/                          # SPA en React + Vite + TypeScript
+│   └── client/                          # SPA en React 18+ Vite + TypeScript
 │       ├── src/
-│       │   ├── components/ui/           # Componentes base shadcn/ui
-│       │   ├── features/                # Vistas y hooks por módulo (turnos, torneos)
-│       │   ├── services/                # Clientes Axios y tipado TS de la API
+│       │   ├── components/              # Primitivas shadcn/ui y feedback global
+│       │   ├── features/                # Módulos de negocio (api, components, types, index.ts)
+│       │   ├── hooks/                   # Hooks transversales de UI
+│       │   ├── lib/                     # Cliente Axios centralizado y utilidades cn()
 │       │   └── routes/                  # Enrutamiento protegido de la aplicación
+│       └── package.json
 └── docker-compose.yml                   # Contenedor para instancia local de PostgreSQL
+```
