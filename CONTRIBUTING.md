@@ -86,4 +86,4 @@ El código crítico (algoritmos de fixture de torneos, penalización de señas, 
 
 ## 8. Seguridad y Gestión de Secretos
 
-Prohibido almacenar credenciales o contraseñas en Git. El flujo de variables de entorno y secretos se detalla en [Seguridad y Secretos](docs/SECURITY_AND_SECRETS.md).
+Prohibido almacenar credenciales o contraseñas en Git. El flujo de variables de entorno, dotnet user-secrets y políticas criptográficas se detallan en [Seguridad y Secretos](docs/SECURITY_AND_SECRETS.md) y en las [Políticas de Seguridad y Criptografía](docs/SECURITY_POLICIES.md).

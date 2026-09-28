@@ -68,3 +68,13 @@ This repository contains strict architectural and stylistic standards. All AI ag
 
 - Branch names: `<type>/<module>-<description>` (e.g., `feature/bookings-calendar-view`).
 - Commits: Conventional Commits in lowercase (e.g., `feat(bookings): implement overlap validation handler`).
+
+---
+
+## 7. Security & Cryptography Policies
+
+All code must adhere to cryptographic, authentication, and data protection standards defined in `docs/SECURITY_POLICIES.md`:
+- Passwords: Hash exclusively using Argon2id or BCrypt (cost >= 12). Never project `password_hash` in DTOs.
+- Authentication: JWT with HS256 (>= 256 bits key) or RS256, short lifespan (15-60 min), `ClockSkew = TimeSpan.Zero`, and HttpOnly/Secure cookies where applicable.
+- Database: Strict parameterized queries (`CommandDefinition`), least privilege user (`multisport_app`), and encrypted transit (`SslMode=Require`).
+- HTTP Hardening: Restrictive CORS, security headers (`nosniff`, `DENY`), ASP.NET Rate Limiting on `/api/v1/auth/login`, and generic auth errors to prevent account enumeration.
