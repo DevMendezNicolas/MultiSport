@@ -113,9 +113,9 @@ export const useCreateCourt = () => {
 
 Toda llamada externa se realiza a través de la instancia compartida en `src/lib/axios.ts`:
 
-* **Inyección de JWT (Request Interceptor):** Adjunta de forma automática el header `Authorization: Bearer <token>` cuando existe un token almacenado.
+* **Inyección de JWT (Request Interceptor):** Configurar `withCredentials: true` para permitir el transporte seguro de cookies de sesión/refresh token (`SameSite=Strict`, `HttpOnly`), y adjuntar el header `Authorization: Bearer <token>` cuando se use el token de acceso en memoria.
 * **Manejo de Errores RFC 7807 (Response Interceptor):**
-  * `401 Unauthorized`: Limpia el token y fuerza la redirección al login.
+  * `401 Unauthorized`: Limpia la sesión en memoria y redirige a la pantalla de login (o intenta renovar credenciales mediante endpoint de refresh).
   * `409 Conflict`: Extrae y muestra el mensaje del `ProblemDetails` devuelto por el backend (ej. superposición de turnos).
   * `400 Bad Request`: Procesa el objeto de errores de validación de FluentValidation para mostrarlo en los formularios.
 
