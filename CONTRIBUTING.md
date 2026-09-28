@@ -87,3 +87,12 @@ Critical business logic (tournament fixture generation, cancellation deposit rul
 ## 8. Security & Secrets Management
 
 Committing credentials, connection strings, or private keys to Git is strictly forbidden. The flow for environment variables, `dotnet user-secrets`, and cryptographic policies is documented in [Security & Secrets](docs/SECURITY_AND_SECRETS.md) and [Security Policies](docs/SECURITY_POLICIES.md).
+
+---
+
+## 9. Continuous Integration & Automated Checks
+
+All Pull Requests targeting `develop` trigger automated CI checks via `.github/workflows/ci.yml`:
+1. **Backend:** Clean solution compilation (`dotnet build --configuration Release`) and unit tests execution (`dotnet test`).
+2. **Frontend:** TypeScript static typecheck (`npm run typecheck`) and ESLint linting (`npm run lint`).
+3. **Merge Requirement:** Passing all CI jobs is mandatory before code review and squash merging.

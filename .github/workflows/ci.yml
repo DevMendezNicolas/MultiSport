@@ -1,0 +1,62 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+
+jobs:
+  backend:
+    name: Backend Build & Test (.NET 8)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore
+        if: hashFiles('**/*.sln', '**/*.csproj') != ''
+
+      - name: Build Solution
+        run: dotnet build --no-restore --configuration Release
+        if: hashFiles('**/*.sln', '**/*.csproj') != ''
+
+      - name: Run Unit Tests
+        run: dotnet test --no-build --configuration Release --verbosity normal
+        if: hashFiles('**/*Tests.csproj') != ''
+
+  frontend:
+    name: Frontend Lint & Typecheck (React + TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Frontend Dependencies
+        working-directory: src/client
+        run: npm ci
+        if: hashFiles('src/client/package.json') != ''
+
+      - name: TypeScript Typecheck
+        working-directory: src/client
+        run: npm run typecheck
+        if: hashFiles('src/client/package.json') != ''
+
+      - name: Run Linter
+        working-directory: src/client
+        run: npm run lint
+        if: hashFiles('src/client/package.json') != ''

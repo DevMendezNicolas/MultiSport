@@ -27,10 +27,13 @@ This document establishes the official architectural standards and naming conven
   - Examples: `court_id`, `tournament_id`, `team_id`, `user_id`.
 - **Boolean Columns:** Must use state or modal prefixes (`is_`, `has_`, `can_`).
   - Examples: `is_active`, `is_paid`, `has_lighting`.
-- **Timestamps:** Suffix `_at` stored in UTC using `TIMESTAMPTZ`.
-  - `created_at`: Row creation timestamp.
-  - `updated_at`: Last modification timestamp.
-  - `deleted_at`: Soft-delete marker (`NULL` means active).
+- **Timestamps & Audit Columns:** All transactional tables (`courts`, `bookings`, `tournaments`) must include complete audit tracing:
+  - `created_at`: Row creation timestamp (`TIMESTAMPTZ` in UTC).
+  - `created_by`: User identifier who created the record (`UUID NULL`).
+  - `updated_at`: Last modification timestamp (`TIMESTAMPTZ` in UTC).
+  - `updated_by`: User identifier who modified the record (`UUID NULL`).
+  - `deleted_at`: Soft-delete marker (`TIMESTAMPTZ NULL`, `NULL` means active).
+  - `deleted_by`: User identifier who soft-deleted the record (`UUID NULL`).
 - **Date & Time Ranges:**
   - Date only: `booking_date`, `start_date`.
   - Timestamps with timezone: `start_time_utc`, `end_time_utc`.
@@ -96,8 +99,11 @@ CREATE TABLE bookings (
     start_time_utc TIMESTAMPTZ NOT NULL,
     end_time_utc TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NULL,
     deleted_at TIMESTAMPTZ NULL,
+    deleted_by UUID NULL,
 
     -- Constraints
     CONSTRAINT pk_bookings PRIMARY KEY (id),
@@ -118,3 +124,11 @@ CREATE INDEX idx_bookings_court_id ON bookings (court_id);
 CREATE INDEX idx_bookings_start_time_utc ON bookings (start_time_utc);
 CREATE INDEX idx_bookings_active ON bookings (court_id, start_time_utc) WHERE (deleted_at IS NULL);
 ```
+
+---
+
+## 7. Financial Ledger & Payment Immutability
+
+- **Append-Only Principle:** Records in payment, transaction, or invoice tables (`payments`, `booking_deposits`) must **NEVER be deleted** (neither physically nor via soft delete).
+- **Adjustments & Refunds:** If an error occurs in a transaction or a cancellation triggers a refund, it must be recorded as a new adjustment row with a negative amount (or dedicated refund record), ensuring full financial and accounting auditability.
+

@@ -157,3 +157,54 @@ public class Migration_202609281830_CreateBookingsTable : Migration
 ```
 
 * Every schema modification introduced in `Up()` must have its clean reversible counterpart in `Down()`.
+
+---
+
+## 8. Observability & Structured Logging
+
+Plain text logs (`Console.WriteLine`) are inadequate for diagnosing production issues:
+
+* **Structured Logging with Serilog:**
+  * Output logs in JSON format with indexable property keys (`CourtId`, `BookingId`, `UserId`, `ElapsedMilliseconds`).
+  * Never concatenate or interpolate strings in log messages (`logger.LogInformation($"Booking {id} created")` ❌). Use semantic templates:
+  ```csharp
+  logger.LogInformation("Booking created successfully. BookingId: {BookingId}, CourtId: {CourtId}", booking.Id, booking.CourtId);
+  ```
+* **Request Correlation (`X-Correlation-Id`):**
+  * Every incoming HTTP request must include or generate an `X-Correlation-Id`.
+  * Propagate this identifier through ASP.NET Core middleware into the Serilog `LogContext` and return it in the HTTP response header for unified end-to-end tracing.
+* **Sensitive Data Redaction:** Never log raw passwords, hashes, payment details, or JWT tokens.
+
+---
+
+## 9. API Versioning & Backward Compatibility
+
+* **URL Path Versioning:** Prefix all endpoints with `/api/v1/` (e.g., `/api/v1/bookings`) to allow future versions (`/api/v2/`) to coexist without breaking existing clients.
+* **Backward-Compatible Contracts:**
+  * Renaming or removing existing properties from response DTOs without a formal deprecation schedule is forbidden.
+  * New fields added to existing response records must be optional or strictly additive.
+
+---
+
+## 10. Pragmatic Code Quality & Warnings Management
+
+A balanced approach ensuring high software reliability without hindering development velocity:
+
+* **Nullable Reference Types Enabled (`<Nullable>enable</Nullable>`):**
+  * Static nullability analysis is active across all projects to prevent `NullReferenceException` at compile-time:
+  ```xml
+  <PropertyGroup>
+      <Nullable>enable</Nullable>
+  </PropertyGroup>
+  ```
+  * Enforce zero warnings as errors exclusively in `Release` builds:
+  ```xml
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+      <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  ```
+* **Critical Warnings in Code Review:**
+  * Review audits prioritize critical behavioral warnings (e.g., unawaited async calls `CS4014` or unsafe null-forgiving operator `!` usage).
+* **Repository Hygiene & Zero Dead Code:**
+  * Commented-out code blocks (`// old code`), abandoned experimental endpoints, and unused dependencies must be deleted before merging into `develop`.
+
