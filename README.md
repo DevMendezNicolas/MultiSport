@@ -1,74 +1,91 @@
-![.NET](https://img.shields.io/badge/.NET-C%23_Minimal_APIs-512BD4?style=flat&logo=dotnet)
-![React](https://img.shields.io/badge/Frontend-React-61DAFB?style=flat&logo=react)
-![Dapper](https://img.shields.io/badge/Data-Dapper-red?style=flat)
-![Database](https://img.shields.io/badge/Database-PostgreSQL_%7C_MySQL-336791?style=flat)
-![Auth](https://img.shields.io/badge/Security-JWT-black?style=flat&logo=jsonwebtokens)
+# MultiSport
+
+> Plataforma web para la gestión integral de canchas, control operativo de turnos y generación algorítmica de eventos y torneos en complejos deportivos.
+
+![.NET](https://img.shields.io/badge/.NET_8-C%23_Minimal_APIs-512BD4?style=flat&logo=dotnet)
+![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=flat&logo=postgresql)
+![Dapper](https://img.shields.io/badge/ORM-Dapper-red?style=flat)
+![React](https://img.shields.io/badge/Frontend-React_18_%2B_Vite-61DAFB?style=flat&logo=react)
+![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178C6?style=flat&logo=typescript)
+![JWT](https://img.shields.io/badge/Security-JWT-black?style=flat&logo=jsonwebtokens)
 
 ---
 
 ## 📌 Visión del Producto
 
-**MultiSport** es una plataforma web integral diseñada para digitalizar, optimizar y profesionalizar la operativa diaria de complejos deportivos. 
+**MultiSport** es una solución de software orientada a digitalizar, agilizar y profesionalizar la administración interna de complejos deportivos. 
 
-Si bien su desarrollo inicial se enmarca en la cátedra de **Algoritmos y Estructuras de Datos III**, el proyecto está concebido bajo estándares de ingeniería de software comercial con visión de producto productivo (*go-to-market*). Centraliza la administración de espacios físicos, la agenda de reservas y resuelve de forma algorítmica y automatizada la organización de eventos y torneos competitivos.
+Diseñado con un enfoque comercial (*product-ready*), el sistema resuelve el ciclo operativo diario de reservas, la administración de espacios físicos y aborda como núcleo algorítmico la generación, sorteo y gestión interactiva de fixtures, tablas y llaves de torneos.
 
 ---
 
-## 🚀 Módulos y Funcionalidades
+## 🚀 Módulos Funcionales
 
-### 🏟️ Gestión Dinámica de Espacios y Canchas
-- **Modelo flexible:** El complejo se inicializa en blanco, permitiendo parametrizar la infraestructura desde cero.
-- **Multidisciplina y uso compartido:** Configuración de canchas por disciplina (fútbol 5/7/11, pádel, tenis, básquet, etc.) con soporte para espacios híbridos que alternan diferentes deportes en una misma superficie.
-- **Tarifas y disponibilidad:** Definición de esquemas de precios, franjas horarias y reglas de uso.
+### 🏟️ Infraestructura y Canchas
+- **Modelo dinámico:** Inicialización en blanco con alta y parametrización de canchas según demanda.
+- **Multidisciplina:** Configuración de disciplinas (fútbol 5/7/11, pádel, tenis, básquet, etc.) y soporte para superficies compartidas entre distintos deportes.
+- **Políticas de disponibilidad:** Rangos operativos y esquemas tarifarios base.
 
 ### 📅 Control Operativo de Turnos
-- **Modalidades de reserva:** Coexistencia de turnos eventuales y reservas fijas semanales.
-- **Gestión financiera manual:** Registro administrativo de pagos y cobro de señas (efectivo, transferencias bancarias).
-- **Políticas de cancelación:** Control de penalidades mediante retención automática de seña.
-- **Prevención de colisiones:** Motor de validación horaria para asegurar solapamiento cero entre turnos, reservas fijas y eventos.
+- **Tipos de reserva:** Turnos eventuales y turnos fijos de frecuencia semanal.
+- **Gestión financiera manual:** Control administrativo de cobros y señas (efectivo, transferencias).
+- **Políticas de cancelación:** Penalización directa mediante retención de seña.
+- **Prevención de colisiones:** Control de concurrencia y solapamiento garantizado a nivel motor de base de datos (`Exclusion Constraints` en PostgreSQL).
+- **Borrado Lógico:** Soporte para auditoría mediante trazabilidad con `deleted_at`.
 
-### 🏆 Motor Algorítmico de Eventos y Torneos
-- **Eventos sociales y corporativos:** Bloqueo integral de canchas e instalaciones para cumpleaños, exhibiciones y jornadas recreativas.
-- **Formatos de competencia configurables:**
-  - **Liga (Round-Robin):** Todos contra todos a rueda simple o ida y vuelta.
-  - **Playoffs:** Cuadros de eliminación directa con generación de llaves jerárquicas.
-  - **Mixto:** Fase de grupos clasificatoria integrada a cuadro eliminatorio final.
-- **Automatización algorítmica:**
-  - Padrón de equipos, planteles y listas de buena fe.
-  - Generación y sorteo automatizado de fixtures con soporte para reordenamiento y ajustes manuales.
-  - Asignación flexible de cruces a turnos y canchas disponibles del complejo.
-  - Cómputo de resultados en tiempo real: cálculo dinámico de tablas de posiciones (puntos, diferencia de gol, criterios de desempate) y avance automático en cuadros eliminatorios.
+### 🏆 Motor de Torneos y Eventos
+- **Eventos sociales y corporativos:** Bloqueo de franjas y canchas para cumpleaños y eventos recreativos.
+- **Formatos de competencia:**
+  - **Liga (Round-Robin):** Rueda simple o ida y vuelta.
+  - **Playoffs:** Cuadros de eliminación directa con llaves jerárquicas interactivas.
+  - **Combinado:** Fase regular de grupos con clasificación a llaves eliminatorias.
+- **Automatización:**
+  - Registro de planteles, listas de buena fe y jugadores.
+  - Sorteo algorítmico de fixtures con flexibilidad para ajustes manuales.
+  - Asignación manual de cruces a las franjas horarias y canchas del complejo.
+  - Cómputo dinámico de tablas de posiciones (puntos, goles, diferencia y desempates) y progresión automática de ganadores.
 
 ---
 
 ## 🛠️ Stack Tecnológico
 
-| Componente | Tecnología | Rol / Justificación |
+| Capa / Ecosistema | Tecnología | Justificación |
 | :--- | :--- | :--- |
-| **Backend** | .NET (C#) | Minimal APIs orientadas a baja latencia, escalabilidad y alto rendimiento |
-| **Acceso a Datos** | Dapper | Micro-ORM de alto rendimiento para consultas SQL precisas y control transaccional |
-| **Base de Datos** | PostgreSQL / MySQL | Persistencia relacional, integridad referencial y atomicidad |
-| **Seguridad** | JWT (JSON Web Tokens) | Autenticación y autorización para la sesión de administración |
-| **Frontend** | React | SPA modular y reactiva para el panel operativo del complejo |
+| **Backend Framework** | .NET (C#) | Minimal APIs de alto rendimiento estructuradas por Vertical Slices |
+| **Acceso a Datos** | Dapper | Micro-ORM de alto rendimiento para consultas SQL nativas y transacciones |
+| **Motor de Base de Datos** | PostgreSQL | Persistencia relacional, soporte nativo de rangos (`tstzrange`) e integridad transaccional |
+| **Migraciones de BD** | FluentMigrator | Ensamblado desacoplado para versionado de esquemas SQL de forma declarativa |
+| **Validaciones** | FluentValidation | Validación robusta de DTOs antes de interactuar con el dominio o la base |
+| **Manejo de Errores** | `IExceptionHandler` (RFC 7807) | Middleware nativo para serialización estándar de errores en `ProblemDetails` |
+| **Frontend Framework** | React + Vite | SPA modular con tiempo de compilación y recarga casi instantáneos |
+| **Tipado Frontend** | TypeScript | Tipado estricto que asegura sincronía con los contratos DTO del backend |
+| **Estilos y Componentes** | Tailwind CSS + shadcn/ui | UI accesible y personalizable orientada a paneles de control comerciales |
+| **Iconografía y Animación**| Lucide React + Framer Motion | Iconografía sobria y micro-interacciones en la agenda y llaves de torneos |
+| **Gestión de Estado Servidor**| TanStack Query (React Query) | Cacheo inteligente, reintentos y sincronización asíncrona de datos |
+| **Documentación** | OpenAPI / Swagger | Exploración interactiva y testeo directo de endpoints HTTP |
 
 ---
 
-## 🏛️ Arquitectura del Backend
+## 🏛️ Arquitectura del Sistema
 
-El backend está estructurado mediante **Vertical Slice / Feature Folders**, priorizando la cohesión del dominio sobre la dispersión en capas técnicas tradicionales:
+La solución está desacoplada en proyectos modulares, organizando la API bajo el patrón **Vertical Slice / Feature Folders**:
 
 ```text
-src/
-└── MultiSport.Api/
-    ├── Common/               # Middlewares, filtros y utilidades transversales
-    ├── Infrastructure/       # Gestión de conexiones de datos (Dapper) y migraciones
-    └── Features/
-        ├── Auth/             # Autenticación, generación y validación de tokens JWT
-        ├── Canchas/          # Endpoints, DTOs, Repository y Service de canchas
-        ├── Turnos/           # Reglas de solapamiento, señas y grilla operativa
-        ├── Eventos/          # Bloqueo de instalaciones para eventos sociales
-        └── Torneos/          # Lógica algorítmica de fixtures, llaves y tablas
-            ├── Endpoints/    # Mapeo de rutas (MapGroup / Minimal APIs)
-            ├── Models/       # Modelos de dominio y DTOs de entrada/salida
-            ├── Repositories/ # Operaciones SQL optimizadas con Dapper
-            └── Services/     # Lógica algorítmica de sorteos, llaves y cálculos
+MultiSport/
+├── src/
+│   ├── MultiSport.Api/                  # Host web y Minimal APIs
+│   │   ├── Common/                      # Middlewares, IExceptionHandler, Helpers
+│   │   └── Features/
+│   │       ├── Auth/                    # Generación y validación de tokens JWT
+│   │       ├── Canchas/                 # Endpoints, Models, Dapper Repositories y Services
+│   │       ├── Turnos/                  # Validaciones de solapamiento, señas y agenda
+│   │       ├── Eventos/                 # Bloqueo de turnos para cumpleaños y jornadas
+│   │       └── Torneos/                 # Lógica de sorteos, tablas y llaves de playoffs
+│   ├── MultiSport.Database.Migrations/  # Proyecto ClassLib con migraciones de FluentMigrator
+│   └── client/                          # SPA en React + Vite + TypeScript
+│       ├── src/
+│       │   ├── components/ui/           # Componentes base shadcn/ui
+│       │   ├── features/                # Vistas y hooks por módulo (turnos, torneos)
+│       │   ├── services/                # Clientes Axios y tipado TS de la API
+│       │   └── routes/                  # Enrutamiento protegido de la aplicación
+└── docker-compose.yml                   # Contenedor para instancia local de PostgreSQL
