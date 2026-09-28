@@ -89,3 +89,7 @@ MultiSport/
 │       │   ├── services/                # Clientes Axios y tipado TS de la API
 │       │   └── routes/                  # Enrutamiento protegido de la aplicación
 └── docker-compose.yml                   # Contenedor para instancia local de PostgreSQL
+
+## 🤝 Contribución y Flujo de Trabajo
+
+Para conocer el modelo de ramas (GitFlow simplificado), convenciones de commits y el protocolo de Pull Requests, consulta nuestra [Guía de Contribución](CONTRIBUTING.md).
