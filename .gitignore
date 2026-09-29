@@ -433,6 +433,18 @@ FodyWeavers.xsd
 **/dist/
 **/dist-ssr/
 **/*.local
-.env.local
-.env.*.local
 
+# Environment & Secrets (Zero Credentials in Git)
+.env
+.env.*
+*.env
+!.env.example
+docker-compose.override.yml
+appsettings.*.json
+!appsettings.json
+!appsettings.example.json
+
+# Local container data & temporary caches
+.docker/
+docker/pgadmin/sessions/
+docker/pgadmin/storage/
