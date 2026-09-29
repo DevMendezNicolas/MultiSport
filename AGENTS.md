@@ -29,7 +29,7 @@ This repository contains strict architectural and stylistic standards. All AI ag
 
 ## 3. Backend Rules (.NET 8 + Dapper + PostgreSQL)
 
-- **Architecture:** Vertical Slice Architecture under `src/MultiSport.Api/Features/<DomainName>/`.
+- **Architecture:** Vertical Slice Architecture under `backend/MultiSport.Api/Features/<DomainName>/`.
 - **API Versioning:** All endpoints must be prefixed with `/api/v1/` using `MapGroup`.
 - **Contracts:** All request and response DTOs MUST be immutable C# `record` types. Backward compatibility is required (no renaming/removing fields without deprecation).
 - **CancellationToken:** Every async endpoint and repository method MUST accept and forward a `CancellationToken`.

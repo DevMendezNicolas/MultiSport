@@ -47,16 +47,16 @@ jobs:
           node-version: 20
 
       - name: Install Frontend Dependencies
-        working-directory: src/client
+        working-directory: frontend
         run: npm ci
-        if: hashFiles('src/client/package.json') != ''
+        if: hashFiles('frontend/package.json') != ''
 
       - name: TypeScript Typecheck
-        working-directory: src/client
+        working-directory: frontend
         run: npm run typecheck
-        if: hashFiles('src/client/package.json') != ''
+        if: hashFiles('frontend/package.json') != ''
 
       - name: Run Linter
-        working-directory: src/client
+        working-directory: frontend
         run: npm run lint
-        if: hashFiles('src/client/package.json') != ''
+        if: hashFiles('frontend/package.json') != ''

@@ -31,7 +31,7 @@ Committing real credentials, database passwords, API keys, or private cryptograp
 To avoid accidental edits or commits to `appsettings.json`, initialize and register secrets inside the API project:
 
 ```bash
-cd src/MultiSport.Api
+cd backend/MultiSport.Api
 dotnet user-secrets init
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=multisport_dev;Username=postgres;Password=your_local_password"
 dotnet user-secrets set "Jwt:Key" "SuperSecretKeyWithAtLeast32CharactersLength!"

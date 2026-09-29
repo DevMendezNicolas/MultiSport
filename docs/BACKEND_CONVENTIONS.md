@@ -6,7 +6,7 @@ This document establishes the official architectural standards, technical conven
 
 ## 1. Architecture: Vertical Slice Architecture
 
-The project does not use traditional horizontal technical layers (global `Controllers/`, `Services/`, `Repositories/`). Code is organized around **business capabilities (Features)** inside `src/MultiSport.Api/Features/`.
+The project does not use traditional horizontal technical layers (global `Controllers/`, `Services/`, `Repositories/`). Code is organized around **business capabilities (Features)** inside `backend/MultiSport.Api/Features/`.
 
 ### Module Structure
 Each feature must be self-contained:

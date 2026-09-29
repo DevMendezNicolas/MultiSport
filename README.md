@@ -78,7 +78,7 @@ La solución está desacoplada en proyectos modulares, organizando la API bajo e
 
 ```text
 MultiSport/
-├── src/
+├── backend/
 │   ├── MultiSport.Api/                  # Host web y Minimal APIs (.NET 8)
 │   │   ├── Common/                      # Middlewares, IExceptionHandler, Helpers
 │   │   └── Features/                    # Vertical Slice Architecture (100% en inglés)
@@ -88,13 +88,14 @@ MultiSport/
 │   │       ├── Events/                  # Bloqueo de turnos para cumpleaños y eventos sociales
 │   │       └── Tournaments/             # Sorteos algorítmicos, tablas de posiciones y playoffs
 │   ├── MultiSport.Database.Migrations/  # Proyecto ClassLib con migraciones de FluentMigrator
-│   └── client/                          # SPA en React 18+ Vite + TypeScript
-│       ├── src/
-│       │   ├── components/              # Primitivas shadcn/ui y feedback global
-│       │   ├── features/                # Módulos de negocio (api, components, types, index.ts)
-│       │   ├── hooks/                   # Hooks transversales de UI
-│       │   ├── lib/                     # Cliente Axios centralizado y utilidades cn()
-│       │   └── routes/                  # Enrutamiento protegido de la aplicación
-│       └── package.json
+│   └── README.md
+├── frontend/                            # SPA en React 18+ Vite + TypeScript
+│   ├── src/
+│   │   ├── components/                  # Primitivas shadcn/ui y feedback global
+│   │   ├── features/                    # Módulos de negocio (api, components, types, index.ts)
+│   │   ├── hooks/                       # Hooks transversales de UI
+│   │   ├── lib/                         # Cliente Axios centralizado y utilidades cn()
+│   │   └── routes/                      # Enrutamiento protegido de la aplicación
+│   └── package.json
 └── docker-compose.yml                   # Contenedor para instancia local de PostgreSQL
 ```
