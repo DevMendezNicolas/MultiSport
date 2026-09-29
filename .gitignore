@@ -448,3 +448,8 @@ appsettings.*.json
 .docker/
 docker/pgadmin/sessions/
 docker/pgadmin/storage/
+
+# MCP Server Configuration with Local Secrets
+.agents/mcp_config.json
+.agents/mcp_config.local.json
+
