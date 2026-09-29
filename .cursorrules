@@ -71,10 +71,12 @@ This repository contains strict architectural and stylistic standards. All AI ag
 
 ---
 
-## 6. Commit & Branch Guidelines
+## 6. Commit, PR & Language Guidelines
 
-- Branch names: `<type>/<module>-<description>` (e.g., `feature/bookings-calendar-view`).
-- Commits: Conventional Commits in lowercase (e.g., `feat(bookings): implement overlap validation handler`).
+- **Language Policy:** All commit messages, Pull Request titles, PR descriptions, and code review comments MUST be written in **Spanish** (Castellano). Code symbols (classes, methods, variables, database tables, and API contracts) remain 100% in English.
+- **Branch names:** `<type>/<module>-<description>` in lowercase kebab-case (e.g., `feature/canchas-disponibilidad`, `chore/docker-postgres-setup`).
+- **Commits:** Conventional Commits in lowercase and in Spanish: `<tipo>(<modulo>): <descripcion>` (e.g., `feat(turnos): implementar validacion de solapamiento de horarios`, `fix(canchas): corregir consulta dapper de disponibilidad`).
+- **Pull Requests:** Titles and descriptions must follow `.github/pull_request_template.md` in Spanish. All PR discussions, feedback, and review comments must be in Spanish.
 
 ---
 

@@ -36,27 +36,37 @@ Temporary working branches must follow a lowercase kebab-case convention:
 
 ---
 
-## 3. Commit Message Conventions
+## 3. Commit & Pull Request Conventions (Language Policy)
 
-Commit messages strictly follow the **Conventional Commits** standard to maintain a clean, semantic, and readable history:
+### Language Policy
+- **Commits, PRs & Reviews:** All commit messages, Pull Request titles, descriptions, and review discussions MUST be written in **Spanish** (Castellano).
+- **Code & Architecture:** Code symbols (C# classes, methods, variables, database schemas, tables, and API contracts) remain 100% in **English**.
 
-`<type>(<optional-scope>): <short imperative description>`
+### Commit Message Format
+Commit messages strictly follow the **Conventional Commits** standard in lowercase, with description written in Spanish:
+
+`<type>(<optional-scope>): <descripcion breve en modo imperativo>`
 
 ### Allowed Prefixes:
-- **`feat:`** A new feature or functionality.
-- **`fix:`** A defect or bug fix.
-- **`refactor:`** Code modifications that neither fix a bug nor add a feature.
-- **`test:`** Adding or modifying automated tests (xUnit, Vitest).
-- **`perf:`** Changes aimed at optimizing performance or SQL queries.
-- **`chore:`** Maintenance tasks, dependency updates, Vite configuration, or build scripts.
+- **`feat:`** Una nueva funcionalidad para el usuario o sistema.
+- **`fix:`** Corrección de un defecto o bug.
+- **`refactor:`** Modificación de código que no corrige un bug ni añade una función.
+- **`test:`** Creación o modificación de pruebas automáticas (xUnit, Vitest).
+- **`perf:`** Cambios enfocados en optimizar rendimiento o consultas SQL.
+- **`chore:`** Tareas de mantenimiento, dependencias, configuración de build o Docker.
 
 ### Examples:
 ```text
-feat(bookings): add validation for automated deposit retention
-fix(tournaments): correct goal difference calculation in group stage
-refactor(courts): simplify select queries using dapper
-chore(deps): update fluentmigrator to latest stable version
+feat(turnos): agregar validacion para retencion automatica de seña
+fix(torneos): corregir calculo de diferencia de gol en fase de grupos
+refactor(canchas): simplificar consultas select usando dapper
+chore(deps): actualizar fluentmigrator a la ultima version estable
 ```
+
+### Pull Requests & Reviews
+- All PRs must use the official template in `.github/pull_request_template.md`.
+- Titles and descriptions must be filled in Spanish.
+- Review comments, questions, and discussion threads on GitHub must be held in Spanish.
 
 ---
 
