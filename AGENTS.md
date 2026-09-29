@@ -63,7 +63,7 @@ This repository contains strict architectural and stylistic standards. All AI ag
 
 - **Architecture:** Feature-driven structure under `src/features/<feature-name>/`.
   - Subdirectories: `api/`, `components/`, `types/`, `index.ts`.
-- **Component Styling:** Use **Tailwind CSS** + **shadcn/ui** primitives located in `src/components/ui/`. Merge class names exclusively using `cn()` from `@/lib/utils`.
+- **Component Styling:** Use **Tailwind CSS** + **shadcn/ui** primitives located in `frontend/src/components/ui/`. Merge class names exclusively using `cn()` from `@/lib/utils`.
 - **HTTP Client:** Use the pre-configured Axios instance from `@/lib/axios`. Never instantiate raw `fetch` or a new `axios.create()` inside components.
 - **Mutations:** Always invalidate related TanStack Query cache keys in `onSuccess` handlers.
 - **Loading States:** Always render `<Skeleton />` components matching layout dimensions. Never use full-screen spinners.
@@ -85,3 +85,19 @@ All code must adhere to cryptographic, authentication, and data protection stand
 - Authentication: JWT with HS256 (>= 256 bits key) or RS256, short lifespan (15-60 min), `ClockSkew = TimeSpan.Zero`, and HttpOnly/Secure cookies where applicable.
 - Database: Strict parameterized queries (`CommandDefinition`), least privilege user (`multisport_app`), and encrypted transit (`SslMode=Require`).
 - HTTP Hardening: Restrictive CORS, security headers (`nosniff`, `DENY`), ASP.NET Rate Limiting on `/api/v1/auth/login`, and generic auth errors to prevent account enumeration.
+
+---
+
+## 8. UX, Responsive Design & Mobile Ergonomics
+
+All user interfaces must strictly comply with the ergonomic and responsive standards in `docs/FRONTEND_CONVENTIONS.md`:
+- **Viewport Integrity:** Zero unintentional horizontal scrolling on any resolution >= 360px. Contained, explicit horizontal scrolling only inside specific components (brackets, wide tables). Respect device safe areas (`env(safe-area-inset-*)`).
+- **Touch Ergonomics (Fitts's Law):** Minimum touch target of 44x44px for buttons, time pickers, and interactive icons. Prevent iOS auto-zoom by setting form input font size >= 16px (`text-base`). Ensure inputs clear virtual keyboards without hiding submit buttons. Primary mobile actions must sit in the thumb zone (lower screen half).
+- **Cognitive Load & Hick's Law:** Deconstruct dense workflows (tournament setup, recurring bookings) into logical multi-step wizards. Require explicit confirmation dialogs for destructive operations. Provide plain human-readable error messages.
+- **Adaptive Screen Behavior:**
+  - Sidebar navigation collapses into a slide-over Sheet/Drawer on mobile.
+  - Court scheduler displays parallel multi-court grids on desktop and transitions to single-court selector or swipeable contained columns on mobile.
+  - Operational modals transform into Bottom Sheets (Drawers) on mobile viewports.
+  - Tournament brackets support native smooth horizontal touch-drag.
+- **Visual Hierarchy & Contrast:** High contrast suitable for outdoor sunlight use at sports complexes. Proportional typography scaling and dynamic compact padding on mobile devices.
+
