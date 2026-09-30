@@ -16,7 +16,7 @@ This repository contains strict architectural and stylistic standards. All AI ag
 ## 2. Universal Prohibitions (Zero Tolerance)
 
 1. **NO Emojis in UI or Code:** Never introduce emojis in labels, titles, buttons, badges, logs, or commit messages. Use **Lucide React** icons exclusively (`strokeWidth={2}` or `1.75`).
-2. **NO Controllers / NO Generic Horizontal Layers:** Never create a `Controllers/` folder or global generic `Services/` / `Repositories/`. All API logic must reside inside feature folders (`Features/<FeatureName>/`).
+2. **NO Controllers / NO Global Generic Layers:** Never create a `Controllers/` folder or global generic `Services/` / `Repositories/`. All API logic must reside inside feature folders (`Features/<FeatureName>/`). Each feature must organize its internal components into standard subfolders: `Models/` (`Entities/`, `Dtos/`), `Endpoints/`, `Services/` (with explicit `IService`), and `Repositories/` (with explicit `IRepository`).
 3. **NO AutoMapper:** Never use AutoMapper or reflection-based object mappers. Use explicit extension methods or static pure mapper functions.
 4. **NO Raw String Interpolation in SQL:** Never interpolate parameters into SQL queries (`$"SELECT ... WHERE id = '{id}'"`). Always use Dapper anonymous parameter objects or `CommandDefinition`.
 5. **NO useEffect for Data Fetching:** Never use `useEffect` + `useState` to fetch API data. Always use **TanStack Query** (`useQuery` / `useMutation`).
@@ -29,7 +29,12 @@ This repository contains strict architectural and stylistic standards. All AI ag
 
 ## 3. Backend Rules (.NET 8 + Dapper + PostgreSQL)
 
-- **Architecture:** Vertical Slice Architecture under `backend/MultiSport.Api/Features/<DomainName>/`.
+- **Architecture:** Vertical Slice Architecture under `backend/MultiSport.Api/Features/<DomainName>/`. Each slice internally isolates:
+  - `Endpoints/`: Minimal API route definitions (injecting `IService`).
+  - `Services/`: Business logic orchestration (implementing `IService`, injecting `IRepository`).
+  - `Repositories/`: Dapper SQL data access (implementing `IRepository`, injecting `IDbConnectionFactory`).
+  - `Models/`: Divided into `Entities/` (domain/database entities) and `Dtos/` (immutable input/output records).
+  - **Dependency Injection:** Every service and repository must define its matching interface (`IService` / `IRepository`) and be registered in DI with `Scoped` lifetime. Endpoints never query repositories directly.
 - **API Versioning:** All endpoints must be prefixed with `/api/v1/` using `MapGroup`.
 - **Contracts:** All request and response DTOs MUST be immutable C# `record` types. Backward compatibility is required (no renaming/removing fields without deprecation).
 - **CancellationToken:** Every async endpoint and repository method MUST accept and forward a `CancellationToken`.

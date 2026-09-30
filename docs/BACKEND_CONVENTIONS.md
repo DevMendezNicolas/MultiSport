@@ -9,23 +9,35 @@ This document establishes the official architectural standards, technical conven
 The project does not use traditional horizontal technical layers (global `Controllers/`, `Services/`, `Repositories/`). Code is organized around **business capabilities (Features)** inside `backend/MultiSport.Api/Features/`.
 
 ### Module Structure
-Each feature must be self-contained:
+Each feature must be self-contained and organized into standard internal subfolders:
 
 ```text
 Features/
 └── Bookings/
-    ├── BookingsEndpoints.cs      # Minimal API route definitions
-    ├── CreateBookingRequest.cs   # Input DTO (sealed record)
-    ├── BookingResponse.cs        # Output DTO (sealed record)
-    ├── CreateBookingValidator.cs # FluentValidation rules
-    ├── IBookingRepository.cs     # Feature Dapper repository contract
-    ├── BookingRepository.cs      # Dapper SQL persistence
-    └── Booking.cs                # Feature domain entity
+    ├── Endpoints/
+    │   └── BookingsEndpoints.cs      # Minimal API route definitions (injects IBookingService)
+    ├── Services/
+    │   ├── IBookingService.cs        # Business logic interface
+    │   └── BookingService.cs         # Domain orchestration (injects IBookingRepository)
+    ├── Repositories/
+    │   ├── IBookingRepository.cs     # Data access interface
+    │   └── BookingRepository.cs      # Dapper SQL persistence (injects IDbConnectionFactory)
+    └── Models/
+        ├── Entities/
+        │   └── Booking.cs            # Domain / database entity
+        └── Dtos/
+            ├── CreateBookingRequest.cs   # Input DTO (sealed record) + validator
+            └── BookingResponse.cs        # Output DTO (sealed record)
 ```
 
 ### Architectural Rules
 
-* **Isolation:** A feature must not depend directly on internal repositories of another feature. Shared cross-cutting concerns (authentication, extension methods, error handling) must reside in `Common/`.
+* **Isolation & Dependency Injection:** 
+  - Every business logic component must define and implement an explicit `IService` interface (e.g., `IBookingService` and `BookingService`).
+  - Every data access component must define and implement an explicit `IRepository` interface (e.g., `IBookingRepository` and `BookingRepository`).
+  - All services and repositories must be registered in the ASP.NET Core DI container with `Scoped` lifetime.
+  - Minimal API Endpoints inject `IService`, and Services inject `IRepository`. Endpoints must not bypass the service layer to interact directly with repositories.
+  - A feature must not depend directly on internal repositories of another feature. Shared cross-cutting concerns (authentication, extension methods, error handling) must reside in `Common/`.
 * **Zero AutoMapper:** Using AutoMapper or reflection-based object mappers is strictly forbidden. Mappings must be resolved explicitly using typed constructors, extension methods (`court.ToResponse()`), or pure static functions to maximize throughput and catch errors at compile-time.
 
 ---
