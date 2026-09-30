@@ -48,6 +48,15 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        brand: {
+          yellow: '#F5BD1F',
+          'yellow-hover': '#E0AA10',
+          dark: '#0B0B0B',
+          'dark-surface': '#141414',
+          cream: '#F4F1EA',
+          'cream-card': '#ECE7DD',
+          'cream-text': '#8A8275',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
