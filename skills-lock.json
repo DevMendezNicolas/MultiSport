@@ -1,0 +1,281 @@
+{
+  "version": 1,
+  "skills": {
+    "ask-matt": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/ask-matt/SKILL.md",
+      "computedHash": "e5404aef8525ca0c8fc76692567a38dfdd5d0cc1a9f8d47c02c18f29f60d92a6"
+    },
+    "butler": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/butler/SKILL.md",
+      "computedHash": "628ced13dc7db847534d1b5a02f5c03864fa03c0240ee6e926d95641da78e02a"
+    },
+    "butler-takeover": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/butler-takeover/SKILL.md",
+      "computedHash": "07e851d9532a7cf7bea1e245fdf7a3b4c18ada6430918dd8793953f74a00a081"
+    },
+    "claude-handoff": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/claude-handoff/SKILL.md",
+      "computedHash": "c0fa5d0eede556bc7809c8461a25ec2c7db5726f338970458aa7bbf702b8ea8c"
+    },
+    "code-review": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/code-review/SKILL.md",
+      "computedHash": "b4f17857c85ca60af1df7d0b623dd03c2a48419f6123e714f3d9748ca744a1bf"
+    },
+    "codebase-design": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/codebase-design/SKILL.md",
+      "computedHash": "caea3cb8a8281ff829fd1a2b985044e77601b62f301adf43f689ccfc74c15f6f"
+    },
+    "diagnosing-bugs": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/diagnosing-bugs/SKILL.md",
+      "computedHash": "dcaaa3eb81195329f65f27574d9a67dc776160dd2e4d7798d1afb1e4a5f3695a"
+    },
+    "domain-modeling": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/domain-modeling/SKILL.md",
+      "computedHash": "336547f3ff285e822fc70b69b170dc58bceef9c8ed5fad18de0046287d6be837"
+    },
+    "frontier-axi": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/frontier-axi/SKILL.md",
+      "computedHash": "4155008655cf68a4a3c61373c51ff0dda1f3455d6ef94249c3c852b8e9a6da22"
+    },
+    "git-guardrails-claude-code": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/git-guardrails-claude-code/SKILL.md",
+      "computedHash": "fa22f1aa2708d95cc3149640f33e085381b184a0322609930f7971c1dca11835"
+    },
+    "grill-me": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/grill-me/SKILL.md",
+      "computedHash": "5e0c683385eafd83f106ac6c9d67dfbbfe5aa4b3fe65aad114eb1055a99c818f"
+    },
+    "grill-with-docs": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/grill-with-docs/SKILL.md",
+      "computedHash": "a610223c9796f755b603f15ec114849a4b38b9ba3006acfa9bdf3cc56dd44dad"
+    },
+    "grilling": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/grilling/SKILL.md",
+      "computedHash": "d34181c52f89ed5f0353adc06ee4866b1a4a990e6262eabc2bb31df8e926cde8"
+    },
+    "handoff": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/handoff/SKILL.md",
+      "computedHash": "9ea2a5de5ca2d717f913356de982fdc4fe27d28a300c16598cd43a4865491008"
+    },
+    "hello-kind-sir": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/hello-kind-sir/SKILL.md",
+      "computedHash": "ca952139e5ec00097f525c4a7657fdc939405bf2a302d007700c89a8f8495481"
+    },
+    "implement": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/implement/SKILL.md",
+      "computedHash": "130cac2d72bfde8cd526bf3b754211e2fe00e84bc4d9f9c56f749b9541a3afad"
+    },
+    "implement-spec": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/implement-spec/SKILL.md",
+      "computedHash": "1bbece7b74c00d938ecb79e2337310d8c3c2c307b48f105026e161601b1c6be8"
+    },
+    "improve-codebase-architecture": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/improve-codebase-architecture/SKILL.md",
+      "computedHash": "016f12709bff30a27419e8add978a9be70f5ca1fb6738b3be6793038e0aba631"
+    },
+    "kahya": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/kahya/SKILL.md",
+      "computedHash": "ae770a25aa3a62bde70e35066e9be90200edc4b4ac9a8653dfea56353c79cd10"
+    },
+    "kun": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/kun/SKILL.md",
+      "computedHash": "c9c539e8bb7e2f607a2772562d25d3342e7b4042e5efbb3861ee6074777add10"
+    },
+    "loop-me": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/loop-me/SKILL.md",
+      "computedHash": "d7fbcf41b5af203a6f2a7937afaaaebdd9941b0aa4cc3654b52daec01d3fb564"
+    },
+    "migrate-to-shoehorn": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/migrate-to-shoehorn/SKILL.md",
+      "computedHash": "7d31e494a384d1a5b88d1dec6e1f50e673ef1a60f7b0b6e92babfbb242f79b62"
+    },
+    "prototype": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/prototype/SKILL.md",
+      "computedHash": "62979fe039ef64407b258f8824db41b9185f788638747df803032df4153c2aae"
+    },
+    "research": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/research/SKILL.md",
+      "computedHash": "2c8b768d5f0309eaea9f92ef740101e813645b39aef88fb82733a52eae23dc0b"
+    },
+    "resolving-merge-conflicts": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/resolving-merge-conflicts/SKILL.md",
+      "computedHash": "436698459190d8e9f03dc32ada08401b56e352fb6a19bf71a2227fad8b80d98f"
+    },
+    "retro": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/retro/SKILL.md",
+      "computedHash": "371bfc87b0fbb221e2e802e51385b5e1461c052cfa1186b18d4b441c00383eb5"
+    },
+    "scaffold-exercises": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/scaffold-exercises/SKILL.md",
+      "computedHash": "0f8154a7be9fc5ebe6ae0550d520259fadfdd512c166cb7f137f8e697aae4017"
+    },
+    "setup-code-manor": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/setup-code-manor/SKILL.md",
+      "computedHash": "700a3e45dad5c7d9474bca8b900568f17fb591e3e509ea8a0ec6b1709bbb4008"
+    },
+    "setup-matt-pocock-skills": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/setup-matt-pocock-skills/SKILL.md",
+      "computedHash": "a45163cba56f72f5f224c46557c047d51547147a29e383e5a769ec39eecd1188"
+    },
+    "setup-pre-commit": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/setup-pre-commit/SKILL.md",
+      "computedHash": "4ae1ad6988eb61dbc600627bc12e061215d96ced504632d00f0d9de5905eadfa"
+    },
+    "setup-ts-deep-modules": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/setup-ts-deep-modules/SKILL.md",
+      "computedHash": "0b0e7124ad1272d59e44bcb4224275e76421351294a91480ada62234158c1023"
+    },
+    "steward": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/steward/SKILL.md",
+      "computedHash": "a062926d6fd9c9051541e286e5817cc3c6f31e62b5fc4eea6d530493da90fc5b"
+    },
+    "steward-dispatch": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/steward-dispatch/SKILL.md",
+      "computedHash": "e029073da1fb1cdc6c742799ce45d429d620fc32a92aac8b8ec4a7e2b8694cf4"
+    },
+    "tdd": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/tdd/SKILL.md",
+      "computedHash": "c1ed8cd854c64d4d226097255d3fa662dae4a758a1462fadd63cc10e413d88d7"
+    },
+    "teach": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/teach/SKILL.md",
+      "computedHash": "d5f74fa9a34961cf4df339019f7cd1ebf84163cf8b789829be26342e5ceba5a1"
+    },
+    "to-questionnaire": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/to-questionnaire/SKILL.md",
+      "computedHash": "e2cb00bfeb4243f1384bf7e106185ccb69fd7d45ff6a3b04bec4102f505aba31"
+    },
+    "to-spec": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/to-spec/SKILL.md",
+      "computedHash": "422d88ce16e27ed4152bf11cfe4916ce1c34b07891a40a85b48fd654c561322d"
+    },
+    "to-tickets": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/to-tickets/SKILL.md",
+      "computedHash": "e9491b6faa188f84decea1688f93b6fa1ffdb5baeec488e57cd2c5fe03ac8c53"
+    },
+    "triage": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/triage/SKILL.md",
+      "computedHash": "363ca4f1b97ca5227d41d3973178ab301d7c498ba41b466dfe30b6163f6d72b5"
+    },
+    "wait-what": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/wait-what/SKILL.md",
+      "computedHash": "179a857fabd08c894e8e5b30baa7488147760ee1d58696ebd24bd4f6ead21699"
+    },
+    "wayfinder": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/wayfinder/SKILL.md",
+      "computedHash": "70ef699a850887ffdfb6160e87df79850146ef57f03124966ca6ee3cd377296c"
+    },
+    "wizard": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/wizard/SKILL.md",
+      "computedHash": "6b98bd36db34eb5584d937b745e6e68a317afa0807a426fe8717ab196242ae70"
+    },
+    "writing-beats": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/writing-beats/SKILL.md",
+      "computedHash": "1d1c32479fa0774738c7baf264026e937f4a75ef7c20bd6c1b585681cadb523c"
+    },
+    "writing-for-agents": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/writing-for-agents/SKILL.md",
+      "computedHash": "831e996c177c6c5233eb3bb472a33edee2b3ce1ee5a6d7e8b696c1c3fb4eda3d"
+    },
+    "writing-fragments": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/writing-fragments/SKILL.md",
+      "computedHash": "e97c829457cb9119aa6a636b989b3c3e273e55c9bcf27b6d281d8132e04ca972"
+    },
+    "writing-shape": {
+      "source": "oguzalp7/code-manor",
+      "sourceType": "github",
+      "skillPath": "skills/writing-shape/SKILL.md",
+      "computedHash": "175889218686932bda7724425b97a0a10a7679db51447c40a1a0d3a5e6f2130e"
+    }
+  }
+}
