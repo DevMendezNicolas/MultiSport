@@ -23,16 +23,19 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore Dependencies
+        working-directory: backend
         run: dotnet restore
-        if: hashFiles('**/*.sln', '**/*.csproj') != ''
+        if: hashFiles('backend/**/*.sln', 'backend/**/*.csproj') != ''
 
       - name: Build Solution
+        working-directory: backend
         run: dotnet build --no-restore --configuration Release
-        if: hashFiles('**/*.sln', '**/*.csproj') != ''
+        if: hashFiles('backend/**/*.sln', 'backend/**/*.csproj') != ''
 
       - name: Run Unit Tests
+        working-directory: backend
         run: dotnet test --no-build --configuration Release --verbosity normal
-        if: hashFiles('**/*Tests.csproj') != ''
+        if: hashFiles('backend/**/*Tests.csproj') != ''
 
   frontend:
     name: Frontend Lint & Typecheck (React + TypeScript)
