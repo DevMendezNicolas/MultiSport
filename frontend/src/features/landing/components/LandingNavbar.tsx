@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { ArrowUpRight, Menu, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ArrowUpRight, LogIn, Menu, X } from 'lucide-react'
 import { MultiSportLogo } from './MultiSportLogo'
 import type { NavItem } from '../types/landing.types'
 
@@ -20,9 +21,9 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ onOpenDemo }) => {
     <header className="sticky top-0 z-40 w-full bg-brand-dark/90 backdrop-blur-md border-b border-neutral-900 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Brand */}
-        <a href="#" className="flex items-center gap-2 group">
+        <Link to="/" className="flex items-center gap-2 group">
           <MultiSportLogo />
-        </a>
+        </Link>
 
         {/* Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-8">
@@ -37,8 +38,16 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ onOpenDemo }) => {
           ))}
         </nav>
 
-        {/* Desktop CTA Action */}
-        <div className="hidden md:flex items-center gap-4">
+        {/* Desktop CTA Actions */}
+        <div className="hidden md:flex items-center gap-3">
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-neutral-800 hover:border-neutral-700 bg-neutral-900/60 hover:bg-neutral-800 text-neutral-300 hover:text-white font-medium text-sm transition-colors"
+          >
+            <LogIn className="h-4 w-4 text-neutral-400" strokeWidth={1.75} />
+            <span>Iniciar sesión</span>
+          </Link>
+
           <button
             type="button"
             onClick={onOpenDemo}
@@ -49,8 +58,16 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ onOpenDemo }) => {
           </button>
         </div>
 
-        {/* Mobile Hamburger Toggle */}
+        {/* Mobile Action & Hamburger Toggle */}
         <div className="flex md:hidden items-center gap-2">
+          <Link
+            to="/login"
+            className="p-2 rounded-lg text-neutral-300 hover:text-white hover:bg-neutral-900 transition-colors flex items-center justify-center"
+            aria-label="Iniciar sesión"
+          >
+            <LogIn className="h-5 w-5" strokeWidth={1.75} />
+          </Link>
+
           <button
             type="button"
             onClick={onOpenDemo}
@@ -59,6 +76,7 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ onOpenDemo }) => {
             <span>Demo</span>
             <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2} />
           </button>
+
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -87,13 +105,23 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ onOpenDemo }) => {
               {item.label}
             </a>
           ))}
+
+          <Link
+            to="/login"
+            onClick={() => setMobileMenuOpen(false)}
+            className="w-full py-3 px-4 rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-200 hover:text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors mt-2"
+          >
+            <LogIn className="h-4 w-4" strokeWidth={1.75} />
+            <span>Iniciar sesión</span>
+          </Link>
+
           <button
             type="button"
             onClick={() => {
               setMobileMenuOpen(false)
               onOpenDemo()
             }}
-            className="mt-2 w-full py-3 rounded-full bg-brand-yellow text-neutral-950 font-bold text-sm flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-full bg-brand-yellow text-neutral-950 font-bold text-sm flex items-center justify-center gap-2"
           >
             <span>Solicitar demo</span>
             <ArrowUpRight className="h-4 w-4" strokeWidth={2} />

@@ -112,11 +112,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenDemo }) => {
                 </div>
               </div>
 
-              {/* Tarjeta Superpuesta: Collage Pop-Art de Atletas */}
-              <div className="absolute -bottom-8 left-4 sm:-left-6 w-44 sm:w-56 aspect-square rounded-xl overflow-hidden border-4 border-brand-dark bg-white shadow-2xl transform -rotate-1 hover:rotate-0 transition-transform">
+              {/* Tarjeta Superpuesta: Fotografía Urbana de Atletas */}
+              <div className="absolute -bottom-8 left-4 sm:-left-6 w-44 sm:w-56 aspect-square rounded-xl overflow-hidden border-4 border-brand-dark bg-neutral-900 shadow-2xl transform -rotate-1 hover:rotate-0 hover:scale-105 transition-all duration-300">
                 <img
                   src={heroAthletesImg}
-                  alt="Atletas multidisciplinares estilo pop art"
+                  alt="Fotografía documental de atletas urbanos descansando en complejo deportivo"
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { LandingNavbar } from './components/LandingNavbar'
 import { HeroSection } from './components/HeroSection'
 import { SportsTicker } from './components/SportsTicker'
@@ -11,7 +12,10 @@ import { LandingFooter } from './components/LandingFooter'
 import { DemoRequestModal } from './components/DemoRequestModal'
 
 export const LandingPage: React.FC = () => {
-  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(
+    () => searchParams.get('demo') === 'true'
+  )
 
   const handleOpenDemo = () => {
     setIsDemoModalOpen(true)
@@ -19,6 +23,10 @@ export const LandingPage: React.FC = () => {
 
   const handleCloseDemo = () => {
     setIsDemoModalOpen(false)
+    if (searchParams.get('demo')) {
+      searchParams.delete('demo')
+      setSearchParams(searchParams, { replace: true })
+    }
   }
 
   return (

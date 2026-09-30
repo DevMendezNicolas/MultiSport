@@ -57,11 +57,11 @@ export const OperationsSection: React.FC = () => {
             {operationFeatures.map((feature) => (
               <div
                 key={feature.id}
-                className="py-8 first:pt-0 last:pb-0 flex items-start justify-between gap-6 group"
+                className="py-8 first:pt-0 last:pb-0 flex items-start justify-between gap-6 group rounded-2xl p-4 sm:p-6 -mx-4 sm:-mx-6 hover:bg-neutral-900/40 transition-all cursor-default"
               >
-                <div className="flex items-start gap-6">
+                <div className="flex items-start gap-5 sm:gap-6">
                   {/* Número Monospace */}
-                  <span className="text-xs sm:text-sm font-mono font-bold text-brand-yellow pt-1">
+                  <span className="text-xs sm:text-sm font-mono font-bold text-brand-yellow pt-1 select-none">
                     {feature.number}
                   </span>
 
@@ -76,8 +76,8 @@ export const OperationsSection: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Ícono Lucide */}
-                <div className="pt-1 text-brand-yellow flex-shrink-0">
+                {/* Ícono Lucide con micro-animación al hover */}
+                <div className="pt-1 text-brand-yellow flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
                   {feature.iconName === 'calendar' && (
                     <Calendar className="h-6 w-6 sm:h-7 sm:w-7" strokeWidth={1.75} />
                   )}
