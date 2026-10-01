@@ -1,33 +1,68 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { MultiSportLogo } from '@/features/landing/components/MultiSportLogo'
+import { useAuth } from '../hooks/useAuth'
 import type { LoginPayload } from '../types'
+import axios from 'axios'
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
+  const { login } = useAuth()
+
   const [credentials, setCredentials] = useState<LoginPayload>({
     email: '',
     password: '',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+
+  const loginMutation = useMutation({
+    mutationFn: (payload: LoginPayload) => login(payload),
+    onSuccess: (data) => {
+      toast.success('Inicio de sesión exitoso', {
+        description: `Bienvenido, ${data.user.complexName}.`,
+      })
+      navigate('/admin')
+    },
+    onError: (error) => {
+      if (axios.isAxiosError(error) && error.response) {
+        const status = error.response.status
+        const problem = error.response.data
+
+        if (status === 401) {
+          toast.error('Credenciales inválidas', {
+            description: 'El correo electrónico o la contraseña no coinciden.',
+          })
+          return
+        }
+
+        if (status === 403) {
+          toast.error('Cuenta suspendida', {
+            description: problem?.detail || 'La cuenta de tu complejo se encuentra suspendida.',
+          })
+          return
+        }
+
+        if (status === 429) {
+          toast.error('Cuenta bloqueada temporalmente', {
+            description: problem?.detail || 'Demasiados intentos fallidos. Aguardá 15 minutos.',
+          })
+          return
+        }
+      }
+
+      toast.error('Error de conexión', {
+        description: 'No se pudo conectar con el servidor. Verificá tu conexión a internet.',
+      })
+    },
+  })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-
-    // Simulación de autenticación
-    setTimeout(() => {
-      setIsLoading(false)
-      toast.success('Inicio de sesión exitoso', {
-        description: `Bienvenido, ${credentials.email}.`,
-      })
-      // Redireccionar al panel cuando esté disponible o a la vista principal
-      navigate('/')
-    }, 800)
+    loginMutation.mutate(credentials)
   }
 
   return (
@@ -108,18 +143,17 @@ export const LoginPage: React.FC = () => {
                 >
                   Contraseña
                 </label>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
+                <button
+                  type="button"
+                  onClick={() => {
                     toast.info('Recuperación de contraseña', {
-                      description: 'Contactá al administrador del sistema para restablecer tu clave.',
+                      description: 'Ingresá a la sección de ayuda para solicitar un token de reseteo.',
                     })
                   }}
                   className="text-xs text-brand-yellow hover:underline transition-colors"
                 >
                   ¿Olvidaste tu contraseña?
-                </a>
+                </button>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
@@ -168,11 +202,11 @@ export const LoginPage: React.FC = () => {
             {/* Botón de Submit */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loginMutation.isPending}
               className="mt-2 w-full min-h-[48px] rounded-full bg-brand-yellow text-neutral-950 font-bold hover:bg-brand-yellow-hover flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-brand-yellow/10"
             >
-              {isLoading ? (
-                <span>Ingresando al sistema...</span>
+              {loginMutation.isPending ? (
+                <span>Iniciando sesión...</span>
               ) : (
                 <>
                   <span>Iniciar sesión</span>
@@ -182,14 +216,14 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Separador y Link a Demo */}
+          {/* Separador y Link a Registro */}
           <div className="mt-8 pt-6 border-t border-neutral-800/80 text-center text-xs text-neutral-400">
             ¿Tu complejo deportivo aún no usa MultiSport?{' '}
             <Link
-              to="/?demo=true"
+              to="/register"
               className="text-brand-yellow font-semibold hover:underline transition-colors block sm:inline mt-1 sm:mt-0"
             >
-              Solicitá una demo guiada
+              Registrá tu predio acá
             </Link>
           </div>
 

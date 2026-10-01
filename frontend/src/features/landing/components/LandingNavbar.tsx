@@ -4,17 +4,13 @@ import { ArrowUpRight, LogIn, Menu, X } from 'lucide-react'
 import { MultiSportLogo } from './MultiSportLogo'
 import type { NavItem } from '../types/landing.types'
 
-interface LandingNavbarProps {
-  onOpenDemo: () => void
-}
-
 const navItems: NavItem[] = [
   { label: 'Funciones', href: '#funciones' },
   { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Preguntas frecuentes', href: '#preguntas-frecuentes' },
 ]
 
-export const LandingNavbar: React.FC<LandingNavbarProps> = ({ onOpenDemo }) => {
+export const LandingNavbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
@@ -48,14 +44,13 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ onOpenDemo }) => {
             <span>Iniciar sesión</span>
           </Link>
 
-          <button
-            type="button"
-            onClick={onOpenDemo}
+          <Link
+            to="/register"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-yellow text-neutral-950 font-bold text-sm hover:bg-brand-yellow-hover transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-sm"
           >
-            <span>Solicitar demo</span>
+            <span>Registrarse</span>
             <ArrowUpRight className="h-4 w-4" strokeWidth={2.5} />
-          </button>
+          </Link>
         </div>
 
         {/* Mobile Action & Hamburger Toggle */}
@@ -68,14 +63,13 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ onOpenDemo }) => {
             <LogIn className="h-5 w-5" strokeWidth={1.75} />
           </Link>
 
-          <button
-            type="button"
-            onClick={onOpenDemo}
+          <Link
+            to="/register"
             className="px-3 py-1.5 rounded-full bg-brand-yellow text-neutral-950 font-bold text-xs flex items-center gap-1"
           >
-            <span>Demo</span>
+            <span>Registrarse</span>
             <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2} />
-          </button>
+          </Link>
 
           <button
             type="button"
@@ -115,17 +109,14 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ onOpenDemo }) => {
             <span>Iniciar sesión</span>
           </Link>
 
-          <button
-            type="button"
-            onClick={() => {
-              setMobileMenuOpen(false)
-              onOpenDemo()
-            }}
+          <Link
+            to="/register"
+            onClick={() => setMobileMenuOpen(false)}
             className="w-full py-3 rounded-full bg-brand-yellow text-neutral-950 font-bold text-sm flex items-center justify-center gap-2"
           >
-            <span>Solicitar demo</span>
+            <span>Registrarse</span>
             <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
-          </button>
+          </Link>
         </div>
       )}
     </header>

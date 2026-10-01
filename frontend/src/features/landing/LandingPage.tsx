@@ -32,7 +32,7 @@ export const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-brand-dark text-neutral-50 flex flex-col font-sans selection:bg-brand-yellow selection:text-neutral-950">
       {/* Barra de Navegación Superior */}
-      <LandingNavbar onOpenDemo={handleOpenDemo} />
+      <LandingNavbar />
 
       {/* Flujo de Secciones Principales */}
       <main className="flex-1 flex flex-col">
