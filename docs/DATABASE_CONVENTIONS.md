@@ -131,4 +131,15 @@ CREATE INDEX idx_bookings_active ON bookings (court_id, start_time_utc) WHERE (d
 
 - **Append-Only Principle:** Records in payment, transaction, or invoice tables (`payments`, `booking_deposits`) must **NEVER be deleted** (neither physically nor via soft delete).
 - **Adjustments & Refunds:** If an error occurs in a transaction or a cancellation triggers a refund, it must be recorded as a new adjustment row with a negative amount (or dedicated refund record), ensuring full financial and accounting auditability.
+- **Data Dictionary:** For the exhaustive field-by-field domain specification of tables, check [docs/DATA_DICTIONARY.md](file:///c:/Develop/MultiSport/docs/DATA_DICTIONARY.md).
+
+---
+
+## 8. Migrations Organization & Granularity (FluentMigrator)
+
+- **Feature-Driven Folders:** Migrations must reside in `MultiSport.Database.Migrations/Features/<FeatureName>/`.
+- **Single-Table Granularity:** Monolithic migration files are strictly prohibited. Each table creation, structural change, or constraint definition must live in its own dedicated migration file.
+- **Naming & Timestamps:** Files and classes must follow `[Migration(YYYYMMDDHHMM)]` with sequential timestamps respecting foreign key dependencies:
+  - Example: `Features/Courts/202610011608_CreateCourtsTable.cs`
+- **Reversibility:** Every migration must implement a robust `Down()` method.
 

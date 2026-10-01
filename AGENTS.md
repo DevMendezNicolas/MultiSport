@@ -43,7 +43,7 @@ This repository contains strict architectural and stylistic standards. All AI ag
 - **Concurrency & Overlapping:** Court schedule overlap protection is enforced at the database level using PostgreSQL GiST Exclusion Constraints (`exc_bookings_no_overlap`). Catch `PostgresException` (code `23P01`) and map it to `409 Conflict`.
 - **Soft Deletes & Audit:** Filter by `deleted_at IS NULL` on active queries. Populate audit fields (`created_by`, `updated_by`, `deleted_by`) on all transactional operations.
 - **Observability:** Propagate `X-Correlation-Id` across requests, middleware, and Serilog `LogContext`.
-- **FluentMigrator:** Migrations belong strictly in `MultiSport.Database.Migrations`. Migration classes must be annotated with `[Migration(YYYYMMDDHHMM)]` (timestamp format). Always provide `Down()` methods.
+- **FluentMigrator:** Migrations belong strictly in `MultiSport.Database.Migrations/Features/<FeatureName>/`. Each created or modified table must have its own dedicated migration file. Migration classes must be annotated with `[Migration(YYYYMMDDHHMM)]` (timestamp format, sequential). Always provide `Down()` methods. Monolithic multi-table migration files are strictly forbidden.
 
 ---
 

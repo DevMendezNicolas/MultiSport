@@ -24,6 +24,14 @@ This document establishes the official technical security standards, cryptograph
 * **Client-Side Storage (Frontend):**
   * The primary defense against XSS is issuing a **Cookie configured as `HttpOnly`, `Secure`, and `SameSite=Strict`**, preventing malicious JavaScript from accessing session credentials.
   * If short-lived access tokens are held in SPA memory, long-lived refresh tokens must strictly reside in HttpOnly cookies and never in `localStorage` or `sessionStorage`.
+* **Refresh Token Rotation & Revocation:**
+  * Refresh tokens must be hashed (`token_hash`) in the `refresh_tokens` table.
+  * When a refresh token is used, it is revoked and replaced by a new one (`replaced_by_token`). Detecting reuse of an already-revoked refresh token must trigger immediate revocation of all sessions for that user.
+* **Password Reset Cryptography:**
+  * Reset tokens sent via email must be high-entropy random strings (>= 32 bytes).
+  * Only the **SHA-256 hash** of the reset token is stored in the database (`password_reset_tokens.token_hash`).
+  * Reset tokens are strictly single-use and have a short validity window (15-30 minutes).
+  * Successful password reset must immediately invalidate all active `refresh_tokens` for the user.
 
 ---
 
