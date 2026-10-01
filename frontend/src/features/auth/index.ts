@@ -1,2 +1,7 @@
 export * from './types'
+export * from './api/authApi'
+export * from './context/authContextDef'
+export * from './context/AuthContext'
+export * from './hooks/useAuth'
 export * from './components/LoginPage'
+export * from './components/RegisterPage'
