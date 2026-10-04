@@ -4,24 +4,31 @@ interface MultiSportLogoProps {
   className?: string
   showText?: boolean
   variant?: 'light' | 'dark'
+  accent?: 'red' | 'neutral'
 }
 
 export const MultiSportLogo: React.FC<MultiSportLogoProps> = ({
   className = '',
   showText = true,
   variant = 'light',
+  accent = 'red',
 }) => {
   const isDark = variant === 'dark'
+  const isRed = accent === 'red'
 
   return (
     <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
       {/* Isotipo geométrico de red deportiva / canchas entrelazadas */}
-      <div className="relative h-9 w-9 rounded-xl bg-brand-yellow flex items-center justify-center p-1.5 shadow-sm overflow-hidden flex-shrink-0">
+      <div
+        className={`relative h-9 w-9 rounded-xl flex items-center justify-center p-1.5 shadow-sm overflow-hidden flex-shrink-0 transition-colors ${
+          isRed ? 'bg-brand-red text-white' : 'bg-neutral-800 text-white'
+        }`}
+      >
         <svg
           viewBox="0 0 32 32"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full text-neutral-950"
+          className="w-full h-full"
         >
           {/* Trama diagonal deportiva entrelazada */}
           <path
@@ -51,7 +58,13 @@ export const MultiSportLogo: React.FC<MultiSportLogoProps> = ({
           >
             multisport
           </span>
-          <span className="text-[10px] font-bold text-brand-yellow">®</span>
+          <span
+            className={`text-[10px] font-bold ${
+              isRed ? 'text-brand-red' : 'text-neutral-400'
+            }`}
+          >
+            ®
+          </span>
         </span>
       )}
     </div>

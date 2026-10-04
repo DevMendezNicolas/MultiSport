@@ -16,13 +16,13 @@ export const LandingFooter: React.FC = () => {
 
         {/* Links de navegación */}
         <div className="flex items-center gap-6 text-xs font-mono uppercase tracking-wider text-neutral-400">
-          <a href="#funciones" className="hover:text-brand-yellow transition-colors">
+          <a href="#funciones" className="hover:text-brand-red transition-colors">
             Funciones
           </a>
-          <a href="#como-funciona" className="hover:text-brand-yellow transition-colors">
+          <a href="#como-funciona" className="hover:text-brand-red transition-colors">
             Cómo funciona
           </a>
-          <a href="#preguntas-frecuentes" className="hover:text-brand-yellow transition-colors">
+          <a href="#preguntas-frecuentes" className="hover:text-brand-red transition-colors">
             Preguntas frecuentes
           </a>
         </div>

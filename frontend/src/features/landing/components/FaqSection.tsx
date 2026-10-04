@@ -44,7 +44,7 @@ export const FaqSection: React.FC = () => {
           
           {/* Lado Izquierdo: Copywriting */}
           <div className="lg:col-span-5">
-            <div className="text-xs font-mono font-bold tracking-widest text-brand-yellow uppercase">
+            <div className="text-xs font-mono font-bold tracking-widest text-brand-red uppercase">
               PREGUNTAS FRECUENTES
             </div>
             
@@ -53,7 +53,7 @@ export const FaqSection: React.FC = () => {
               <br />
               hacemos
               <br />
-              <span className="text-brand-yellow">simple.</span>
+              <span className="text-brand-red">simple.</span>
             </h2>
           </div>
 
@@ -66,15 +66,15 @@ export const FaqSection: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => toggleFaq(faq.id)}
-                    className="w-full flex items-center justify-between gap-4 text-left group transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-yellow rounded-lg py-1"
+                    className="w-full flex items-center justify-between gap-4 text-left group transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-red rounded-lg py-1"
                     aria-expanded={isOpen}
                     aria-controls={`faq-answer-${faq.id}`}
                   >
-                    <span className="text-lg sm:text-xl font-bold text-white group-hover:text-brand-yellow transition-colors">
+                    <span className="text-lg sm:text-xl font-bold text-white group-hover:text-brand-red transition-colors">
                       {faq.question}
                     </span>
                     <ChevronDown
-                      className={`h-5 w-5 text-brand-yellow flex-shrink-0 transition-transform duration-200 ${
+                      className={`h-5 w-5 text-brand-red flex-shrink-0 transition-transform duration-200 ${
                         isOpen ? 'rotate-180' : ''
                       }`}
                       strokeWidth={2}

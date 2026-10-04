@@ -16,18 +16,18 @@ export const FinalCtaSection: React.FC<FinalCtaSectionProps> = ({
           
           {/* Lado Izquierdo: Copywriting y CTA Directo */}
           <div className="lg:col-span-6 flex flex-col justify-center">
-            <div className="text-xs font-mono font-bold tracking-widest text-amber-700 uppercase">
+            <div className="text-xs font-mono font-bold tracking-widest text-brand-red uppercase">
               EL PRÓXIMO PARTIDO EMPIEZA ACÁ
             </div>
 
             <h2 className="mt-4 font-black text-5xl sm:text-6xl lg:text-7xl tracking-tight leading-[0.95] text-neutral-950">
               Hacé que
               <br />
-              <span className="text-amber-500">suceda.</span>
+              <span className="text-brand-red">suceda.</span>
             </h2>
 
             <p className="mt-6 text-neutral-700 text-base sm:text-lg leading-relaxed max-w-lg">
-              Sumate a los complejos deportivos que profesionalizaron su gestión, eliminaron los turnos dobles y automatizaron sus torneos.
+              Sumate a los complejos deportivos que profesionalizaron su gestión, simplificaron sus reservas y automatizaron sus torneos.
             </p>
 
             {/* Botones de Acción */}
@@ -35,7 +35,7 @@ export const FinalCtaSection: React.FC<FinalCtaSectionProps> = ({
               <button
                 type="button"
                 onClick={onOpenDemo}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-brand-yellow text-neutral-950 font-bold text-base hover:bg-brand-yellow-hover transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-md"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-brand-red text-white font-bold text-base hover:bg-brand-red-hover transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-brand-red/25"
               >
                 <span>Solicitar una demo</span>
                 <ArrowUpRight className="h-4 w-4" strokeWidth={2.5} />

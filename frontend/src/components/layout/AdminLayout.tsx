@@ -65,7 +65,7 @@ export const AdminLayout: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex flex-col text-right">
             <span className="text-xs font-medium text-white truncate max-w-[160px]">{user?.email}</span>
-            <span className="text-[10px] font-mono text-brand-yellow uppercase tracking-wider">{user?.role}</span>
+            <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider">{user?.role}</span>
           </div>
 
           <button
@@ -99,7 +99,7 @@ export const AdminLayout: React.FC = () => {
                   cn(
                     'min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-brand-yellow/10 text-brand-yellow border border-brand-yellow/20 font-semibold'
+                      ? 'bg-brand-red/10 text-brand-red border border-brand-red/30 font-semibold'
                       : 'text-neutral-400 hover:text-neutral-100 hover:bg-neutral-900'
                   )
                 }
@@ -129,7 +129,8 @@ export const AdminLayout: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="h-9 w-9 flex items-center justify-center text-neutral-400 hover:text-white"
+                  className="h-11 w-11 flex items-center justify-center text-neutral-400 hover:text-white"
+                  aria-label="Cerrar menú"
                 >
                   <X className="h-5 w-5" strokeWidth={2} />
                 </button>
@@ -148,7 +149,7 @@ export const AdminLayout: React.FC = () => {
                         cn(
                           'min-h-[44px] flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
                           isActive
-                            ? 'bg-brand-yellow/10 text-brand-yellow font-bold'
+                            ? 'bg-brand-red/10 text-brand-red font-bold'
                             : 'text-neutral-300 hover:bg-neutral-900'
                         )
                       }
