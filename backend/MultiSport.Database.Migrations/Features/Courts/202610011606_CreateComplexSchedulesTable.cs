@@ -15,6 +15,7 @@ public class CreateComplexSchedulesTable : Migration
             .WithColumn("opening_time").AsCustom("TIME").NotNullable()
             .WithColumn("closing_time").AsCustom("TIME").NotNullable()
             .WithColumn("is_closed").AsBoolean().NotNullable().WithDefaultValue(false)
+            .WithColumn("is_covered").AsBoolean().NotNullable().WithDefaultValue(false)
             .WithColumn("created_at").AsCustom("TIMESTAMPTZ").NotNullable().WithDefault(SystemMethods.CurrentDateTime)
             .WithColumn("updated_at").AsCustom("TIMESTAMPTZ").NotNullable().WithDefault(SystemMethods.CurrentDateTime);
 

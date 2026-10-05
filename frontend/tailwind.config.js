@@ -49,6 +49,10 @@ export default {
           foreground: 'hsl(var(--card-foreground))',
         },
         brand: {
+          red: '#E11D2A',
+          'red-hover': '#C81622',
+          'red-dark': '#99111B',
+          'red-subtle': '#E11D2A1A',
           yellow: '#F5BD1F',
           'yellow-hover': '#E0AA10',
           dark: '#0B0B0B',
