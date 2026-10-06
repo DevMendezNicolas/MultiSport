@@ -8,6 +8,9 @@ using MultiSport.Api.Common;
 using MultiSport.Api.Features.Auth.Endpoints;
 using MultiSport.Api.Features.Auth.Repositories;
 using MultiSport.Api.Features.Auth.Services;
+using MultiSport.Api.Features.Courts.Endpoints;
+using MultiSport.Api.Features.Courts.Repositories;
+using MultiSport.Api.Features.Courts.Services;
 using MultiSport.Api.Features.System;
 using MultiSport.Database.Migrations;
 using Serilog;
@@ -34,9 +37,11 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddScoped<IDbConnectionFactory>(_ => new NpgsqlConnectionFactory(connectionString));
 builder.Services.AddDatabaseMigrations(connectionString);
 
-// Registro de Capas de Features (Auth)
+// Registro de Capas de Features (Auth y Courts)
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICourtRepository, CourtRepository>();
+builder.Services.AddScoped<ICourtService, CourtService>();
 
 // Configuración de Autenticación con JWT Bearer
 var jwtSecret = builder.Configuration["Jwt:Secret"] 
@@ -162,5 +167,6 @@ var apiV1 = app.MapGroup("/api/v1");
 // Módulos Vertical Slice
 apiV1.MapSystemEndpoints();
 apiV1.MapAuthEndpoints();
+apiV1.MapCourtsEndpoints();
 
 app.Run();
