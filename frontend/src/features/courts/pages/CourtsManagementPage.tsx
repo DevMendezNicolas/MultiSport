@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
-import { Plus, SlidersHorizontal } from 'lucide-react'
+import { Plus, SlidersHorizontal, Calendar, Clock } from 'lucide-react'
 import { CreateCourtForm } from '../components/CreateCourtForm'
 import { useCourts } from '../hooks/useCourts'
 
 type ActiveTab = 'create' | 'modify'
+
+const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 export const CourtsManagementPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('create')
@@ -22,7 +24,7 @@ export const CourtsManagementPage: React.FC = () => {
               Gestión de Canchas
             </h1>
             <p className="text-xs sm:text-sm text-neutral-600 mt-2 max-w-2xl leading-relaxed">
-              Administrá los espacios deportivos de tu predio. Da de alta nuevas canchas vinculadas a múltiples disciplinas o editá superficies y tarifas.
+              Administrá los espacios deportivos de tu predio. Da de alta nuevas canchas vinculadas a múltiples disciplinas, gestioná disponibilidad temporal y tarifas diferenciales.
             </p>
           </div>
 
@@ -61,7 +63,7 @@ export const CourtsManagementPage: React.FC = () => {
             }`}
           >
             <SlidersHorizontal className="h-4 w-4" strokeWidth={2} />
-            <span>Modificar Cancha</span>
+            <span>Consultar Canchas</span>
           </button>
         </div>
       </section>
@@ -80,7 +82,7 @@ export const CourtsManagementPage: React.FC = () => {
               Canchas Existentes
             </h2>
             <p className="text-xs text-neutral-600 mt-1">
-              Módulo de edición planificado. Podés consultar las canchas creadas en el sistema.
+              Espacios deportivos registrados con sus disciplinas asociadas, disponibilidad semanal y tarifas.
             </p>
           </div>
 
@@ -102,51 +104,85 @@ export const CourtsManagementPage: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {courts.map((court) => (
-                <article
-                  key={court.id}
-                  className="border border-neutral-300 p-5 bg-[#FAF8F5] flex flex-col justify-between space-y-4"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono uppercase bg-neutral-900 text-white px-2 py-0.5">
-                        {court.surfaceType}
-                      </span>
-                      <span className="text-[11px] font-mono text-emerald-700 font-bold">
-                        {court.isActive ? 'Activa' : 'Inactiva'}
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-black text-neutral-950 tracking-tight">
-                      {court.name}
-                    </h3>
-                    <div className="text-xs text-neutral-600 space-y-0.5">
-                      <p>
-                        {court.isCovered ? 'Techada' : 'Al aire libre'} · {court.hasLighting ? 'Con luz' : 'Sin luz'}
-                      </p>
-                      <p className="font-mono text-[11px] text-neutral-500">
-                        Turnos de {court.durationMinutes} min · Tarifa base: ${court.basePrice}
-                      </p>
-                    </div>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {courts.map((court) => {
+                // Extraer días únicos con reglas
+                const uniqueDays = Array.from(
+                  new Set(
+                    court.sports.flatMap((s) => (s.pricingRules || []).map((r) => r.dayOfWeek))
+                  )
+                ).sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b))
 
-                  <div className="pt-3 border-t border-neutral-200">
-                    <div className="text-[10px] font-mono text-neutral-500 mb-2 uppercase">
-                      Deportes ({court.sports.length}):
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {court.sports.map((s) => (
-                        <span
-                          key={s.sportId}
-                          className="text-[10px] font-mono bg-white border border-neutral-200 px-2 py-0.5 text-neutral-800"
-                        >
-                          {s.sportName}
+                return (
+                  <article
+                    key={court.id}
+                    className="border border-neutral-300 p-5 bg-[#FAF8F5] flex flex-col justify-between space-y-5 shadow-sm"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono uppercase bg-neutral-900 text-white px-2 py-0.5">
+                          {court.surfaceType}
                         </span>
-                      ))}
+                        <span className="text-[11px] font-mono text-emerald-700 font-bold">
+                          {court.isActive ? 'Activa' : 'Inactiva'}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-black text-neutral-950 tracking-tight">
+                        {court.name}
+                      </h3>
+                      <div className="text-xs text-neutral-600 space-y-0.5">
+                        <p>
+                          {court.isCovered ? 'Techada' : 'Al aire libre'} · {court.hasLighting ? 'Con iluminación' : 'Sin iluminación'}
+                        </p>
+                        <p className="font-mono text-[11px] text-neutral-500">
+                          Buffer entre turnos: {court.bufferMinutes} min
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              ))}
+
+                    {/* Días Operativos */}
+                    {uniqueDays.length > 0 && (
+                      <div className="space-y-1.5 border-t border-neutral-200 pt-3">
+                        <div className="text-[10px] font-mono text-neutral-500 uppercase flex items-center gap-1">
+                          <Calendar className="h-3 w-3" strokeWidth={2} />
+                          <span>Días Habilitados ({uniqueDays.length}):</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {uniqueDays.map((dayNum) => (
+                            <span
+                              key={dayNum}
+                              className="text-[10px] font-mono bg-neutral-200 px-1.5 py-0.5 text-neutral-800 font-bold"
+                            >
+                              {DAY_NAMES[dayNum]}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Deportes y Tarifas */}
+                    <div className="pt-3 border-t border-neutral-200 space-y-2">
+                      <div className="text-[10px] font-mono text-neutral-500 uppercase flex items-center gap-1">
+                        <Clock className="h-3 w-3" strokeWidth={2} />
+                        <span>Disciplinas y Tarifas:</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {court.sports.map((s) => (
+                          <div
+                            key={s.courtSportId || s.sportId}
+                            className="bg-white border border-neutral-200 p-2 text-xs flex items-center justify-between"
+                          >
+                            <span className="font-bold text-neutral-900">{s.sportName}</span>
+                            <span className="font-mono text-[11px] text-neutral-600">
+                              ${s.basePrice} · {s.durationMinutes} min
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </article>
+                )
+              })}
             </div>
           )}
         </section>

@@ -17,6 +17,8 @@ using Serilog;
 
 // Configuración global de mapeo de Dapper (snake_case de PostgreSQL a PascalCase de C#)
 DefaultTypeMap.MatchNamesWithUnderscores = true;
+SqlMapper.AddTypeHandler(new TimeOnlyTypeHandler());
+SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +30,12 @@ builder.Host.UseSerilog((context, services, configuration) =>
         .Enrich.FromLogContext()
         .Enrich.WithProperty("Application", "MultiSport.Api")
         .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] {Message:lj}{NewLine}{Exception}");
+});
+
+// Configuración de JSON para Minimal APIs (soporte flexible para TimeOnly HH:mm / HH:mm:ss)
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
 });
 
 // Configuración de Base de Datos y Factoría Scoped

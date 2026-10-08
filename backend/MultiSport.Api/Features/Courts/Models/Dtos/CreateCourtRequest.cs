@@ -8,5 +8,7 @@ public sealed record CreateCourtRequest(
     int BufferMinutes,
     decimal BasePrice,
     int DurationMinutes,
-    IReadOnlyList<Guid> SportIds
+    IReadOnlyList<Guid> SportIds,
+    IReadOnlyList<CourtDayScheduleDto> Schedules,
+    IReadOnlyList<CourtSportConfigDto>? CustomSportPrices = null
 );

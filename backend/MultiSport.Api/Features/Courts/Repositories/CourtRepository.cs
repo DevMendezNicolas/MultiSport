@@ -62,7 +62,11 @@ public sealed class CourtRepository : ICourtRepository
         return ids.AsList();
     }
 
-    public async Task<Court> CreateCourtWithSportsAsync(Court court, IEnumerable<CourtSport> courtSports, CancellationToken ct)
+    public async Task<Court> CreateCourtWithSportsAndPricingRulesAsync(
+        Court court,
+        IEnumerable<CourtSport> courtSports,
+        IEnumerable<CourtPricingRule> pricingRules,
+        CancellationToken ct)
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
         await using var transaction = await connection.BeginTransactionAsync(ct);
@@ -121,6 +125,33 @@ public sealed class CourtRepository : ICourtRepository
                 cancellationToken: ct));
         }
 
+        const string insertPricingRuleSql = @"
+            INSERT INTO court_pricing_rules (
+                id, court_sport_id, day_of_week, start_time, end_time, price, duration_minutes, created_at, updated_at
+            ) VALUES (
+                @Id, @CourtSportId, @DayOfWeek, @StartTime, @EndTime, @Price, @DurationMinutes, @CreatedAt, @UpdatedAt
+            );";
+
+        foreach (var rule in pricingRules)
+        {
+            await connection.ExecuteAsync(new CommandDefinition(
+                insertPricingRuleSql,
+                new
+                {
+                    rule.Id,
+                    rule.CourtSportId,
+                    rule.DayOfWeek,
+                    rule.StartTime,
+                    rule.EndTime,
+                    rule.Price,
+                    rule.DurationMinutes,
+                    rule.CreatedAt,
+                    rule.UpdatedAt
+                },
+                transaction: transaction,
+                cancellationToken: ct));
+        }
+
         await transaction.CommitAsync(ct);
 
         return court;
@@ -154,6 +185,28 @@ public sealed class CourtRepository : ICourtRepository
             new { CourtId = courtId },
             cancellationToken: ct));
         return courtSports.AsList();
+    }
+
+    public async Task<IReadOnlyList<CourtPricingRule>> GetPricingRulesByCourtSportIdsAsync(IEnumerable<Guid> courtSportIds, CancellationToken ct)
+    {
+        var idsList = courtSportIds.ToArray();
+        if (idsList.Length == 0)
+        {
+            return Array.Empty<CourtPricingRule>();
+        }
+
+        const string sql = @"
+            SELECT id, court_sport_id, day_of_week, start_time, end_time, price, duration_minutes, created_at, updated_at
+            FROM court_pricing_rules
+            WHERE court_sport_id = ANY(@CourtSportIds)
+            ORDER BY day_of_week ASC, start_time ASC;";
+
+        await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
+        var rules = await connection.QueryAsync<CourtPricingRule>(new CommandDefinition(
+            sql,
+            new { CourtSportIds = idsList },
+            cancellationToken: ct));
+        return rules.AsList();
     }
 
     public async Task<IReadOnlyList<Court>> GetCourtsByComplexIdAsync(Guid complexId, CancellationToken ct)
