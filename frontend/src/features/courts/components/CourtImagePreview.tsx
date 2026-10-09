@@ -6,7 +6,6 @@ interface CourtImagePreviewProps {
   surfaceType: string
   isCovered: boolean
   hasLighting: boolean
-  bufferMinutes: number
   durationMinutes: number
   basePrice: number
 }
@@ -16,7 +15,6 @@ export const CourtImagePreview: React.FC<CourtImagePreviewProps> = ({
   surfaceType,
   isCovered,
   hasLighting,
-  bufferMinutes,
   durationMinutes,
   basePrice,
 }) => {
@@ -89,12 +87,6 @@ export const CourtImagePreview: React.FC<CourtImagePreviewProps> = ({
             <span className="font-medium text-neutral-800">{hasLighting ? 'Con reflectores' : 'Sin luz'}</span>
           </div>
         </div>
-
-        {bufferMinutes > 0 && (
-          <div className="text-[11px] font-mono text-neutral-500 bg-neutral-50 border border-neutral-200 px-3 py-1.5">
-            Colchón entre turnos: {bufferMinutes} minutos de limpieza/buffer.
-          </div>
-        )}
       </div>
     </aside>
   )

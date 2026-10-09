@@ -7,7 +7,6 @@ public sealed record CourtResponse(
     string SurfaceType,
     bool IsCovered,
     bool HasLighting,
-    int BufferMinutes,
     decimal BasePrice,
     int DurationMinutes,
     bool IsActive,

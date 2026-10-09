@@ -12,6 +12,24 @@ public interface ICourtService
         CreateCourtRequest request,
         CancellationToken ct);
 
+    Task<Results<Ok<CourtResponse>, NotFound, UnauthorizedHttpResult>> GetCourtByIdAsync(
+        Guid courtId,
+        Guid complexId,
+        CancellationToken ct);
+
+    Task<Results<Ok<CourtResponse>, NotFound, ValidationProblem, Conflict<ProblemDetails>, UnauthorizedHttpResult>> UpdateCourtAsync(
+        Guid courtId,
+        Guid complexId,
+        Guid userId,
+        UpdateCourtRequest request,
+        CancellationToken ct);
+
+    Task<Results<NoContent, NotFound, Conflict<ProblemDetails>, UnauthorizedHttpResult>> DeleteCourtAsync(
+        Guid courtId,
+        Guid complexId,
+        Guid userId,
+        CancellationToken ct);
+
     Task<IReadOnlyList<SportResponse>> GetAvailableSportsAsync(CancellationToken ct);
 
     Task<IReadOnlyList<CourtResponse>> GetCourtsAsync(Guid complexId, CancellationToken ct);

@@ -1,10 +1,25 @@
 import React, { useState, useMemo } from 'react'
-import { ArrowRight, Check, Calendar, Clock, DollarSign, SlidersHorizontal, AlertCircle } from 'lucide-react'
+import {
+  ArrowRight,
+  Check,
+  Calendar,
+  Clock,
+  DollarSign,
+  SlidersHorizontal,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import axios from 'axios'
 import { useCreateCourt, useSports } from '../hooks/useCourts'
-import type { CreateCourtPayload, CourtDaySchedulePayload, CourtSportConfigPayload } from '../types'
+import type {
+  CreateCourtPayload,
+  CourtPricingTierPayload,
+  CourtSportConfigPayload,
+} from '../types'
 import { CourtImagePreview } from './CourtImagePreview'
+import { PricingTiersEditor } from './PricingTiersEditor'
 
 const SURFACE_OPTIONS = [
   'Césped Sintético',
@@ -29,12 +44,6 @@ interface CreateCourtFormProps {
   onSuccess?: () => void
 }
 
-interface DayScheduleFormState {
-  firstShiftStart: string
-  lastShiftStart: string
-  priceOverride?: number
-}
-
 export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) => {
   const { data: sports = [], isLoading: isLoadingSports } = useSports()
   const createCourtMutation = useCreateCourt()
@@ -45,7 +54,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
     surfaceType: string
     isCovered: boolean
     hasLighting: boolean
-    bufferMinutes: number
     basePrice: number
     durationMinutes: number
     sportIds: string[]
@@ -54,36 +62,29 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
     surfaceType: SURFACE_OPTIONS[0],
     isCovered: false,
     hasLighting: true,
-    bufferMinutes: 0,
     basePrice: 20000,
     durationMinutes: 60,
     sportIds: [],
   })
 
-  // 2. Disponibilidad temporal (días seleccionados)
-  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]) // Lun-Vie por defecto
-  const [applySameScheduleToAllDays, setApplySameScheduleToAllDays] = useState(true)
-  const [defaultSchedule, setDefaultSchedule] = useState<DayScheduleFormState>({
-    firstShiftStart: '08:00',
-    lastShiftStart: '22:00',
-  })
-  const [perDaySchedules, setPerDaySchedules] = useState<Record<number, DayScheduleFormState>>({
-    1: { firstShiftStart: '08:00', lastShiftStart: '22:00' },
-    2: { firstShiftStart: '08:00', lastShiftStart: '22:00' },
-    3: { firstShiftStart: '08:00', lastShiftStart: '22:00' },
-    4: { firstShiftStart: '08:00', lastShiftStart: '22:00' },
-    5: { firstShiftStart: '08:00', lastShiftStart: '22:00' },
-    6: { firstShiftStart: '09:00', lastShiftStart: '21:00' },
-    0: { firstShiftStart: '09:00', lastShiftStart: '21:00' },
-  })
+  // 2. Disponibilidad temporal simple
+  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5])
+  const [openingTime, setOpeningTime] = useState<string>('08:00')
+  const [closingTime, setClosingTime] = useState<string>('23:00')
 
-  // 3. Personalización económica por deporte
-  const [customizePricesBySport, setCustomizePricesBySport] = useState(false)
-  const [customSportConfigs, setCustomSportConfigs] = useState<Record<string, { basePrice: number; durationMinutes: number }>>({})
+  // 3. Modalidad avanzada de franjas horarias y precios
+  const [isAdvancedPricingMode, setIsAdvancedPricingMode] = useState<boolean>(false)
+  const [customPricingTiers, setCustomPricingTiers] = useState<CourtPricingTierPayload[]>([])
+
+  // 4. Personalización económica por deporte
+  const [customizePricesBySport, setCustomizePricesBySport] = useState<boolean>(false)
+  const [customSportConfigs, setCustomSportConfigs] = useState<
+    Record<string, { basePrice: number; durationMinutes: number }>
+  >({})
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Deporte primario seleccionado (para la vista previa editorial)
+  // Deporte primario seleccionado (para previsualización visual)
   const firstSport = useMemo(() => {
     if (formData.sportIds.length === 0) return undefined
     const firstId = formData.sportIds[0]
@@ -99,7 +100,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
       return { ...prev, sportIds: newIds }
     })
 
-    // Inicializar configuración personalizada si se activa para ese deporte
     if (!customSportConfigs[sportId]) {
       setCustomSportConfigs((prev) => ({
         ...prev,
@@ -125,6 +125,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
         return orderA - orderB
       })
     })
+
     if (errors.schedules) {
       setErrors((prev) => ({ ...prev, schedules: '' }))
     }
@@ -143,39 +144,48 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
     }
   }
 
-  // Cálculo visual de finalización de turnos
+  // Generador de franjas simples automáticas
+  const generateSimpleTiers = (): CourtPricingTierPayload[] => {
+    return selectedDays.map((dayId) => ({
+      dayOfWeek: dayId,
+      startTime: openingTime,
+      endTime: closingTime,
+      price: formData.basePrice,
+      durationMinutes: formData.durationMinutes,
+    }))
+  }
+
+  // Activar modo avanzado inicializando con las franjas simples vigentes si está vacío
+  const handleToggleAdvancedMode = () => {
+    const nextState = !isAdvancedPricingMode
+    setIsAdvancedPricingMode(nextState)
+
+    if (nextState && customPricingTiers.length === 0) {
+      setCustomPricingTiers(generateSimpleTiers())
+    }
+  }
+
+  // Resumen visual del horario operativo
   const scheduleSummary = useMemo(() => {
     const parseMins = (timeStr: string) => {
-      const [h, m] = timeStr.split(':').map(Number)
+      const [h, m] = (timeStr || '00:00').split(':').map(Number)
       return (h || 0) * 60 + (m || 0)
     }
 
-    const formatMins = (mins: number) => {
-      const normalized = mins % 1440
-      const h = Math.floor(normalized / 60).toString().padStart(2, '0')
-      const m = (normalized % 60).toString().padStart(2, '0')
-      const isNextDay = mins >= 1440
-      return { time: `${h}:${m}`, isNextDay }
-    }
-
-    const start = parseMins(defaultSchedule.firstShiftStart)
-    let lastStart = parseMins(defaultSchedule.lastShiftStart)
-    if (lastStart < start) lastStart += 1440
-
-    const end = lastStart + formData.durationMinutes
-    const formattedEnd = formatMins(end)
-
-    const spanMins = end - start
-    const shiftCount = Math.max(1, Math.floor(spanMins / formData.durationMinutes))
+    const startMins = parseMins(openingTime)
+    let endMins = parseMins(closingTime)
+    if (closingTime === '00:00') endMins = 1440
+    const crossesMidnight = endMins <= startMins
+    const effectiveSpan = crossesMidnight ? 1440 - startMins + endMins : endMins - startMins
+    const shiftCount = Math.max(1, Math.floor(effectiveSpan / (formData.durationMinutes || 60)))
 
     return {
-      firstShift: defaultSchedule.firstShiftStart,
-      lastShift: defaultSchedule.lastShiftStart,
-      effectiveEnd: formattedEnd.time,
-      isNextDay: formattedEnd.isNextDay,
+      openingTime,
+      closingTime,
+      crossesMidnight,
       shiftCount,
     }
-  }, [defaultSchedule, formData.durationMinutes])
+  }, [openingTime, closingTime, formData.durationMinutes])
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -204,6 +214,10 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
       newErrors.schedules = 'Debe seleccionar al menos un día de disponibilidad para la cancha.'
     }
 
+    if (isAdvancedPricingMode && customPricingTiers.length === 0) {
+      newErrors.pricingTiers = 'Debe configurar al menos una franja horaria en modo avanzado.'
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -212,20 +226,10 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
     e.preventDefault()
     if (!validate()) return
 
-    // Generar el payload de schedules según la modalidad seleccionada
-    const normalizeTime = (t: string) => (t.length === 5 ? `${t}:00` : t)
+    const effectiveTiers: CourtPricingTierPayload[] = isAdvancedPricingMode
+      ? customPricingTiers
+      : generateSimpleTiers()
 
-    const schedulesPayload: CourtDaySchedulePayload[] = selectedDays.map((dayId) => {
-      const schedule = applySameScheduleToAllDays ? defaultSchedule : perDaySchedules[dayId] || defaultSchedule
-      return {
-        dayOfWeek: dayId,
-        firstShiftStart: normalizeTime(schedule.firstShiftStart),
-        lastShiftStart: normalizeTime(schedule.lastShiftStart),
-        priceOverride: schedule.priceOverride,
-      }
-    })
-
-    // Generar customSportPrices solo si el switch está activado
     const customSportPricesPayload: CourtSportConfigPayload[] | undefined = customizePricesBySport
       ? formData.sportIds.map((sportId) => ({
           sportId,
@@ -239,31 +243,34 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
       surfaceType: formData.surfaceType,
       isCovered: formData.isCovered,
       hasLighting: formData.hasLighting,
-      bufferMinutes: formData.bufferMinutes,
       basePrice: formData.basePrice,
       durationMinutes: formData.durationMinutes,
       sportIds: formData.sportIds,
-      schedules: schedulesPayload,
+      pricingTiers: effectiveTiers,
       customSportPrices: customSportPricesPayload,
     }
 
     try {
       await createCourtMutation.mutateAsync(payload)
       toast.success('Cancha creada exitosamente', {
-        description: `Se registró "${formData.name.trim()}" con ${formData.sportIds.length} deporte(s) y disponibilidad semanal asignada.`,
+        description: `Se registró "${formData.name.trim()}" con ${formData.sportIds.length} disciplina(s) y ${effectiveTiers.length} franja(s) de disponibilidad configurada(s).`,
       })
+
       // Reset form
       setFormData({
         name: '',
         surfaceType: SURFACE_OPTIONS[0],
         isCovered: false,
         hasLighting: true,
-        bufferMinutes: 0,
         basePrice: 20000,
         durationMinutes: 60,
         sportIds: [],
       })
       setSelectedDays([1, 2, 3, 4, 5])
+      setOpeningTime('08:00')
+      setClosingTime('23:00')
+      setIsAdvancedPricingMode(false)
+      setCustomPricingTiers([])
       setCustomizePricesBySport(false)
       setErrors({})
       onSuccess?.()
@@ -414,8 +421,8 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
               </select>
             </div>
 
-            {/* Características Físicas y Buffer */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            {/* Características Físicas */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <div className="flex items-center gap-3 p-3 border border-neutral-200 bg-[#FAF8F5] min-h-[44px]">
                 <input
                   id="is-covered"
@@ -441,233 +448,39 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                   Con Iluminación
                 </label>
               </div>
-
-              <div className="space-y-1">
-                <label htmlFor="buffer-minutes" className="text-[11px] font-mono uppercase font-bold text-neutral-700 block">
-                  Colchón / Buffer (min)
-                </label>
-                <input
-                  id="buffer-minutes"
-                  type="number"
-                  min="0"
-                  max="60"
-                  step="5"
-                  value={formData.bufferMinutes}
-                  onChange={(e) => setFormData({ ...formData, bufferMinutes: Math.max(0, Number(e.target.value)) })}
-                  className="w-full bg-[#FAF8F5] border border-neutral-200 rounded-none px-3 py-2 text-sm text-neutral-950 font-mono"
-                />
-              </div>
             </div>
           </div>
 
-          {/* SECCIÓN 2: DISPONIBILIDAD TEMPORAL (DÍAS Y HORARIOS) */}
-          <div className="space-y-4 pt-4 border-t border-neutral-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-mono uppercase font-bold text-neutral-500 tracking-wider flex items-center gap-2">
-                <Calendar className="h-4 w-4" strokeWidth={2} />
-                <span>02. Días y Horarios Operativos</span>
-              </h3>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => selectQuickDays('weekdays')}
-                  className="text-[10px] font-mono uppercase bg-neutral-100 hover:bg-neutral-200 text-neutral-700 px-2 py-1 transition-colors"
-                >
-                  Lun-Vie
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectQuickDays('all')}
-                  className="text-[10px] font-mono uppercase bg-neutral-100 hover:bg-neutral-200 text-neutral-700 px-2 py-1 transition-colors"
-                >
-                  Todos
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectQuickDays('weekend')}
-                  className="text-[10px] font-mono uppercase bg-neutral-100 hover:bg-neutral-200 text-neutral-700 px-2 py-1 transition-colors"
-                >
-                  Finde
-                </button>
-              </div>
-            </div>
-
-            {/* Selector de Días */}
-            <div className="space-y-2">
-              <label className="text-xs font-mono uppercase font-bold text-neutral-800 tracking-wider block">
-                Días Habilitados * ({selectedDays.length} activos)
-              </label>
-              <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
-                {DAYS_OF_WEEK.map((day) => {
-                  const isSelected = selectedDays.includes(day.id)
-                  return (
-                    <button
-                      key={day.id}
-                      type="button"
-                      onClick={() => toggleDay(day.id)}
-                      className={`min-h-[44px] py-2 px-1 text-center border text-xs font-bold uppercase transition-all flex flex-col items-center justify-center ${
-                        isSelected
-                          ? 'border-neutral-950 bg-neutral-950 text-white shadow-sm'
-                          : 'border-neutral-200 bg-[#FAF8F5] text-neutral-600 hover:border-neutral-400'
-                      }`}
-                    >
-                      <span>{day.short}</span>
-                      <span className="text-[9px] font-mono opacity-70">{isSelected ? 'Activo' : 'Cerrado'}</span>
-                    </button>
-                  )
-                })}
-              </div>
-              {errors.schedules && <p className="text-xs text-red-600 font-mono mt-1">{errors.schedules}</p>}
-            </div>
-
-            {/* Modalidad de horarios: Unificado vs Por Día */}
-            <div className="flex items-center justify-between p-3 border border-neutral-200 bg-[#FAF8F5]">
-              <div className="space-y-0.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-neutral-900 block">
-                  Aplicar mismo horario a todos los días seleccionados
-                </span>
-                <span className="text-[11px] font-mono text-neutral-500 block">
-                  Desactivá si tu complejo abre o cierra en horas distintas según el día
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={applySameScheduleToAllDays}
-                onChange={(e) => setApplySameScheduleToAllDays(e.target.checked)}
-                className="h-4 w-4 rounded-none border-neutral-400 text-brand-red focus:ring-0"
-              />
-            </div>
-
-            {/* Configuración de Horario Unificado */}
-            {applySameScheduleToAllDays ? (
-              <div className="p-4 border border-neutral-200 bg-white space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor="first-shift" className="text-xs font-mono uppercase font-bold text-neutral-800 tracking-wider flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-neutral-500" strokeWidth={2} />
-                      <span>Primer Turno (Inicio) *</span>
-                    </label>
-                    <input
-                      id="first-shift"
-                      type="time"
-                      value={defaultSchedule.firstShiftStart}
-                      onChange={(e) => setDefaultSchedule({ ...defaultSchedule, firstShiftStart: e.target.value })}
-                      className="w-full bg-[#FAF8F5] border border-neutral-300 rounded-none px-4 py-2.5 text-base text-neutral-950 font-mono focus:outline-none focus:border-neutral-950"
-                    />
-                    <span className="text-[10px] font-mono text-neutral-500 block">
-                      Apertura de la cancha
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label htmlFor="last-shift" className="text-xs font-mono uppercase font-bold text-neutral-800 tracking-wider flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-neutral-500" strokeWidth={2} />
-                      <span>Último Turno (Inicio) *</span>
-                    </label>
-                    <input
-                      id="last-shift"
-                      type="time"
-                      value={defaultSchedule.lastShiftStart}
-                      onChange={(e) => setDefaultSchedule({ ...defaultSchedule, lastShiftStart: e.target.value })}
-                      className="w-full bg-[#FAF8F5] border border-neutral-300 rounded-none px-4 py-2.5 text-base text-neutral-950 font-mono focus:outline-none focus:border-neutral-950"
-                    />
-                    <span className="text-[10px] font-mono text-neutral-500 block">
-                      Hora a la que arranca el último turno
-                    </span>
-                  </div>
-                </div>
-
-                {/* Cálculo Visual Asistido */}
-                <div className="bg-[#FAF8F5] border border-neutral-200 p-3 space-y-1 text-xs">
-                  <div className="flex items-center gap-1.5 text-neutral-900 font-bold">
-                    <AlertCircle className="h-3.5 w-3.5 text-brand-red flex-shrink-0" strokeWidth={2} />
-                    <span>Cálculo Operativo de Disponibilidad:</span>
-                  </div>
-                  <p className="font-mono text-[11px] text-neutral-600 leading-relaxed pl-5">
-                    Primer turno: <strong className="text-neutral-950">{scheduleSummary.firstShift} hs</strong> · Último turno: <strong className="text-neutral-950">{scheduleSummary.lastShift} hs</strong> (finaliza a las <strong className="text-neutral-950">{scheduleSummary.effectiveEnd} hs</strong>{scheduleSummary.isNextDay ? ' del día siguiente' : ''}). Capacidad: <strong className="text-neutral-950">{scheduleSummary.shiftCount} turnos diarios</strong> de {formData.durationMinutes} min.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              /* Configuración Personalizada por Día */
-              <div className="space-y-2 border border-neutral-200 p-4 bg-white">
-                <span className="text-xs font-mono uppercase font-bold text-neutral-800 block mb-2">
-                  Horarios específicos para cada día seleccionado:
-                </span>
-                {selectedDays.map((dayId) => {
-                  const dayMeta = DAYS_OF_WEEK.find((d) => d.id === dayId)
-                  const currentSchedule = perDaySchedules[dayId] || defaultSchedule
-
-                  return (
-                    <div key={dayId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-[#FAF8F5] border border-neutral-200">
-                      <span className="text-xs font-bold uppercase text-neutral-900 w-24">
-                        {dayMeta?.name}:
-                      </span>
-                      <div className="flex items-center gap-2 flex-1">
-                        <div className="flex items-center gap-1 flex-1">
-                          <span className="text-[10px] font-mono text-neutral-500">1°:</span>
-                          <input
-                            type="time"
-                            value={currentSchedule.firstShiftStart}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setPerDaySchedules((prev) => ({
-                                ...prev,
-                                [dayId]: { ...currentSchedule, firstShiftStart: val },
-                              }))
-                            }}
-                            className="w-full bg-white border border-neutral-300 px-2 py-1.5 text-sm font-mono"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1 flex-1">
-                          <span className="text-[10px] font-mono text-neutral-500">Últ:</span>
-                          <input
-                            type="time"
-                            value={currentSchedule.lastShiftStart}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setPerDaySchedules((prev) => ({
-                                ...prev,
-                                [dayId]: { ...currentSchedule, lastShiftStart: val },
-                              }))
-                            }}
-                            className="w-full bg-white border border-neutral-300 px-2 py-1.5 text-sm font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* SECCIÓN 3: TARIFAS Y DURACIÓN (SIMPLE POR DEFECTO / CONFIGURABLE) */}
+          {/* SECCIÓN 2: TARIFAS Y DURACIÓN BASE */}
           <div className="space-y-4 pt-4 border-t border-neutral-200">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-mono uppercase font-bold text-neutral-500 tracking-wider flex items-center gap-2">
                 <DollarSign className="h-4 w-4" strokeWidth={2} />
-                <span>03. Tarifas y Duración de Turno</span>
+                <span>02. Tarifas Base y Duración de Turnos</span>
               </h3>
             </div>
 
-            {/* Valores Generales / Base */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label htmlFor="base-price" className="text-xs font-mono uppercase font-bold text-neutral-800 tracking-wider">
-                  Precio Base del Turno ($) *
+                  Precio Base Estándar ($) *
                 </label>
-                <input
-                  id="base-price"
-                  type="number"
-                  min="0"
-                  step="500"
-                  value={formData.basePrice}
-                  onChange={(e) => setFormData({ ...formData, basePrice: Math.max(0, Number(e.target.value)) })}
-                  className="w-full bg-[#FAF8F5] border border-neutral-300 rounded-none px-4 py-3 text-base text-neutral-950 focus:outline-none focus:border-neutral-950 transition-colors font-mono"
-                />
+                <div className="relative">
+                  <span className="absolute left-3.5 top-3.5 text-xs text-neutral-400 font-mono">
+                    $
+                  </span>
+                  <input
+                    id="base-price"
+                    type="number"
+                    min="0"
+                    step="500"
+                    value={formData.basePrice}
+                    onChange={(e) => setFormData({ ...formData, basePrice: Math.max(0, Number(e.target.value)) })}
+                    className="w-full bg-[#FAF8F5] border border-neutral-300 rounded-none pl-8 pr-4 py-3 text-base text-neutral-950 focus:outline-none focus:border-neutral-950 transition-colors font-mono"
+                  />
+                </div>
                 <span className="text-[10px] font-mono text-neutral-500 block">
-                  Tarifa de referencia estándar
+                  Tarifa de referencia estándar por turno
                 </span>
               </div>
 
@@ -698,10 +511,10 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                   <div className="space-y-0.5">
                     <span className="text-xs font-bold uppercase tracking-wider text-neutral-900 block flex items-center gap-1.5">
                       <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2} />
-                      <span>Personalizar precio o duración por deporte</span>
+                      <span>Precios y duraciones diferenciales por deporte</span>
                     </span>
                     <span className="text-[11px] font-mono text-neutral-500 block">
-                      Permite fijar tarifas o tiempos diferenciales (ej: Pádel $15.000 / Tenis $10.000)
+                      Permite fijar tarifas o tiempos específicos (ej: Pádel $15.000 / Tenis $10.000)
                     </span>
                   </div>
                   <input
@@ -779,6 +592,174 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
             )}
           </div>
 
+          {/* SECCIÓN 3: DISPONIBILIDAD TEMPORAL Y HORARIOS */}
+          <div className="space-y-4 pt-4 border-t border-neutral-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-mono uppercase font-bold text-neutral-500 tracking-wider flex items-center gap-2">
+                <Calendar className="h-4 w-4" strokeWidth={2} />
+                <span>03. Días y Horarios Operativos</span>
+              </h3>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => selectQuickDays('weekdays')}
+                  className="text-[10px] font-mono uppercase bg-neutral-100 hover:bg-neutral-200 text-neutral-700 px-2 py-1 transition-colors"
+                >
+                  Lun-Vie
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectQuickDays('all')}
+                  className="text-[10px] font-mono uppercase bg-neutral-100 hover:bg-neutral-200 text-neutral-700 px-2 py-1 transition-colors"
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectQuickDays('weekend')}
+                  className="text-[10px] font-mono uppercase bg-neutral-100 hover:bg-neutral-200 text-neutral-700 px-2 py-1 transition-colors"
+                >
+                  Finde
+                </button>
+              </div>
+            </div>
+
+            {/* Selector de Días */}
+            <div className="space-y-2">
+              <label className="text-xs font-mono uppercase font-bold text-neutral-800 tracking-wider block">
+                Días Habilitados * ({selectedDays.length} activos)
+              </label>
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                {DAYS_OF_WEEK.map((day) => {
+                  const isSelected = selectedDays.includes(day.id)
+                  return (
+                    <button
+                      key={day.id}
+                      type="button"
+                      onClick={() => toggleDay(day.id)}
+                      className={`min-h-[44px] py-2 px-1 text-center border text-xs font-bold uppercase transition-all flex flex-col items-center justify-center ${
+                        isSelected
+                          ? 'border-neutral-950 bg-neutral-950 text-white shadow-sm'
+                          : 'border-neutral-200 bg-[#FAF8F5] text-neutral-600 hover:border-neutral-400'
+                      }`}
+                    >
+                      <span>{day.short}</span>
+                      <span className="text-[9px] font-mono opacity-70">{isSelected ? 'Activo' : 'Cerrado'}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {errors.schedules && <p className="text-xs text-red-600 font-mono mt-1">{errors.schedules}</p>}
+            </div>
+
+            {/* Configuración Simple de Apertura y Cierre */}
+            {!isAdvancedPricingMode && (
+              <div className="p-4 border border-neutral-200 bg-[#FAF8F5] space-y-4">
+                <div className="flex items-center justify-between border-b border-neutral-200 pb-2">
+                  <span className="text-xs font-mono uppercase font-bold text-neutral-800">
+                    Horario General de Funcionamiento
+                  </span>
+                  <span className="text-[11px] font-mono text-neutral-500">
+                    Aplica a los días seleccionados
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="opening-time" className="text-xs font-mono uppercase font-bold text-neutral-800 tracking-wider flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 text-neutral-500" strokeWidth={2} />
+                      <span>Horario de Apertura *</span>
+                    </label>
+                    <input
+                      id="opening-time"
+                      type="time"
+                      value={openingTime}
+                      onChange={(e) => setOpeningTime(e.target.value)}
+                      className="w-full bg-white border border-neutral-300 rounded-none px-4 py-2.5 text-base text-neutral-950 font-mono focus:outline-none focus:border-neutral-950"
+                    />
+                    <span className="text-[10px] font-mono text-neutral-500 block">
+                      Comienzo de las actividades diarias
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="closing-time" className="text-xs font-mono uppercase font-bold text-neutral-800 tracking-wider flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 text-neutral-500" strokeWidth={2} />
+                      <span>Horario de Cierre *</span>
+                    </label>
+                    <input
+                      id="closing-time"
+                      type="time"
+                      value={closingTime}
+                      onChange={(e) => setClosingTime(e.target.value)}
+                      className="w-full bg-white border border-neutral-300 rounded-none px-4 py-2.5 text-base text-neutral-950 font-mono focus:outline-none focus:border-neutral-950"
+                    />
+                    <span className="text-[10px] font-mono text-neutral-500 block">
+                      Fin de actividades (puede cruzar medianoche)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cálculo Visual */}
+                <div className="bg-white border border-neutral-200 p-3 space-y-1 text-xs">
+                  <div className="flex items-center gap-1.5 text-neutral-900 font-bold">
+                    <AlertCircle className="h-3.5 w-3.5 text-brand-red flex-shrink-0" strokeWidth={2} />
+                    <span>Cálculo Operativo:</span>
+                  </div>
+                  <p className="font-mono text-[11px] text-neutral-600 leading-relaxed pl-5">
+                    Apertura: <strong className="text-neutral-950">{scheduleSummary.openingTime} hs</strong> · Cierre: <strong className="text-neutral-950">{scheduleSummary.closingTime} hs</strong>{scheduleSummary.crossesMidnight ? ' (cruza medianoche)' : ''}. Capacidad estimada: <strong className="text-neutral-950">{scheduleSummary.shiftCount} turnos diarios</strong> de {formData.durationMinutes} min.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* SECCIÓN COLAPSABLE: CONFIGURACIONES AVANZADAS */}
+            <div className="border border-neutral-300 bg-white">
+              <button
+                type="button"
+                onClick={handleToggleAdvancedMode}
+                className="w-full p-4 flex items-center justify-between text-left hover:bg-neutral-50 transition-colors cursor-pointer"
+              >
+                <div className="space-y-0.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-neutral-900 flex items-center gap-2">
+                    <SlidersHorizontal className="h-4 w-4 text-brand-red" strokeWidth={2} />
+                    <span>Configuraciones avanzadas de franjas y tarifas</span>
+                  </span>
+                  <span className="text-[11px] font-mono text-neutral-500 block">
+                    {isAdvancedPricingMode
+                      ? 'Modo avanzado activo: podés configurar múltiples turnos, tarifas nocturnas y precios por deporte.'
+                      : 'Hacé clic para configurar múltiples franjas por día (diurno/nocturno) o precios por deporte.'}
+                  </span>
+                </div>
+                {isAdvancedPricingMode ? (
+                  <ChevronUp className="h-5 w-5 text-neutral-500 flex-shrink-0" strokeWidth={2} />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-neutral-500 flex-shrink-0" strokeWidth={2} />
+                )}
+              </button>
+
+              {isAdvancedPricingMode && (
+                <div className="p-4 sm:p-6 border-t border-neutral-200 bg-[#FAF8F5] space-y-4">
+                  <PricingTiersEditor
+                    tiers={customPricingTiers}
+                    onChange={(updatedTiers) => {
+                      setCustomPricingTiers(updatedTiers)
+                      if (errors.pricingTiers) setErrors((prev) => ({ ...prev, pricingTiers: '' }))
+                    }}
+                    selectedDays={selectedDays}
+                    sportIds={formData.sportIds}
+                    sports={sports.filter((s) => formData.sportIds.includes(s.id))}
+                    defaultPrice={formData.basePrice}
+                    defaultDuration={formData.durationMinutes}
+                  />
+                  {errors.pricingTiers && (
+                    <p className="text-xs text-red-600 font-mono mt-1">{errors.pricingTiers}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Botón de Envío Ergonómico */}
           <div className="pt-4 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-[11px] font-mono text-neutral-500">
@@ -788,7 +769,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
             <button
               type="submit"
               disabled={createCourtMutation.isPending}
-              className="w-full sm:w-auto min-h-[48px] px-8 py-3 rounded-full bg-brand-red text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-red-hover transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-sm"
+              className="w-full sm:w-auto min-h-[48px] px-8 py-3 rounded-full bg-brand-red text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-red-hover transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-sm cursor-pointer"
             >
               <span>{createCourtMutation.isPending ? 'Guardando Cancha...' : 'Crear Cancha'}</span>
               <ArrowRight className="h-4 w-4" strokeWidth={2} />
@@ -804,7 +785,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
           surfaceType={formData.surfaceType}
           isCovered={formData.isCovered}
           hasLighting={formData.hasLighting}
-          bufferMinutes={formData.bufferMinutes}
           durationMinutes={formData.durationMinutes}
           basePrice={formData.basePrice}
         />

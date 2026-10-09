@@ -1,5 +1,5 @@
 import { api } from '@/lib/axios'
-import type { CourtResponse, CreateCourtPayload, SportResponse } from '../types'
+import type { CourtResponse, CreateCourtPayload, UpdateCourtPayload, SportResponse } from '../types'
 
 export const courtsApi = {
   createCourt: async (payload: CreateCourtPayload): Promise<CourtResponse> => {
@@ -7,13 +7,27 @@ export const courtsApi = {
     return data
   },
 
-  getSports: async (): Promise<SportResponse[]> => {
-    const { data } = await api.get<SportResponse[]>('/courts/sports')
+  getCourts: async (): Promise<CourtResponse[]> => {
+    const { data } = await api.get<CourtResponse[]>('/courts')
     return data
   },
 
-  getCourts: async (): Promise<CourtResponse[]> => {
-    const { data } = await api.get<CourtResponse[]>('/courts')
+  getCourtById: async (id: string): Promise<CourtResponse> => {
+    const { data } = await api.get<CourtResponse>(`/courts/${id}`)
+    return data
+  },
+
+  updateCourt: async (id: string, payload: UpdateCourtPayload): Promise<CourtResponse> => {
+    const { data } = await api.put<CourtResponse>(`/courts/${id}`, payload)
+    return data
+  },
+
+  deleteCourt: async (id: string): Promise<void> => {
+    await api.delete(`/courts/${id}`)
+  },
+
+  getSports: async (): Promise<SportResponse[]> => {
+    const { data } = await api.get<SportResponse[]>('/courts/sports')
     return data
   },
 }

@@ -8,7 +8,6 @@ public sealed class Court
     public string SurfaceType { get; init; } = string.Empty;
     public bool IsCovered { get; init; }
     public bool HasLighting { get; init; }
-    public int BufferMinutes { get; init; }
     public bool IsActive { get; init; } = true;
     public DateTimeOffset CreatedAt { get; init; }
     public Guid? CreatedBy { get; init; }

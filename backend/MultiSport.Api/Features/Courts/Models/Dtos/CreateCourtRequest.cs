@@ -5,10 +5,9 @@ public sealed record CreateCourtRequest(
     string SurfaceType,
     bool IsCovered,
     bool HasLighting,
-    int BufferMinutes,
     decimal BasePrice,
     int DurationMinutes,
     IReadOnlyList<Guid> SportIds,
-    IReadOnlyList<CourtDayScheduleDto> Schedules,
+    IReadOnlyList<CourtPricingTierDto> PricingTiers,
     IReadOnlyList<CourtSportConfigDto>? CustomSportPrices = null
 );

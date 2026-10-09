@@ -1,9 +1,10 @@
-export interface CourtDaySchedulePayload {
+export interface CourtPricingTierPayload {
   dayOfWeek: number // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
-  firstShiftStart: string // "HH:mm" ej: "08:00"
-  lastShiftStart: string // "HH:mm" ej: "22:00"
-  priceOverride?: number
-  durationMinutesOverride?: number
+  startTime: string // "HH:mm" ej: "08:00"
+  endTime: string // "HH:mm" ej: "14:00" o "00:00"
+  price: number
+  durationMinutes?: number
+  sportId?: string
 }
 
 export interface CourtSportConfigPayload {
@@ -17,11 +18,22 @@ export interface CreateCourtPayload {
   surfaceType: string
   isCovered: boolean
   hasLighting: boolean
-  bufferMinutes: number
   basePrice: number
   durationMinutes: number
   sportIds: string[]
-  schedules: CourtDaySchedulePayload[]
+  pricingTiers: CourtPricingTierPayload[]
+  customSportPrices?: CourtSportConfigPayload[]
+}
+
+export interface UpdateCourtPayload {
+  name: string
+  surfaceType: string
+  isCovered: boolean
+  hasLighting: boolean
+  basePrice: number
+  durationMinutes: number
+  sportIds: string[]
+  pricingTiers: CourtPricingTierPayload[]
   customSportPrices?: CourtSportConfigPayload[]
 }
 
@@ -52,7 +64,6 @@ export interface CourtResponse {
   surfaceType: string
   isCovered: boolean
   hasLighting: boolean
-  bufferMinutes: number
   basePrice: number
   durationMinutes: number
   isActive: boolean
