@@ -2,9 +2,7 @@ import React, { useState, useMemo } from 'react'
 import {
   ArrowRight,
   Check,
-  Calendar,
   Clock,
-  DollarSign,
   SlidersHorizontal,
   AlertCircle,
   ChevronDown,
@@ -314,10 +312,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
       {/* Columna Izquierda: Formulario Editorial */}
       <div className="lg:col-span-7 bg-white border border-neutral-300 p-6 sm:p-8 shadow-sm space-y-6">
         <div className="border-b border-neutral-200 pb-4">
-          <span className="text-[11px] font-mono uppercase tracking-widest text-brand-red font-bold">
-            FORMULARIO DE ALTA
-          </span>
-          <h2 className="text-xl sm:text-2xl font-black text-neutral-950 uppercase tracking-tight mt-1">
+          <h2 className="text-xl sm:text-2xl font-black text-neutral-950 uppercase tracking-tight">
             Registrar Nueva Cancha
           </h2>
           <p className="text-xs sm:text-sm text-neutral-600 mt-1 leading-relaxed">
@@ -326,10 +321,10 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* SECCIÓN 1: IDENTIFICACIÓN Y FÍSICOS */}
+          {/* IDENTIFICACIÓN Y FÍSICOS */}
           <div className="space-y-4">
-            <h3 className="text-xs font-mono uppercase font-bold text-neutral-500 tracking-wider flex items-center gap-2">
-              <span>01. Identificación y Superficie</span>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+              Identificación y Superficie
             </h3>
 
             {/* Nombre de la Cancha */}
@@ -379,7 +374,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                         onClick={() => toggleSport(sport.id)}
                         className={`min-h-[44px] px-3.5 py-2 text-left border text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-between ${
                           isSelected
-                            ? 'border-brand-red bg-brand-red/5 text-brand-red'
+                            ? 'border-brand-sport bg-brand-sport/5 text-brand-sport'
                             : 'border-neutral-200 bg-[#FAF8F5] text-neutral-700 hover:border-neutral-400'
                         }`}
                       >
@@ -387,7 +382,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                         {isSelected && (
                           <span className="flex items-center gap-1">
                             {isPrimarySport && (
-                              <span className="text-[9px] font-mono text-white bg-brand-red px-1 rounded-none">
+                              <span className="text-[9px] font-mono text-white bg-brand-sport px-1 rounded-none">
                                 1°
                               </span>
                             )}
@@ -429,7 +424,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                   type="checkbox"
                   checked={formData.isCovered}
                   onChange={(e) => setFormData({ ...formData, isCovered: e.target.checked })}
-                  className="h-4 w-4 rounded-none border-neutral-400 text-brand-red focus:ring-0"
+                  className="h-4 w-4 rounded-none border-neutral-400 text-brand-sport focus:ring-0"
                 />
                 <label htmlFor="is-covered" className="text-xs font-bold uppercase tracking-wider text-neutral-800 cursor-pointer select-none">
                   Techada
@@ -442,7 +437,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                   type="checkbox"
                   checked={formData.hasLighting}
                   onChange={(e) => setFormData({ ...formData, hasLighting: e.target.checked })}
-                  className="h-4 w-4 rounded-none border-neutral-400 text-brand-red focus:ring-0"
+                  className="h-4 w-4 rounded-none border-neutral-400 text-brand-sport focus:ring-0"
                 />
                 <label htmlFor="has-lighting" className="text-xs font-bold uppercase tracking-wider text-neutral-800 cursor-pointer select-none">
                   Con Iluminación
@@ -451,14 +446,11 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
             </div>
           </div>
 
-          {/* SECCIÓN 2: TARIFAS Y DURACIÓN BASE */}
+          {/* TARIFAS Y DURACIÓN BASE */}
           <div className="space-y-4 pt-4 border-t border-neutral-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-mono uppercase font-bold text-neutral-500 tracking-wider flex items-center gap-2">
-                <DollarSign className="h-4 w-4" strokeWidth={2} />
-                <span>02. Tarifas Base y Duración de Turnos</span>
-              </h3>
-            </div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+              Tarifas Base y Duración de Turnos
+            </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -521,7 +513,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                     type="checkbox"
                     checked={customizePricesBySport}
                     onChange={(e) => setCustomizePricesBySport(e.target.checked)}
-                    className="h-4 w-4 rounded-none border-neutral-400 text-brand-red focus:ring-0"
+                    className="h-4 w-4 rounded-none border-neutral-400 text-brand-sport focus:ring-0"
                   />
                 </div>
 
@@ -592,12 +584,11 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
             )}
           </div>
 
-          {/* SECCIÓN 3: DISPONIBILIDAD TEMPORAL Y HORARIOS */}
+          {/* DÍAS Y HORARIOS OPERATIVOS */}
           <div className="space-y-4 pt-4 border-t border-neutral-200">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-mono uppercase font-bold text-neutral-500 tracking-wider flex items-center gap-2">
-                <Calendar className="h-4 w-4" strokeWidth={2} />
-                <span>03. Días y Horarios Operativos</span>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+                Días y Horarios Operativos
               </h3>
               <div className="flex items-center gap-1">
                 <button
@@ -703,7 +694,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                 {/* Cálculo Visual */}
                 <div className="bg-white border border-neutral-200 p-3 space-y-1 text-xs">
                   <div className="flex items-center gap-1.5 text-neutral-900 font-bold">
-                    <AlertCircle className="h-3.5 w-3.5 text-brand-red flex-shrink-0" strokeWidth={2} />
+                    <AlertCircle className="h-3.5 w-3.5 text-neutral-600 flex-shrink-0" strokeWidth={2} />
                     <span>Cálculo Operativo:</span>
                   </div>
                   <p className="font-mono text-[11px] text-neutral-600 leading-relaxed pl-5">
@@ -722,7 +713,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
               >
                 <div className="space-y-0.5">
                   <span className="text-xs font-bold uppercase tracking-wider text-neutral-900 flex items-center gap-2">
-                    <SlidersHorizontal className="h-4 w-4 text-brand-red" strokeWidth={2} />
+                    <SlidersHorizontal className="h-4 w-4 text-brand-sport" strokeWidth={2} />
                     <span>Configuraciones avanzadas de franjas y tarifas</span>
                   </span>
                   <span className="text-[11px] font-mono text-neutral-500 block">
@@ -761,15 +752,11 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
           </div>
 
           {/* Botón de Envío Ergonómico */}
-          <div className="pt-4 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span className="text-[11px] font-mono text-neutral-500">
-              * Creación atómica protegida con transacciones en base de datos
-            </span>
-
+          <div className="pt-4 border-t border-neutral-200 flex justify-end">
             <button
               type="submit"
               disabled={createCourtMutation.isPending}
-              className="w-full sm:w-auto min-h-[48px] px-8 py-3 rounded-full bg-brand-red text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-red-hover transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+              className="w-full sm:w-auto min-h-[48px] px-8 py-3 rounded-full bg-brand-sport text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-sport-hover transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-sm cursor-pointer"
             >
               <span>{createCourtMutation.isPending ? 'Guardando Cancha...' : 'Crear Cancha'}</span>
               <ArrowRight className="h-4 w-4" strokeWidth={2} />

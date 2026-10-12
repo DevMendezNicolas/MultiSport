@@ -3,8 +3,6 @@ import {
   X,
   AlertCircle,
   Save,
-  Calendar,
-  DollarSign,
   Check,
   Info,
 } from 'lucide-react'
@@ -367,7 +365,7 @@ export const EditCourtModal: React.FC<EditCourtModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={(e) => {
         // Safe backdrop click (Alternativa A)
         if (e.target === e.currentTarget) {
@@ -375,14 +373,16 @@ export const EditCourtModal: React.FC<EditCourtModalProps> = ({
         }
       }}
     >
-      <div className="bg-white border border-neutral-300 w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden">
+      <div className="bg-white border-t sm:border border-neutral-300 w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl relative rounded-t-2xl sm:rounded-none overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 duration-200">
+        {/* Tirador para vista Bottom Sheet en móvil */}
+        <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-white">
+          <div className="w-10 h-1 rounded-full bg-neutral-300" />
+        </div>
+
         {/* Header Sticky */}
         <div className="bg-white border-b border-neutral-200 p-5 sm:p-6 flex items-center justify-between sticky top-0 z-20">
           <div>
-            <span className="text-[11px] font-mono uppercase tracking-widest text-brand-red font-bold">
-              MODIFICACIÓN OPERATIVA
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-neutral-950 uppercase tracking-tight mt-0.5">
+            <h2 className="text-xl sm:text-2xl font-black text-neutral-950 uppercase tracking-tight">
               Modificar Cancha: {court?.name || 'Cargando...'}
             </h2>
           </div>
@@ -422,10 +422,10 @@ export const EditCourtModal: React.FC<EditCourtModalProps> = ({
                 </div>
               )}
 
-              {/* SECCIÓN 1: FÍSICOS Y DEPORTES */}
+              {/* IDENTIFICACIÓN Y SUPERFICIE */}
               <div className="space-y-4">
-                <h3 className="text-xs font-mono uppercase font-bold text-neutral-500 tracking-wider">
-                  01. Identificación y Superficie
+                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+                  Identificación y Superficie
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -482,7 +482,7 @@ export const EditCourtModal: React.FC<EditCourtModalProps> = ({
                           onClick={() => toggleSport(sport.id)}
                           className={`min-h-[44px] px-3.5 py-2 text-left border text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-between ${
                             isSelected
-                              ? 'border-brand-red bg-brand-red/5 text-brand-red'
+                              ? 'border-brand-sport bg-brand-sport/5 text-brand-sport'
                               : 'border-neutral-200 bg-[#FAF8F5] text-neutral-700 hover:border-neutral-400'
                           }`}
                         >
@@ -503,7 +503,7 @@ export const EditCourtModal: React.FC<EditCourtModalProps> = ({
                       type="checkbox"
                       checked={formData.isCovered}
                       onChange={(e) => setFormData({ ...formData, isCovered: e.target.checked })}
-                      className="h-4 w-4 rounded-none border-neutral-400 text-brand-red focus:ring-0"
+                      className="h-4 w-4 rounded-none border-neutral-400 text-brand-sport focus:ring-0"
                     />
                     <label htmlFor="edit-is-covered" className="text-xs font-bold uppercase tracking-wider text-neutral-800 cursor-pointer select-none">
                       Techada
@@ -516,7 +516,7 @@ export const EditCourtModal: React.FC<EditCourtModalProps> = ({
                       type="checkbox"
                       checked={formData.hasLighting}
                       onChange={(e) => setFormData({ ...formData, hasLighting: e.target.checked })}
-                      className="h-4 w-4 rounded-none border-neutral-400 text-brand-red focus:ring-0"
+                      className="h-4 w-4 rounded-none border-neutral-400 text-brand-sport focus:ring-0"
                     />
                     <label htmlFor="edit-has-lighting" className="text-xs font-bold uppercase tracking-wider text-neutral-800 cursor-pointer select-none">
                       Con Iluminación
@@ -525,11 +525,10 @@ export const EditCourtModal: React.FC<EditCourtModalProps> = ({
                 </div>
               </div>
 
-              {/* SECCIÓN 2: TARIFAS Y DURACIÓN BASE */}
+              {/* TARIFAS Y DURACIÓN BASE */}
               <div className="space-y-4 pt-4 border-t border-neutral-200">
-                <h3 className="text-xs font-mono uppercase font-bold text-neutral-500 tracking-wider flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" strokeWidth={2} />
-                  <span>02. Tarifas Base y Duración de Turnos</span>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+                  Tarifas Base y Duración de Turnos
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -569,12 +568,11 @@ export const EditCourtModal: React.FC<EditCourtModalProps> = ({
                 </div>
               </div>
 
-              {/* SECCIÓN 3: FRANJAS HORARIAS Y DISPONIBILIDAD */}
+              {/* FRANJAS HORARIAS Y DISPONIBILIDAD */}
               <div className="space-y-4 pt-4 border-t border-neutral-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-mono uppercase font-bold text-neutral-500 tracking-wider flex items-center gap-2">
-                    <Calendar className="h-4 w-4" strokeWidth={2} />
-                    <span>03. Días y Horarios de Disponibilidad</span>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+                    Días y Horarios de Disponibilidad
                   </h3>
                   <div className="flex items-center gap-1">
                     <button
@@ -674,7 +672,7 @@ export const EditCourtModal: React.FC<EditCourtModalProps> = ({
               type="submit"
               form="edit-court-form"
               disabled={updateCourtMutation.isPending}
-              className="min-h-[44px] px-7 py-2 rounded-full bg-brand-red text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-red-hover transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+              className="min-h-[44px] px-7 py-2 rounded-full bg-brand-sport text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-sport-hover transition-all disabled:opacity-50 inline-flex items-center justify-center gap-2 shadow-sm cursor-pointer"
             >
               <Save className="h-4 w-4" strokeWidth={2} />
               <span>{updateCourtMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}</span>

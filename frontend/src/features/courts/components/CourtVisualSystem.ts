@@ -6,7 +6,7 @@ import tenisCementoImg from '@/assets/create-courts/Tenis_Court_Cemento.jpg'
 import tenisPastoImg from '@/assets/create-courts/Tenis_Court_Pasto.jpg'
 import tenisPolvoImg from '@/assets/create-courts/Tenis_Court_PolvoLadrillo.jpg'
 import voleyCourtImg from '@/assets/create-courts/Voley_Court.jpg'
-import padelCourtImg from '@/assets/home-page/court-padel.jpg'
+import padelCourtImg from '@/assets/create-courts/Padel_Court.jpg'
 
 export interface CourtVisualResolution {
   imageUrl: string

@@ -73,15 +73,9 @@ export const CourtsManagementPage: React.FC = () => {
       <section className="bg-white border border-neutral-300 p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-neutral-200">
           <div>
-            <span className="text-[11px] font-mono uppercase tracking-widest text-brand-red font-bold">
-              INSTALACIONES DEL COMPLEJO
-            </span>
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-neutral-950 mt-1 uppercase">
+            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-neutral-950 uppercase">
               Gestión de Canchas
             </h1>
-            <p className="text-xs sm:text-sm text-neutral-600 mt-2 max-w-2xl leading-relaxed">
-              Administrá los espacios deportivos de tu predio. Da de alta nuevas canchas vinculadas a múltiples disciplinas, gestioná disponibilidad temporal y tarifas diferenciales.
-            </p>
           </div>
 
           <div className="flex flex-col sm:items-end gap-1 flex-shrink-0">
@@ -101,7 +95,7 @@ export const CourtsManagementPage: React.FC = () => {
             onClick={() => setActiveTab('create')}
             className={`min-h-[44px] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-2 cursor-pointer ${
               activeTab === 'create'
-                ? 'bg-brand-red text-white shadow-sm'
+                ? 'bg-brand-sport text-white shadow-sm'
                 : 'bg-white text-neutral-900 border border-neutral-300 hover:border-neutral-950'
             }`}
           >
@@ -114,7 +108,7 @@ export const CourtsManagementPage: React.FC = () => {
             onClick={() => setActiveTab('modify')}
             className={`min-h-[44px] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-2 cursor-pointer ${
               activeTab === 'modify'
-                ? 'bg-neutral-950 text-white shadow-sm'
+                ? 'bg-brand-sport text-white shadow-sm hover:bg-brand-sport-hover'
                 : 'bg-white text-neutral-900 border border-neutral-300 hover:border-neutral-950'
             }`}
           >
@@ -131,15 +125,9 @@ export const CourtsManagementPage: React.FC = () => {
         /* Vista de Modificación / Listado de Canchas Existentes */
         <section className="bg-white border border-neutral-300 p-6 sm:p-8 shadow-sm space-y-6">
           <div className="border-b border-neutral-200 pb-4">
-            <span className="text-[11px] font-mono uppercase tracking-widest text-neutral-500 font-bold">
-              LISTADO OPERATIVO
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-neutral-950 uppercase tracking-tight mt-1">
+            <h2 className="text-xl sm:text-2xl font-black text-neutral-950 uppercase tracking-tight">
               Canchas Existentes
             </h2>
-            <p className="text-xs text-neutral-600 mt-1">
-              Espacios deportivos registrados con sus disciplinas asociadas, disponibilidad semanal y tarifas.
-            </p>
           </div>
 
           {isLoadingCourts ? (
@@ -156,7 +144,7 @@ export const CourtsManagementPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab('create')}
-                className="mt-2 min-h-[44px] px-6 py-2.5 rounded-full bg-brand-red text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-red-hover transition-colors cursor-pointer"
+                className="mt-2 min-h-[44px] px-6 py-2.5 rounded-full bg-brand-sport text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-sport-hover transition-colors cursor-pointer"
               >
                 Comenzar con Alta de Cancha
               </button>

@@ -50,13 +50,13 @@ export const AdminLayout: React.FC = () => {
             <MultiSportLogo />
           </Link>
 
-          {/* Badge del Complejo */}
+          {/* Nombre del Complejo con acento verde deportivo */}
           {user?.complexName && (
-            <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-neutral-800">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-mono font-bold text-neutral-300 tracking-wide uppercase truncate max-w-[200px]">
-                {user.complexName}
-              </span>
+            <div className="hidden sm:flex items-center pl-4 border-l border-neutral-800">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-british/50 border border-brand-sport/50 text-brand-soft text-xs font-semibold tracking-wide">
+                <span className="h-2 w-2 rounded-full bg-brand-sport shrink-0" />
+                <span className="truncate max-w-[200px]">{user.complexName}</span>
+              </div>
             </div>
           )}
         </div>
@@ -84,10 +84,6 @@ export const AdminLayout: React.FC = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar Lateral Desktop */}
         <aside className="hidden md:flex flex-col w-64 border-r border-neutral-800 bg-neutral-950/40 p-4 space-y-1">
-          <div className="px-3 py-2 text-[11px] font-mono font-bold text-neutral-500 uppercase tracking-widest">
-            OPERACIÓN
-          </div>
-
           {navLinks.map((item) => {
             const Icon = item.icon
             return (
@@ -99,7 +95,7 @@ export const AdminLayout: React.FC = () => {
                   cn(
                     'min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-brand-red/10 text-brand-red border border-brand-red/30 font-semibold'
+                      ? 'bg-brand-sport/15 text-brand-sport border border-brand-sport/40 font-bold'
                       : 'text-neutral-400 hover:text-neutral-100 hover:bg-neutral-900'
                   )
                 }
@@ -149,7 +145,7 @@ export const AdminLayout: React.FC = () => {
                         cn(
                           'min-h-[44px] flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
                           isActive
-                            ? 'bg-brand-red/10 text-brand-red font-bold'
+                            ? 'bg-brand-sport/10 text-brand-sport font-semibold'
                             : 'text-neutral-300 hover:bg-neutral-900'
                         )
                       }
