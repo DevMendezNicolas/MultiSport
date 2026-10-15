@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Plus,
   SlidersHorizontal,
@@ -10,7 +11,6 @@ import {
 import { toast } from 'sonner'
 import axios from 'axios'
 import { CreateCourtForm } from '../components/CreateCourtForm'
-import { EditCourtModal } from '../components/EditCourtModal'
 import { useCourts, useDeleteCourt } from '../hooks/useCourts'
 import type { CourtResponse } from '../types'
 
@@ -19,25 +19,16 @@ type ActiveTab = 'create' | 'modify'
 const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 export const CourtsManagementPage: React.FC = () => {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<ActiveTab>('create')
   const { data: courts = [], isLoading: isLoadingCourts } = useCourts()
   const deleteCourtMutation = useDeleteCourt()
-
-  // Estado para modal de modificación
-  const [editingCourtId, setEditingCourtId] = useState<string | null>(null)
-  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false)
 
   // Estado para diálogo de confirmación de eliminación lógica
   const [deletingCourt, setDeletingCourt] = useState<CourtResponse | null>(null)
 
   const handleOpenEdit = (courtId: string) => {
-    setEditingCourtId(courtId)
-    setIsEditModalOpen(true)
-  }
-
-  const handleCloseEdit = () => {
-    setIsEditModalOpen(false)
-    setEditingCourtId(null)
+    navigate(`/admin/courts/${courtId}/edit`)
   }
 
   const handleConfirmDelete = async () => {
@@ -253,12 +244,6 @@ export const CourtsManagementPage: React.FC = () => {
         </section>
       )}
 
-      {/* Modal de Modificación de Cancha */}
-      <EditCourtModal
-        courtId={editingCourtId}
-        isOpen={isEditModalOpen}
-        onClose={handleCloseEdit}
-      />
 
       {/* Diálogo de Confirmación para Eliminación Lógica */}
       {deletingCourt && (

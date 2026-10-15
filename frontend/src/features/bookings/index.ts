@@ -1,5 +1,5 @@
 export * from './types'
 export * from './mock/mockBookingsData'
 export * from './components/DailyOperationalCalendar'
-export * from './components/BookingDetailModal'
-export * from './components/NewBookingModal'
+export * from './components/BookingDetailSheet'
+export * from './components/NewBookingSheet'

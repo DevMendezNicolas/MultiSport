@@ -21,8 +21,8 @@ import {
   type OperationalCourt,
   type OperationalBooking,
 } from '../mock/mockBookingsData'
-import { BookingDetailModal } from './BookingDetailModal'
-import { NewBookingModal } from './NewBookingModal'
+import { BookingDetailSheet } from './BookingDetailSheet'
+import { NewBookingSheet } from './NewBookingSheet'
 
 export const DailyOperationalCalendar: React.FC = () => {
   // Manejo de fecha seleccionada (formato YYYY-MM-DD)
@@ -724,8 +724,8 @@ export const DailyOperationalCalendar: React.FC = () => {
         </div>
       </div>
 
-      {/* Modales Interactivos */}
-      <BookingDetailModal
+      {/* Paneles Laterales Deslizantes (Slide-over Sheets) */}
+      <BookingDetailSheet
         booking={selectedBooking}
         isOpen={isDetailOpen}
         onClose={() => {
@@ -736,7 +736,7 @@ export const DailyOperationalCalendar: React.FC = () => {
         onCancelBooking={handleCancelBooking}
       />
 
-      <NewBookingModal
+      <NewBookingSheet
         court={slotToCreate?.court || null}
         timeSlot={slotToCreate?.timeSlot || '08:00'}
         date={selectedDate}

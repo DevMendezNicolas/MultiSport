@@ -6,7 +6,7 @@ import { LoginPage, RegisterPage, AuthProvider } from '@/features/auth'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { DashboardOverview } from '@/features/admin'
-import { CourtsManagementPage } from '@/features/courts'
+import { CourtsManagementPage, EditCourtPage } from '@/features/courts'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +34,7 @@ function App() {
                 <Route index element={<DashboardOverview />} />
                 <Route path="bookings" element={<DashboardOverview />} />
                 <Route path="courts" element={<CourtsManagementPage />} />
+                <Route path="courts/:id/edit" element={<EditCourtPage />} />
                 <Route path="tournaments" element={<DashboardOverview />} />
                 <Route path="finances" element={<DashboardOverview />} />
                 <Route path="settings" element={<DashboardOverview />} />

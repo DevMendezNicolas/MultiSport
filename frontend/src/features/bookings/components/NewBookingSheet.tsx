@@ -1,8 +1,13 @@
 import React from 'react'
-import { X, Calendar, Clock, DollarSign, User, Phone, Check } from 'lucide-react'
+import { Calendar, Clock, DollarSign, User, Phone, Check } from 'lucide-react'
+import {
+  Sheet,
+  SheetHeader,
+  SheetBody,
+} from '@/components/ui/sheet'
 import type { OperationalBooking, OperationalCourt } from '../mock/mockBookingsData'
 
-interface NewBookingModalProps {
+interface NewBookingSheetProps {
   court: OperationalCourt | null
   date: string
   timeSlot: string
@@ -11,7 +16,7 @@ interface NewBookingModalProps {
   onCreateBooking: (newBooking: OperationalBooking) => void
 }
 
-export const NewBookingModal: React.FC<NewBookingModalProps> = ({
+export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
   court,
   date,
   timeSlot,
@@ -58,13 +63,13 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!customerName.trim()) {
-      setValidationError('El nombre del titular es obligatorio.')
+      setValidationError('Por favor ingresá el nombre del titular de la reserva.')
       return
     }
 
     const isFull = depositAmount >= totalPrice
     const newBooking: OperationalBooking = {
-      id: `bk-${Date.now()}`,
+      id: `booking-${Date.now()}`,
       courtId: court.id,
       courtName: court.name,
       date,
@@ -89,43 +94,25 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-neutral-950/60 backdrop-blur-xs animate-in fade-in duration-200"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-lg bg-white border-t sm:border border-neutral-300 shadow-2xl flex flex-col max-h-[92vh] rounded-t-2xl sm:rounded-none overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Tirador para vista Bottom Sheet en móvil */}
-        <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-neutral-50">
-          <div className="w-10 h-1 rounded-full bg-neutral-300" />
-        </div>
+    <Sheet isOpen={isOpen} onClose={onClose} side="right">
+      {/* Tirador visual para viewport móvil */}
+      <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-white border-b border-neutral-100">
+        <div className="w-10 h-1 rounded-full bg-neutral-300" />
+      </div>
 
-        {/* Encabezado */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-neutral-50">
-          <div>
-            <h2 className="text-lg font-black uppercase tracking-tight text-neutral-950">
-              Nuevo Turno Operativo
-            </h2>
-            <p className="text-xs text-neutral-500 font-medium">
-              {court.name} · {court.sport}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-neutral-500 hover:text-neutral-950 hover:bg-neutral-200/50 transition-colors"
-            aria-label="Cerrar formulario"
-          >
-            <X className="h-5 w-5" strokeWidth={2} />
-          </button>
-        </div>
+      {/* Encabezado del Sheet */}
+      <SheetHeader onClose={onClose}>
+        <h2 className="text-lg font-black uppercase tracking-tight text-neutral-950">
+          Nuevo Turno Operativo
+        </h2>
+        <p className="text-xs text-neutral-500 font-medium">
+          {court.name} · {court.sport}
+        </p>
+      </SheetHeader>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
+      {/* Formulario */}
+      <SheetBody className="p-0">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5">
           {/* Resumen Horario */}
           <div className="grid grid-cols-2 gap-3 p-3 bg-neutral-50 border border-neutral-200 text-xs">
             <div className="flex items-center gap-2">
@@ -199,7 +186,7 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({
             </div>
           </div>
 
-          {/* Tarifas y Seña */}
+          {/* Esquema de Cobro y Seña */}
           <div className="p-4 bg-neutral-50 border border-neutral-200 space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-neutral-700 block">
               Esquema de Cobro
@@ -260,21 +247,21 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleQuickDeposit(1)}
-                className="min-h-[36px] px-3 py-1.5 text-xs font-semibold bg-white border border-neutral-300 hover:bg-neutral-100 transition-colors"
+                className="min-h-[36px] px-3 py-1.5 text-xs font-semibold bg-white border border-neutral-300 hover:bg-neutral-100 transition-colors cursor-pointer"
               >
                 100% Total
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickDeposit(0.5)}
-                className="min-h-[36px] px-3 py-1.5 text-xs font-semibold bg-white border border-neutral-300 hover:bg-neutral-100 transition-colors"
+                className="min-h-[36px] px-3 py-1.5 text-xs font-semibold bg-white border border-neutral-300 hover:bg-neutral-100 transition-colors cursor-pointer"
               >
                 50% Seña
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickDeposit(0)}
-                className="min-h-[36px] px-3 py-1.5 text-xs font-semibold bg-white border border-neutral-300 hover:bg-neutral-100 transition-colors"
+                className="min-h-[36px] px-3 py-1.5 text-xs font-semibold bg-white border border-neutral-300 hover:bg-neutral-100 transition-colors cursor-pointer"
               >
                 Sin Pago
               </button>
@@ -318,20 +305,20 @@ export const NewBookingModal: React.FC<NewBookingModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[44px] px-5 py-2 text-xs font-bold uppercase text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-colors"
+              className="min-h-[44px] px-5 py-2 text-xs font-bold uppercase text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="min-h-[44px] px-6 py-2 bg-brand-sport text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-sport-hover transition-colors inline-flex items-center gap-2"
+              className="min-h-[44px] px-6 py-2 bg-brand-sport text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-sport-hover transition-colors inline-flex items-center gap-2 cursor-pointer"
             >
               <Check className="h-4 w-4" strokeWidth={2} />
               <span>Confirmar y Guardar</span>
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </SheetBody>
+    </Sheet>
   )
 }
