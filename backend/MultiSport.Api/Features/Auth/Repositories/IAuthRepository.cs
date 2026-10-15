@@ -1,3 +1,4 @@
+using MultiSport.Api.Features.Auth.Models.Dtos;
 using MultiSport.Api.Features.Auth.Models.Entities;
 
 namespace MultiSport.Api.Features.Auth.Repositories;
@@ -20,4 +21,14 @@ public interface IAuthRepository
     Task<PasswordResetToken?> GetPasswordResetTokenByHashAsync(string tokenHash, CancellationToken ct);
     Task MarkPasswordResetTokenAsUsedAsync(Guid tokenId, CancellationToken ct);
     Task UpdatePasswordHashAsync(Guid userId, string newPasswordHash, CancellationToken ct);
+
+    // Email verification
+    Task CreateEmailVerificationTokenAsync(EmailVerificationToken token, CancellationToken ct);
+    Task<EmailVerificationToken?> GetEmailVerificationTokenByHashAsync(string tokenHash, CancellationToken ct);
+    Task MarkEmailVerificationTokenAsUsedAsync(Guid tokenId, CancellationToken ct);
+    Task MarkUserEmailAsVerifiedAsync(Guid userId, CancellationToken ct);
+    Task InvalidateUserEmailVerificationTokensAsync(Guid userId, CancellationToken ct);
+
+    // Complex profile onboarding
+    Task UpdateComplexProfileAsync(Guid complexId, UpdateComplexProfileRequest request, CancellationToken ct);
 }

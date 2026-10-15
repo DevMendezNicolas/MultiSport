@@ -15,15 +15,31 @@ export interface AuthResponse {
 
 export interface RegisterComplexPayload {
   name: string
-  taxId: string
-  cbuAlias: string
-  address: string
-  phone: string
-  city: string
-  logoUrl?: string | null
   email: string
   password: string
   confirmPassword: string
+}
+
+export interface RegisterSuccessResponse {
+  email: string
+  message: string
+}
+
+export interface VerifyEmailPayload {
+  token: string
+}
+
+export interface ResendVerificationPayload {
+  email: string
+}
+
+export interface UpdateComplexProfilePayload {
+  taxId?: string | null
+  cbuAlias?: string | null
+  address?: string | null
+  phone?: string | null
+  city?: string | null
+  logoUrl?: string | null
 }
 
 export interface LoginPayload {

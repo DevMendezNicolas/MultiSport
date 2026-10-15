@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { authApi } from '../api/authApi'
-import type { AuthResponse, LoginPayload, RegisterComplexPayload, UserInfoDto } from '../types'
+import type { AuthResponse, LoginPayload, RegisterComplexPayload, RegisterSuccessResponse, UserInfoDto } from '../types'
 import { AuthContext, type AuthContextType } from './authContextDef'
 import { getAccessToken, setAccessToken } from '@/lib/axios'
 
@@ -61,11 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return data
   }
 
-  const register = async (payload: RegisterComplexPayload): Promise<AuthResponse> => {
-    const data = await authApi.registerComplex(payload)
-    setUser(data.user)
-    setToken(data.accessToken)
-    return data
+  const register = async (payload: RegisterComplexPayload): Promise<RegisterSuccessResponse> => {
+    return await authApi.registerComplex(payload)
   }
 
   const logout = async (): Promise<void> => {

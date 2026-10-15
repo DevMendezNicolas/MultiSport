@@ -7,9 +7,8 @@ namespace MultiSport.Api.Features.Auth.Services;
 
 public interface IAuthService
 {
-    Task<Results<Ok<AuthResponse>, Conflict<ProblemDetails>>> RegisterComplexAsync(
+    Task<Results<Ok<RegisterSuccessResponse>, Conflict<ProblemDetails>>> RegisterComplexAsync(
         RegisterComplexRequest request, 
-        HttpContext httpContext, 
         CancellationToken ct);
 
     Task<Results<Ok<AuthResponse>, UnauthorizedHttpResult, ProblemHttpResult>> LoginAsync(
@@ -39,5 +38,18 @@ public interface IAuthService
     Task<Results<NoContent, ProblemHttpResult>> ChangePasswordAsync(
         Guid userId, 
         ChangePasswordRequest request, 
+        CancellationToken ct);
+
+    Task<Results<Ok<ProblemDetails>, ProblemHttpResult>> VerifyEmailAsync(
+        VerifyEmailRequest request, 
+        CancellationToken ct);
+
+    Task<Results<Ok<ProblemDetails>, ProblemHttpResult>> ResendVerificationAsync(
+        ResendVerificationRequest request, 
+        CancellationToken ct);
+
+    Task<Results<Ok<ProblemDetails>, ProblemHttpResult>> UpdateComplexProfileAsync(
+        Guid complexId, 
+        UpdateComplexProfileRequest request, 
         CancellationToken ct);
 }

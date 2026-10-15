@@ -1,6 +1,7 @@
 using System.Data;
 using Dapper;
 using MultiSport.Api.Common;
+using MultiSport.Api.Features.Auth.Models.Dtos;
 using MultiSport.Api.Features.Auth.Models.Entities;
 
 namespace MultiSport.Api.Features.Auth.Repositories;
@@ -23,6 +24,7 @@ public sealed class AuthRepository : IAuthRepository
 
     public async Task<bool> TaxIdExistsAsync(string taxId, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(taxId)) return false;
         const string sql = "SELECT EXISTS(SELECT 1 FROM complexes WHERE LOWER(tax_id) = LOWER(@TaxId) AND deleted_at IS NULL);";
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
         return await connection.ExecuteScalarAsync<bool>(new CommandDefinition(sql, new { TaxId = taxId.Trim() }, cancellationToken: ct));
@@ -61,9 +63,9 @@ public sealed class AuthRepository : IAuthRepository
 
         const string insertUserSql = @"
             INSERT INTO users (
-                id, complex_id, email, password_hash, role, is_active, failed_login_attempts, created_at, updated_at
+                id, complex_id, email, password_hash, role, is_active, is_email_verified, email_verified_at_utc, failed_login_attempts, created_at, updated_at
             ) VALUES (
-                @Id, @ComplexId, @Email, @PasswordHash, @Role, @IsActive, @FailedLoginAttempts, @CreatedAt, @UpdatedAt
+                @Id, @ComplexId, @Email, @PasswordHash, @Role, @IsActive, @IsEmailVerified, @EmailVerifiedAtUtc, @FailedLoginAttempts, @CreatedAt, @UpdatedAt
             );";
 
         await connection.ExecuteAsync(new CommandDefinition(
@@ -76,6 +78,8 @@ public sealed class AuthRepository : IAuthRepository
                 user.PasswordHash,
                 user.Role,
                 user.IsActive,
+                user.IsEmailVerified,
+                user.EmailVerifiedAtUtc,
                 user.FailedLoginAttempts,
                 user.CreatedAt,
                 user.UpdatedAt
@@ -84,7 +88,6 @@ public sealed class AuthRepository : IAuthRepository
             cancellationToken: ct));
 
         await transaction.CommitAsync(ct);
-
         return (complex, user);
     }
 
@@ -140,9 +143,9 @@ public sealed class AuthRepository : IAuthRepository
     {
         const string sql = @"
             INSERT INTO refresh_tokens (
-                id, user_id, token_hash, expires_at_utc, created_at_utc
+                id, user_id, token_hash, expires_at_utc, created_at_utc, created_by_ip
             ) VALUES (
-                @Id, @UserId, @TokenHash, @ExpiresAtUtc, @CreatedAtUtc
+                @Id, @UserId, @TokenHash, @ExpiresAtUtc, @CreatedAtUtc, @CreatedByIp
             );";
 
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
@@ -161,7 +164,7 @@ public sealed class AuthRepository : IAuthRepository
         const string sql = @"
             UPDATE refresh_tokens 
             SET revoked_at_utc = CURRENT_TIMESTAMP, 
-                replaced_by_token = @ReplacedByToken 
+                replaced_by_token_hash = @ReplacedByToken 
             WHERE id = @TokenId;";
 
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
@@ -170,11 +173,7 @@ public sealed class AuthRepository : IAuthRepository
 
     public async Task RevokeAllUserRefreshTokensAsync(Guid userId, CancellationToken ct)
     {
-        const string sql = @"
-            UPDATE refresh_tokens 
-            SET revoked_at_utc = CURRENT_TIMESTAMP 
-            WHERE user_id = @UserId AND revoked_at_utc IS NULL;";
-
+        const string sql = "UPDATE refresh_tokens SET revoked_at_utc = CURRENT_TIMESTAMP WHERE user_id = @UserId AND revoked_at_utc IS NULL;";
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
         await connection.ExecuteAsync(new CommandDefinition(sql, new { UserId = userId }, cancellationToken: ct));
     }
@@ -216,5 +215,78 @@ public sealed class AuthRepository : IAuthRepository
 
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
         await connection.ExecuteAsync(new CommandDefinition(sql, new { UserId = userId, NewPasswordHash = newPasswordHash }, cancellationToken: ct));
+    }
+
+    public async Task CreateEmailVerificationTokenAsync(EmailVerificationToken token, CancellationToken ct)
+    {
+        const string sql = @"
+            INSERT INTO email_verification_tokens (
+                id, user_id, token_hash, expires_at_utc, created_at_utc
+            ) VALUES (
+                @Id, @UserId, @TokenHash, @ExpiresAtUtc, @CreatedAtUtc
+            );";
+
+        await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
+        await connection.ExecuteAsync(new CommandDefinition(sql, token, cancellationToken: ct));
+    }
+
+    public async Task<EmailVerificationToken?> GetEmailVerificationTokenByHashAsync(string tokenHash, CancellationToken ct)
+    {
+        const string sql = "SELECT * FROM email_verification_tokens WHERE token_hash = @TokenHash AND used_at_utc IS NULL;";
+        await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
+        return await connection.QuerySingleOrDefaultAsync<EmailVerificationToken>(new CommandDefinition(sql, new { TokenHash = tokenHash }, cancellationToken: ct));
+    }
+
+    public async Task MarkEmailVerificationTokenAsUsedAsync(Guid tokenId, CancellationToken ct)
+    {
+        const string sql = "UPDATE email_verification_tokens SET used_at_utc = CURRENT_TIMESTAMP WHERE id = @TokenId;";
+        await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
+        await connection.ExecuteAsync(new CommandDefinition(sql, new { TokenId = tokenId }, cancellationToken: ct));
+    }
+
+    public async Task MarkUserEmailAsVerifiedAsync(Guid userId, CancellationToken ct)
+    {
+        const string sql = @"
+            UPDATE users 
+            SET is_email_verified = TRUE, 
+                email_verified_at_utc = CURRENT_TIMESTAMP, 
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE id = @UserId;";
+
+        await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
+        await connection.ExecuteAsync(new CommandDefinition(sql, new { UserId = userId }, cancellationToken: ct));
+    }
+
+    public async Task InvalidateUserEmailVerificationTokensAsync(Guid userId, CancellationToken ct)
+    {
+        const string sql = "UPDATE email_verification_tokens SET used_at_utc = CURRENT_TIMESTAMP WHERE user_id = @UserId AND used_at_utc IS NULL;";
+        await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
+        await connection.ExecuteAsync(new CommandDefinition(sql, new { UserId = userId }, cancellationToken: ct));
+    }
+
+    public async Task UpdateComplexProfileAsync(Guid complexId, UpdateComplexProfileRequest request, CancellationToken ct)
+    {
+        const string sql = @"
+            UPDATE complexes 
+            SET tax_id = COALESCE(@TaxId, tax_id), 
+                cbu_alias = COALESCE(@CbuAlias, cbu_alias), 
+                address = COALESCE(@Address, address), 
+                phone = COALESCE(@Phone, phone), 
+                city = COALESCE(@City, city), 
+                logo_url = COALESCE(@LogoUrl, logo_url), 
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE id = @ComplexId AND deleted_at IS NULL;";
+
+        await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
+        await connection.ExecuteAsync(new CommandDefinition(sql, new
+        {
+            ComplexId = complexId,
+            request.TaxId,
+            request.CbuAlias,
+            request.Address,
+            request.Phone,
+            request.City,
+            request.LogoUrl
+        }, cancellationToken: ct));
     }
 }

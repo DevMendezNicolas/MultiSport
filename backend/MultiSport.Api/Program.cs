@@ -48,6 +48,7 @@ builder.Services.AddDatabaseMigrations(connectionString);
 // Registro de Capas de Features (Auth y Courts)
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailService, DevelopmentEmailService>();
 builder.Services.AddScoped<ICourtRepository, CourtRepository>();
 builder.Services.AddScoped<ICourtService, CourtService>();
 
