@@ -132,6 +132,16 @@ All remote API calls must go through the shared instance configured in `frontend
   * Use **Framer Motion** for smooth transitions in modals, side panels (*Sheets*), and tournament bracket progressions.
   * Use **Sonner** for confirmation, warning, and network error toasts.
 * **Mandatory Skeletons:** Tables, calendars, and cards must display animated `<Skeleton />` placeholders during data loading; full-screen isolated spinners are prohibited.
+* **Sobriedad Visual y Criterios Anti-Ruido (Anti-AI Clutter):**
+  * **Prohibición de microtítulos decorativos:** Queda terminantemente prohibido el uso de pre-títulos, badges estilizados tipo tutorial (`01.`, `02.`), o etiquetas en fuente monospace con espaciado forzado (`text-[11px] font-mono uppercase tracking-widest`) que no representen metadatos operativos dinámicos.
+  * **Cero redundancia contextual:** No repetir en subtítulos, textos de ayuda o badges información que ya resulte evidente por el título principal, la ruta activa o los propios campos de un formulario.
+  * **Limpieza fotográfica:** Las imágenes de canchas, módulos o promociones deben lucirse de forma limpia. Queda prohibida la superposición de etiquetas flotantes (`category badges`) o franjas oscuras con texto redundante sobre las imágenes.
+  * **Justificación funcional estricta:** No incorporar tarjetas, iconos, bordes, sombras, gradientes o animaciones por mera ornamentación. Cada elemento visual debe resolver legibilidad, jerarquía o interacción concreta.
+  * **Irreversibilidad de limpiezas estéticas:** No reintroducir patrones de diseño que hayan sido eliminados expresamente durante revisiones visuales previas.
+* **Paleta de Identidad Deportiva Verde y Separación Semántica:**
+  * **Identidad Verde Deportiva:** El verde deportivo principal (`#258653`, hover `#1E6E44`) rige botones primarios, enlaces activos y focos de interacción. El verde inglés (`#164734`) aporta profundidad y contraste sobrio. El verde suave (`#A7B9A5`) acompaña en estados tenues. La base oscura se asienta en negro obsidiana (`#0B0B0B`) y la base clara en crema (`#F4F1EA`, `#ECE7DD`).
+  * **Separación Semántica Estricta:** El color rojo queda 100% erradicado de la identidad marcaria y de los botones de interacción común. Se reserva **exclusivamente** para estados funcionales semánticos: errores de validación en formularios (`destructive`, `text-red-600`, `border-red-600`), alertas de solapamiento de turnos (`409 Conflict`) y confirmaciones de acciones destructivas (baja de canchas, cancelaciones).
+  * **Centralización en Tokens:** Los estilos deben apoyarse en las variables de `index.css` (`--primary`, `--secondary`, `--destructive`) y tokens de `tailwind.config.js` (`brand.sport`, `brand.british`, `brand.cream`, etc.). Prohibido introducir colores hex hardcodeados en componentes individuales.
 
 ---
 

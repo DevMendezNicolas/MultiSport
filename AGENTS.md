@@ -24,6 +24,8 @@ This repository contains strict architectural and stylistic standards. All AI ag
 7. **NO Try-Catch in Minimal API Endpoints:** Rely on the native `IExceptionHandler` middleware configured in `MultiSport.Api/Common/` returning RFC 7807 `ProblemDetails`.
 8. **NO String Interpolation in Logs:** Never use string interpolation in logging calls (`logger.LogInformation($"...")` ❌). Use structured semantic templates exclusively (`logger.LogInformation("... {Prop}", val)`).
 9. **NO Deletion of Financial Records:** Records in financial or payment tables (`payments`) must never be deleted (neither hard nor soft delete). Record adjustments as negative refund rows.
+10. **NO Decorative Visual Noise (Anti-AI Clutter):** Never introduce decorative microtitles, pre-labels, or tutorial-style numbering (`01.`, `02.`, `FORMULARIO DE ALTA`, etc.) that do not represent dynamic operational data. Never repeat information in subtitles, badges, or tags that is already evident from the main title, context, or form inputs. Never place unnecessary badges, labels, or dark overlays on top of photographs. Cards, icons, borders, shadows, and animations must have a concrete functional, usability, or accessibility reason; never add them for pure decoration.
+11. **NO Brand Red in UI:** Red is strictly reserved for semantic feedback (form validation errors, conflict alerts, destructive operations like deleting courts or canceling bookings). Brand identity, primary buttons, active navigation, and highlighted states must exclusively use the sporting green palette (`#258653` / `#1E6E44` / `#164734`).
 
 ---
 
@@ -43,7 +45,7 @@ This repository contains strict architectural and stylistic standards. All AI ag
 - **Concurrency & Overlapping:** Court schedule overlap protection is enforced at the database level using PostgreSQL GiST Exclusion Constraints (`exc_bookings_no_overlap`). Catch `PostgresException` (code `23P01`) and map it to `409 Conflict`.
 - **Soft Deletes & Audit:** Filter by `deleted_at IS NULL` on active queries. Populate audit fields (`created_by`, `updated_by`, `deleted_by`) on all transactional operations.
 - **Observability:** Propagate `X-Correlation-Id` across requests, middleware, and Serilog `LogContext`.
-- **FluentMigrator:** Migrations belong strictly in `MultiSport.Database.Migrations`. Migration classes must be annotated with `[Migration(YYYYMMDDHHMM)]` (timestamp format). Always provide `Down()` methods.
+- **FluentMigrator:** Migrations belong strictly in `MultiSport.Database.Migrations/Features/<FeatureName>/`. Each created or modified table must have its own dedicated migration file. Migration classes must be annotated with `[Migration(YYYYMMDDHHMM)]` (timestamp format, sequential). Always provide `Down()` methods. Monolithic multi-table migration files are strictly forbidden.
 
 ---
 
@@ -73,6 +75,8 @@ This repository contains strict architectural and stylistic standards. All AI ag
 - **Mutations:** Always invalidate related TanStack Query cache keys in `onSuccess` handlers.
 - **Loading States:** Always render `<Skeleton />` components matching layout dimensions. Never use full-screen spinners.
 - **Toasts:** Use **Sonner** (`toast.success()`, `toast.error()`).
+- **Brand Identity & Color Tokens:** Use the sporting green palette (`brand.sport`: `#258653`, `brand.sport-hover`: `#1E6E44`, `brand.british`: `#164734`, `brand.soft`: `#A7B9A5`, `brand.dark`: `#0B0B0B`, `brand.cream`: `#F4F1EA`, `brand.cream-card`: `#ECE7DD`). Semantic red is strictly reserved for errors and destructive actions. Never introduce hardcoded colors in individual components.
+- **Visual Sobriety:** Eliminate decorative microtitles, step numbers (`01.`, `02.`), redundant explanations, and badges/overlays over images. Prioritize typographic hierarchy, white space, and clear actions over visual ornament.
 
 ---
 
