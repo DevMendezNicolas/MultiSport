@@ -106,3 +106,10 @@ All Pull Requests targeting `develop` trigger automated CI checks via `.github/w
 1. **Backend:** Clean solution compilation (`dotnet build --configuration Release`) and unit tests execution (`dotnet test`).
 2. **Frontend:** TypeScript static typecheck (`npm run typecheck`) and ESLint linting (`npm run lint`).
 3. **Merge Requirement:** Passing all CI jobs is mandatory before code review and squash merging.
+
+---
+
+## 10. Documentation and Reports Policy
+
+- **`docs/` (Living System Documentation):** Reserved exclusively for enduring architectural guidelines, technical conventions, data dictionaries, and operational policies written in Markdown (`.md`). No binaries (`.pdf`), compiled formats (`.html`), or one-off milestone reports may reside in this directory.
+- **`reports/` (Milestone Deliverables & Technical Audits):** All one-off milestone deliverables, progress reports, implementation reviews, and audit documents must be placed under `reports/<module>/` (e.g., `reports/canchas/`).
