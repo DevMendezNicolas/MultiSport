@@ -27,6 +27,7 @@ This repository contains strict architectural and stylistic standards. All AI ag
 10. **NO Decorative Visual Noise (Anti-AI Clutter):** Never introduce decorative microtitles, pre-labels, or tutorial-style numbering (`01.`, `02.`, `FORMULARIO DE ALTA`, etc.) that do not represent dynamic operational data. Never repeat information in subtitles, badges, or tags that is already evident from the main title, context, or form inputs. Never place unnecessary badges, labels, or dark overlays on top of photographs. Cards, icons, borders, shadows, and animations must have a concrete functional, usability, or accessibility reason; never add them for pure decoration.
 11. **NO Brand Red in UI:** Red is strictly reserved for semantic feedback (form validation errors, conflict alerts, destructive operations like deleting courts or canceling bookings). Brand identity, primary buttons, active navigation, and highlighted states must exclusively use the sporting green palette (`#258653` / `#1E6E44` / `#164734`).
 12. **NO Non-Markdown or Static Reports in `docs/`:** The `docs/` directory is strictly reserved for living system guidelines, architecture documents, conventions, data dictionaries, and security policies in Markdown format (`.md`). Never place binary files (`.pdf`), compiled pages (`.html`), or one-off milestone/audit reports in `docs/`. All periodic reports, implementation summaries, and milestone deliverables belong under `reports/<module>/` (e.g., `reports/canchas/`).
+13. **NO Floating Workflow Popups/Modals (Zero-Popup Policy):** Intrusive centered floating modals are strictly forbidden for workflows, forms (create/edit), operational details, or lead capture. Use **Slide-over Sheets** (Drawers on mobile) for agile operational tasks (booking details, quick slot creation), **dedicated full pages/routes** for dense entity configurations (court and tournament creation/editing with pricing tiers), and **in-page embedded sections** on public landing pages. Centered dialogs (`AlertDialog`) are strictly restricted to concise destructive confirmation prompts (deleting courts, canceling bookings) using semantic red buttons.
 
 ---
 
@@ -109,7 +110,7 @@ All user interfaces must strictly comply with the ergonomic and responsive stand
 - **Adaptive Screen Behavior:**
   - Sidebar navigation collapses into a slide-over Sheet/Drawer on mobile.
   - Court scheduler displays parallel multi-court grids on desktop and transitions to single-court selector or swipeable contained columns on mobile.
-  - Operational modals transform into Bottom Sheets (Drawers) on mobile viewports.
+  - Operational workflows use Slide-over Sheets on desktop and transform into Bottom Sheets (Drawers) on mobile viewports; dense configuration forms reside on dedicated routes.
   - Tournament brackets support native smooth horizontal touch-drag.
 - **Visual Hierarchy & Contrast:** High contrast suitable for outdoor sunlight use at sports complexes. Proportional typography scaling and dynamic compact padding on mobile devices.
 
