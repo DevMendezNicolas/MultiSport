@@ -143,9 +143,9 @@ public sealed class AuthRepository : IAuthRepository
     {
         const string sql = @"
             INSERT INTO refresh_tokens (
-                id, user_id, token_hash, expires_at_utc, created_at_utc, created_by_ip
+                id, user_id, token_hash, expires_at_utc, created_at_utc
             ) VALUES (
-                @Id, @UserId, @TokenHash, @ExpiresAtUtc, @CreatedAtUtc, @CreatedByIp
+                @Id, @UserId, @TokenHash, @ExpiresAtUtc, @CreatedAtUtc
             );";
 
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
@@ -164,7 +164,7 @@ public sealed class AuthRepository : IAuthRepository
         const string sql = @"
             UPDATE refresh_tokens 
             SET revoked_at_utc = CURRENT_TIMESTAMP, 
-                replaced_by_token_hash = @ReplacedByToken 
+                replaced_by_token = @ReplacedByToken 
             WHERE id = @TokenId;";
 
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);

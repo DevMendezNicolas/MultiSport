@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Mail, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
@@ -14,6 +14,7 @@ export const VerifyEmailPage: React.FC = () => {
 
   const [resendEmail, setResendEmail] = useState('')
   const [resendSuccess, setResendSuccess] = useState(false)
+  const hasTriggeredRef = useRef(false)
 
   const verifyMutation = useMutation({
     mutationFn: (tok: string) => authApi.verifyEmail({ token: tok }),
@@ -59,7 +60,8 @@ export const VerifyEmailPage: React.FC = () => {
   })
 
   useEffect(() => {
-    if (token && !verifyMutation.isSuccess && !verifyMutation.isPending && !verifyMutation.isError) {
+    if (token && !hasTriggeredRef.current) {
+      hasTriggeredRef.current = true
       verifyMutation.mutate(token)
     }
   }, [token])
