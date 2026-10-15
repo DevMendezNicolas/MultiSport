@@ -28,6 +28,7 @@ This repository contains strict architectural and stylistic standards. All AI ag
 11. **NO Brand Red in UI:** Red is strictly reserved for semantic feedback (form validation errors, conflict alerts, destructive operations like deleting courts or canceling bookings). Brand identity, primary buttons, active navigation, and highlighted states must exclusively use the sporting green palette (`#258653` / `#1E6E44` / `#164734`).
 12. **NO Non-Markdown or Static Reports in `docs/`:** The `docs/` directory is strictly reserved for living system guidelines, architecture documents, conventions, data dictionaries, and security policies in Markdown format (`.md`). Never place binary files (`.pdf`), compiled pages (`.html`), or one-off milestone/audit reports in `docs/`. All periodic reports, implementation summaries, and milestone deliverables belong under `reports/<module>/` (e.g., `reports/canchas/`).
 13. **NO Floating Workflow Popups/Modals (Zero-Popup Policy):** Intrusive centered floating modals are strictly forbidden for workflows, forms (create/edit), operational details, or lead capture. Use **Slide-over Sheets** (Drawers on mobile) for agile operational tasks (booking details, quick slot creation), **dedicated full pages/routes** for dense entity configurations (court and tournament creation/editing with pricing tiers), and **in-page embedded sections** on public landing pages. Centered dialogs (`AlertDialog`) are strictly restricted to concise destructive confirmation prompts (deleting courts, canceling bookings) using semantic red buttons.
+14. **NO Autonomous Git Adds, Commits, or Pushes:** AI agents are strictly forbidden from executing `git add`, `git commit`, `git push`, or modifying Git repository state without explicit, prior user instruction or approval. After generating, editing, or refactoring code and completing verification, the agent MUST present the results to the user and wait for explicit confirmation before staging, committing, or pushing any changes.
 
 ---
 
@@ -88,6 +89,7 @@ This repository contains strict architectural and stylistic standards. All AI ag
 - **Branch names:** `<type>/<module>-<description>` in lowercase kebab-case (e.g., `feature/canchas-disponibilidad`, `chore/docker-postgres-setup`).
 - **Commits:** Conventional Commits in lowercase and in Spanish: `<tipo>(<modulo>): <descripcion>` (e.g., `feat(turnos): implementar validacion de solapamiento de horarios`, `fix(canchas): corregir consulta dapper de disponibilidad`).
 - **Pull Requests:** Titles and descriptions must follow `.github/pull_request_template.md` in Spanish. All PR discussions, feedback, and review comments must be in Spanish.
+- **Approval Gate for Git Actions:** Never execute `git add`, `git commit`, or `git push` autonomously. Staging and committing code without explicit user instruction is considered a direct violation of repository rules. Always present modified files and verification results first, waiting for the user's explicit command to proceed.
 
 ---
 
