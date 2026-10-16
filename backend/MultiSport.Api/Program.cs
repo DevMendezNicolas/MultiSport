@@ -8,6 +8,9 @@ using MultiSport.Api.Common;
 using MultiSport.Api.Features.Auth.Endpoints;
 using MultiSport.Api.Features.Auth.Repositories;
 using MultiSport.Api.Features.Auth.Services;
+using MultiSport.Api.Features.Bookings.Endpoints;
+using MultiSport.Api.Features.Bookings.Repositories;
+using MultiSport.Api.Features.Bookings.Services;
 using MultiSport.Api.Features.Courts.Endpoints;
 using MultiSport.Api.Features.Courts.Repositories;
 using MultiSport.Api.Features.Courts.Services;
@@ -51,6 +54,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, DevelopmentEmailService>();
 builder.Services.AddScoped<ICourtRepository, CourtRepository>();
 builder.Services.AddScoped<ICourtService, CourtService>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddScoped<IBookingService, BookingService>();
 
 // Configuración de Autenticación con JWT Bearer
 var jwtSecret = builder.Configuration["Jwt:Secret"] 
@@ -177,5 +182,6 @@ var apiV1 = app.MapGroup("/api/v1");
 apiV1.MapSystemEndpoints();
 apiV1.MapAuthEndpoints();
 apiV1.MapCourtsEndpoints();
+apiV1.MapBookingEndpoints();
 
 app.Run();
