@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Plus,
   SlidersHorizontal,
@@ -7,6 +7,8 @@ import {
   Clock,
   Trash2,
   AlertTriangle,
+  Search,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import axios from 'axios'
@@ -14,18 +16,59 @@ import { CreateCourtForm } from '../components/CreateCourtForm'
 import { useCourts, useDeleteCourt } from '../hooks/useCourts'
 import type { CourtResponse } from '../types'
 
-type ActiveTab = 'create' | 'modify'
+type ActiveTab = 'list' | 'create'
 
 const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 export const CourtsManagementPage: React.FC = () => {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<ActiveTab>('create')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Sincronización con URL (?tab=create vs ?tab=list) - Por defecto siempre 'list'
+  const tabParam = searchParams.get('tab')
+  const activeTab: ActiveTab = tabParam === 'create' ? 'create' : 'list'
+
+  const handleTabChange = (tab: ActiveTab) => {
+    if (tab === 'create') {
+      setSearchParams({ tab: 'create' })
+    } else {
+      setSearchParams({ tab: 'list' })
+    }
+  }
+
   const { data: courts = [], isLoading: isLoadingCourts } = useCourts()
   const deleteCourtMutation = useDeleteCourt()
 
+  // Estados de búsqueda y filtro
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedSportFilter, setSelectedSportFilter] = useState('all')
+
   // Estado para diálogo de confirmación de eliminación lógica
   const [deletingCourt, setDeletingCourt] = useState<CourtResponse | null>(null)
+
+  // Extraer disciplinas deportivas únicas disponibles
+  const availableSports = useMemo(() => {
+    const sportSet = new Set<string>()
+    courts.forEach((c) => {
+      c.sports.forEach((s) => {
+        if (s.sportName) sportSet.add(s.sportName)
+      })
+    })
+    return Array.from(sportSet).sort()
+  }, [courts])
+
+  // Canchas filtradas por búsqueda de nombre y disciplina
+  const filteredCourts = useMemo(() => {
+    return courts.filter((court) => {
+      const matchesSearch = court.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
+      const matchesSport =
+        selectedSportFilter === 'all' ||
+        court.sports.some(
+          (s) => s.sportName.toLowerCase() === selectedSportFilter.toLowerCase()
+        )
+      return matchesSearch && matchesSport
+    })
+  }, [courts, searchQuery, selectedSportFilter])
 
   const handleOpenEdit = (courtId: string) => {
     navigate(`/admin/courts/${courtId}/edit`)
@@ -79,26 +122,13 @@ export const CourtsManagementPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Selector de Acciones Principales */}
+        {/* Selector de Acciones Principales en Orden Natural */}
         <div className="pt-6 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => setActiveTab('create')}
+            onClick={() => handleTabChange('list')}
             className={`min-h-[44px] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-2 cursor-pointer ${
-              activeTab === 'create'
-                ? 'bg-brand-sport text-white shadow-sm'
-                : 'bg-white text-neutral-900 border border-neutral-300 hover:border-neutral-950'
-            }`}
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
-            <span>Crear Cancha</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('modify')}
-            className={`min-h-[44px] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-2 cursor-pointer ${
-              activeTab === 'modify'
+              activeTab === 'list'
                 ? 'bg-brand-sport text-white shadow-sm hover:bg-brand-sport-hover'
                 : 'bg-white text-neutral-900 border border-neutral-300 hover:border-neutral-950'
             }`}
@@ -106,27 +136,140 @@ export const CourtsManagementPage: React.FC = () => {
             <SlidersHorizontal className="h-4 w-4" strokeWidth={2} />
             <span>Consultar Canchas</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange('create')}
+            className={`min-h-[44px] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-2 cursor-pointer ${
+              activeTab === 'create'
+                ? 'bg-brand-sport text-white shadow-sm hover:bg-brand-sport-hover'
+                : 'bg-white text-neutral-900 border border-neutral-300 hover:border-neutral-950'
+            }`}
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            <span>Crear Cancha</span>
+          </button>
         </div>
       </section>
 
       {/* Contenido según Acción Activa */}
       {activeTab === 'create' ? (
-        <CreateCourtForm onSuccess={() => setActiveTab('modify')} />
+        <CreateCourtForm onSuccess={() => handleTabChange('list')} />
       ) : (
-        /* Vista de Modificación / Listado de Canchas Existentes */
+        /* Vista de Listado / Consulta de Canchas Existentes */
         <section className="bg-white border border-neutral-300 p-6 sm:p-8 shadow-sm space-y-6">
-          <div className="border-b border-neutral-200 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-neutral-200 pb-4">
             <h2 className="text-xl sm:text-2xl font-black text-neutral-950 uppercase tracking-tight">
               Canchas Existentes
             </h2>
+            <span className="text-xs font-mono text-neutral-500">
+              {filteredCourts.length} de {courts.length} {courts.length === 1 ? 'espacio' : 'espacios'}
+            </span>
           </div>
 
+          {/* Barra de Herramientas: Búsqueda y Filtros de Disciplinas */}
+          {!isLoadingCourts && courts.length > 0 && (
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-[#FAF8F5] p-4 border border-neutral-200">
+              {/* Buscador */}
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar por nombre de cancha..."
+                  className="w-full bg-white border border-neutral-300 pl-10 pr-9 py-2 text-xs text-neutral-950 placeholder-neutral-400 focus:outline-none focus:border-neutral-950 transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filtro por Deporte */}
+              {availableSports.length > 1 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-mono text-neutral-500 uppercase mr-1">
+                    Disciplina:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSportFilter('all')}
+                    className={`min-h-[32px] px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                      selectedSportFilter === 'all'
+                        ? 'bg-neutral-900 text-white'
+                        : 'bg-white text-neutral-700 border border-neutral-300 hover:border-neutral-500'
+                    }`}
+                  >
+                    Todas ({courts.length})
+                  </button>
+                  {availableSports.map((sport) => {
+                    const count = courts.filter((c) =>
+                      c.sports.some((s) => s.sportName.toLowerCase() === sport.toLowerCase())
+                    ).length
+                    return (
+                      <button
+                        key={sport}
+                        type="button"
+                        onClick={() => setSelectedSportFilter(sport)}
+                        className={`min-h-[32px] px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                          selectedSportFilter === sport
+                            ? 'bg-neutral-900 text-white'
+                            : 'bg-white text-neutral-700 border border-neutral-300 hover:border-neutral-500'
+                        }`}
+                      >
+                        {sport} ({count})
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Estado de Carga con Tarjetas Skeleton Proporcionales (Regla 5 de AGENTS.md) */}
           {isLoadingCourts ? (
-            <div className="space-y-3">
-              <div className="h-16 bg-neutral-100 animate-pulse border border-neutral-200" />
-              <div className="h-16 bg-neutral-100 animate-pulse border border-neutral-200" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="border border-neutral-300 p-5 bg-[#FAF8F5] flex flex-col justify-between space-y-5 shadow-sm animate-pulse"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="h-4 w-24 bg-neutral-200" />
+                      <div className="h-4 w-12 bg-neutral-200" />
+                    </div>
+                    <div className="h-6 w-3/4 bg-neutral-200" />
+                    <div className="h-4 w-1/2 bg-neutral-200" />
+                  </div>
+                  <div className="space-y-2 border-t border-neutral-200 pt-3">
+                    <div className="h-3 w-28 bg-neutral-200" />
+                    <div className="flex gap-1.5">
+                      <div className="h-5 w-8 bg-neutral-200" />
+                      <div className="h-5 w-8 bg-neutral-200" />
+                      <div className="h-5 w-8 bg-neutral-200" />
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t border-neutral-200 space-y-2">
+                    <div className="h-3 w-32 bg-neutral-200" />
+                    <div className="h-10 bg-neutral-200" />
+                  </div>
+                  <div className="pt-4 border-t border-neutral-200 flex gap-2">
+                    <div className="h-10 flex-1 bg-neutral-200" />
+                    <div className="h-10 flex-1 bg-neutral-200" />
+                    <div className="h-10 w-10 bg-neutral-200" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : courts.length === 0 ? (
+            /* Estado Vacío Global (Sin canchas registradas en el predio) */
             <div className="text-center py-12 border border-dashed border-neutral-300 bg-[#FAF8F5] p-6 space-y-3">
               <p className="text-sm font-bold text-neutral-800">No hay canchas registradas todavía.</p>
               <p className="text-xs text-neutral-500">
@@ -134,15 +277,36 @@ export const CourtsManagementPage: React.FC = () => {
               </p>
               <button
                 type="button"
-                onClick={() => setActiveTab('create')}
+                onClick={() => handleTabChange('create')}
                 className="mt-2 min-h-[44px] px-6 py-2.5 rounded-full bg-brand-sport text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-sport-hover transition-colors cursor-pointer"
               >
                 Comenzar con Alta de Cancha
               </button>
             </div>
+          ) : filteredCourts.length === 0 ? (
+            /* Estado Vacío de Búsqueda / Filtro */
+            <div className="text-center py-12 border border-dashed border-neutral-300 bg-[#FAF8F5] p-6 space-y-3">
+              <p className="text-sm font-bold text-neutral-800">
+                No se encontraron canchas que coincidan con los filtros aplicados.
+              </p>
+              <p className="text-xs text-neutral-500">
+                Probá buscando con otro nombre o seleccionando otra disciplina deportiva.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('')
+                  setSelectedSportFilter('all')
+                }}
+                className="mt-2 min-h-[40px] px-5 py-2 text-xs font-bold uppercase tracking-wider text-neutral-800 border border-neutral-300 hover:border-neutral-950 transition-colors cursor-pointer"
+              >
+                Limpiar Filtros
+              </button>
+            </div>
           ) : (
+            /* Grilla de Canchas */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {courts.map((court) => {
+              {filteredCourts.map((court) => {
                 // Extraer días únicos con reglas
                 const uniqueDays = Array.from(
                   new Set(
@@ -220,8 +384,18 @@ export const CourtsManagementPage: React.FC = () => {
                     <div className="pt-4 border-t border-neutral-200 flex items-center justify-between gap-2">
                       <button
                         type="button"
+                        onClick={() => navigate(`/admin/bookings?courtId=${court.id}`)}
+                        title="Ver agenda de reservas de esta cancha"
+                        className="flex-1 min-h-[40px] px-2.5 py-2 bg-brand-sport/10 hover:bg-brand-sport/15 text-brand-sport border border-brand-sport/30 text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
+                        <span>Agenda</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => handleOpenEdit(court.id)}
-                        className="flex-1 min-h-[40px] px-3 py-2 bg-white border border-neutral-300 hover:border-neutral-950 text-neutral-900 text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="flex-1 min-h-[40px] px-2.5 py-2 bg-white border border-neutral-300 hover:border-neutral-950 text-neutral-900 text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2} />
                         <span>Modificar</span>
@@ -243,7 +417,6 @@ export const CourtsManagementPage: React.FC = () => {
           )}
         </section>
       )}
-
 
       {/* Diálogo de Confirmación para Eliminación Lógica */}
       {deletingCourt && (
@@ -298,3 +471,4 @@ export const CourtsManagementPage: React.FC = () => {
     </div>
   )
 }
+
