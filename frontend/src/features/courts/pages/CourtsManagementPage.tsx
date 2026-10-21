@@ -6,14 +6,12 @@ import {
   Calendar,
   Clock,
   Trash2,
-  AlertTriangle,
   Search,
   X,
 } from 'lucide-react'
-import { toast } from 'sonner'
-import axios from 'axios'
 import { CreateCourtForm } from '../components/CreateCourtForm'
-import { useCourts, useDeleteCourt } from '../hooks/useCourts'
+import { DeleteCourtSheet } from '../components/DeleteCourtSheet'
+import { useCourts } from '../hooks/useCourts'
 import type { CourtResponse } from '../types'
 
 type ActiveTab = 'list' | 'create'
@@ -37,13 +35,12 @@ export const CourtsManagementPage: React.FC = () => {
   }
 
   const { data: courts = [], isLoading: isLoadingCourts } = useCourts()
-  const deleteCourtMutation = useDeleteCourt()
 
   // Estados de búsqueda y filtro
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSportFilter, setSelectedSportFilter] = useState('all')
 
-  // Estado para diálogo de confirmación de eliminación lógica
+  // Estado para panel slide-over de confirmación de eliminación lógica (Zero-Popup)
   const [deletingCourt, setDeletingCourt] = useState<CourtResponse | null>(null)
 
   // Extraer disciplinas deportivas únicas disponibles
@@ -72,33 +69,6 @@ export const CourtsManagementPage: React.FC = () => {
 
   const handleOpenEdit = (courtId: string) => {
     navigate(`/admin/courts/${courtId}/edit`)
-  }
-
-  const handleConfirmDelete = async () => {
-    if (!deletingCourt) return
-
-    try {
-      await deleteCourtMutation.mutateAsync(deletingCourt.id)
-      toast.success('Cancha dada de baja exitosamente', {
-        description: `"${deletingCourt.name}" fue desactivada y ya no estará disponible para nuevas reservas.`,
-      })
-      setDeletingCourt(null)
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        const problem = error.response.data
-        if (error.response.status === 409) {
-          toast.error('No se puede eliminar la cancha', {
-            description:
-              problem?.detail ||
-              'Existen reservas futuras confirmadas en esta cancha. Debe cancelarlas o reubicarlas primero.',
-          })
-          return
-        }
-      }
-      toast.error('Error al dar de baja la cancha', {
-        description: 'No se pudo completar la operación en el servidor.',
-      })
-    }
   }
 
   return (
@@ -418,56 +388,12 @@ export const CourtsManagementPage: React.FC = () => {
         </section>
       )}
 
-      {/* Diálogo de Confirmación para Eliminación Lógica */}
-      {deletingCourt && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
-        >
-          <div className="bg-white border border-neutral-300 max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-2 text-red-600 border-b border-neutral-200 pb-3">
-              <AlertTriangle className="h-5 w-5 flex-shrink-0" strokeWidth={2} />
-              <h3 className="text-base font-black uppercase text-neutral-950">
-                Dar de Baja Cancha
-              </h3>
-            </div>
-
-            <div className="space-y-2 text-xs text-neutral-600 leading-relaxed font-mono">
-              <p>
-                ¿Estás seguro de que deseás dar de baja la cancha{' '}
-                <strong className="text-neutral-950">&quot;{deletingCourt.name}&quot;</strong>?
-              </p>
-              <p className="bg-[#FAF8F5] p-3 border border-neutral-200 text-neutral-700">
-                Esta acción es una <strong>baja lógica (soft delete)</strong>. La cancha dejará de estar disponible para nuevas reservas. Si existen turnos futuros confirmados, la operación será bloqueada automáticamente para proteger las reservas existentes.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-200">
-              <button
-                type="button"
-                onClick={() => setDeletingCourt(null)}
-                disabled={deleteCourtMutation.isPending}
-                className="min-h-[40px] px-4 py-2 text-xs font-bold uppercase tracking-wider text-neutral-700 border border-neutral-300 hover:bg-neutral-50 transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={deleteCourtMutation.isPending}
-                className="min-h-[40px] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white bg-red-600 hover:bg-red-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                <span>
-                  {deleteCourtMutation.isPending ? 'Procesando...' : 'Confirmar Baja'}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Panel Slide-over Lateral de Confirmación de Baja (Regla 13 Zero-Popup) */}
+      <DeleteCourtSheet
+        court={deletingCourt}
+        isOpen={Boolean(deletingCourt)}
+        onClose={() => setDeletingCourt(null)}
+      />
     </div>
   )
 }
