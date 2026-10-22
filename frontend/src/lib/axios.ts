@@ -3,16 +3,11 @@ import axios, { type InternalAxiosRequestConfig } from 'axios'
 let inMemoryToken: string | null = null
 
 export const getAccessToken = (): string | null => {
-  return inMemoryToken || sessionStorage.getItem('access_token')
+  return inMemoryToken
 }
 
 export const setAccessToken = (token: string | null): void => {
   inMemoryToken = token
-  if (token) {
-    sessionStorage.setItem('access_token', token)
-  } else {
-    sessionStorage.removeItem('access_token')
-  }
 }
 
 export interface JwtPayload {

@@ -1,7 +1,10 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Dapper;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MultiSport.Api.Common;
@@ -45,6 +48,13 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
+if (string.IsNullOrWhiteSpace(connectionString) || connectionString.Contains("REPLACE_WITH_"))
+{
+    throw new InvalidOperationException(
+        "La cadena de conexión 'DefaultConnection' no está configurada o contiene un valor placeholder. " +
+        "Configure una cadena válida mediante 'dotnet user-secrets' o variable de entorno.");
+}
+
 builder.Services.AddScoped<IDbConnectionFactory>(_ => new NpgsqlConnectionFactory(connectionString));
 builder.Services.AddDatabaseMigrations(connectionString);
 
@@ -60,6 +70,13 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 // Configuración de Autenticación con JWT Bearer
 var jwtSecret = builder.Configuration["Jwt:Secret"] 
                 ?? throw new InvalidOperationException("Jwt:Secret no configurado.");
+
+if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.StartsWith("REPLACE_WITH_") || Encoding.UTF8.GetByteCount(jwtSecret) < 32)
+{
+    throw new InvalidOperationException(
+        "La clave 'Jwt:Secret' no está configurada adecuadamente o no cumple con el requisito de entropía mínima (al menos 32 bytes / 256 bits). " +
+        "Configure una clave segura mediante 'dotnet user-secrets' o variable de entorno.");
+}
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "MultiSport.Api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "MultiSport.Client";
 
@@ -70,7 +87,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false;
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -88,14 +105,53 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 // Configuración de CORS estricto con credenciales para el Frontend
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
+    ?? ["http://localhost:5173", "https://app.multisport.com"];
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "https://app.multisport.com")
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
+    });
+});
+
+// Configuración de Rate Limiting defensivo para endpoints sensibles
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.ContentType = "application/problem+json";
+        var problemDetails = new ProblemDetails
+        {
+            Status = StatusCodes.Status429TooManyRequests,
+            Title = "Demasiadas peticiones",
+            Detail = "Ha superado el límite de intentos permitidos. Por favor, espere un minuto antes de reintentar.",
+            Instance = context.HttpContext.Request.Path
+        };
+        await context.HttpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken: token);
+    };
+
+    options.AddPolicy("auth-rate-limit", httpContext =>
+    {
+        var clientIp = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+            ?? httpContext.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown";
+
+        return RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: clientIp,
+            factory: _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 3,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            });
     });
 });
 
@@ -150,10 +206,12 @@ var app = builder.Build();
 
 // Pipeline de Middlewares
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
 
 app.UseCors("FrontendPolicy");
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
