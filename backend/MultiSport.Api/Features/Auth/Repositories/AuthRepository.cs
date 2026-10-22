@@ -143,9 +143,9 @@ public sealed class AuthRepository : IAuthRepository
     {
         const string sql = @"
             INSERT INTO refresh_tokens (
-                id, user_id, token_hash, expires_at_utc, created_at_utc
+                id, user_id, token_hash, expires_at_utc, absolute_expires_at_utc, created_at_utc
             ) VALUES (
-                @Id, @UserId, @TokenHash, @ExpiresAtUtc, @CreatedAtUtc
+                @Id, @UserId, @TokenHash, @ExpiresAtUtc, @AbsoluteExpiresAtUtc, @CreatedAtUtc
             );";
 
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);

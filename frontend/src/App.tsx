@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from '@/lib/queryClient'
 import { Toaster } from 'sonner'
 import { LandingPage } from '@/features/landing'
 import { LoginPage, RegisterPage, VerifyEmailPage, OnboardingWizardPage, AuthProvider } from '@/features/auth'
@@ -8,15 +9,6 @@ import { AdminLayout } from '@/components/layout/AdminLayout'
 import { DashboardOverview } from '@/features/admin'
 import { CourtsManagementPage, EditCourtPage } from '@/features/courts'
 import { BookingsManagementPage } from '@/features/bookings'
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      retry: 1,
-    },
-  },
-})
 
 function App() {
   return (

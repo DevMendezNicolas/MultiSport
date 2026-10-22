@@ -10,6 +10,7 @@ export interface AuthContextType {
   register: (payload: RegisterComplexPayload) => Promise<RegisterSuccessResponse>
   logout: () => Promise<void>
   refreshSession: () => Promise<void>
+  handleSessionExpired: (reason?: string) => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)

@@ -191,6 +191,8 @@ public sealed class AuthService : IAuthService
         HttpContext httpContext,
         CancellationToken ct)
     {
+        refreshToken ??= httpContext.Request.Cookies[RefreshTokenCookieName];
+
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
             _logger.LogWarning("Intento de renovación de token sin refresh token en cookie");
@@ -216,7 +218,15 @@ public sealed class AuthService : IAuthService
 
         if (existingToken.IsExpired)
         {
-            _logger.LogWarning("Refresh token expirado para usuario {UserId}", existingToken.UserId);
+            _logger.LogWarning("Refresh token expirado por inactividad o tiempo límite para usuario {UserId}", existingToken.UserId);
+            DeleteRefreshTokenCookie(httpContext);
+            return TypedResults.Unauthorized();
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        if (now >= existingToken.AbsoluteExpiresAtUtc)
+        {
+            _logger.LogWarning("Refresh token superó el límite máximo absoluto de sesión (24 horas) para usuario {UserId}", existingToken.UserId);
             DeleteRefreshTokenCookie(httpContext);
             return TypedResults.Unauthorized();
         }
@@ -234,8 +244,10 @@ public sealed class AuthService : IAuthService
 
         await _repository.RevokeRefreshTokenAsync(existingToken.Id, newTokenHash, ct);
 
-        var refreshLifetimeDays = _configuration.GetValue("Jwt:RefreshTokenExpirationDays", 7);
-        var newExpiresAt = DateTimeOffset.UtcNow.AddDays(refreshLifetimeDays);
+        var idleTimeoutMinutes = _configuration.GetValue("Jwt:RefreshTokenIdleTimeoutMinutes", 30);
+        var idleExpiresAt = now.AddMinutes(idleTimeoutMinutes);
+        var absoluteExpiresAt = existingToken.AbsoluteExpiresAtUtc;
+        var newExpiresAt = idleExpiresAt < absoluteExpiresAt ? idleExpiresAt : absoluteExpiresAt;
 
         var newRefreshToken = new RefreshToken
         {
@@ -243,7 +255,8 @@ public sealed class AuthService : IAuthService
             UserId = user.Id,
             TokenHash = newTokenHash,
             ExpiresAtUtc = newExpiresAt,
-            CreatedAtUtc = DateTimeOffset.UtcNow
+            AbsoluteExpiresAtUtc = absoluteExpiresAt,
+            CreatedAtUtc = now
         };
 
         await _repository.CreateRefreshTokenAsync(newRefreshToken, ct);
@@ -270,6 +283,8 @@ public sealed class AuthService : IAuthService
         HttpContext httpContext,
         CancellationToken ct)
     {
+        refreshToken ??= httpContext.Request.Cookies[RefreshTokenCookieName];
+
         if (!string.IsNullOrWhiteSpace(refreshToken))
         {
             var tokenHash = HashToken(refreshToken);
@@ -498,8 +513,13 @@ public sealed class AuthService : IAuthService
 
         var rawRefreshToken = GenerateSecureToken();
         var refreshTokenHash = HashToken(rawRefreshToken);
-        var refreshLifetimeDays = _configuration.GetValue("Jwt:RefreshTokenExpirationDays", 7);
-        var expiresAt = DateTimeOffset.UtcNow.AddDays(refreshLifetimeDays);
+        var idleTimeoutMinutes = _configuration.GetValue("Jwt:RefreshTokenIdleTimeoutMinutes", 30);
+        var absoluteExpirationHours = _configuration.GetValue("Jwt:RefreshTokenAbsoluteExpirationHours", 24);
+
+        var now = DateTimeOffset.UtcNow;
+        var absoluteExpiresAt = now.AddHours(absoluteExpirationHours);
+        var idleExpiresAt = now.AddMinutes(idleTimeoutMinutes);
+        var expiresAt = idleExpiresAt < absoluteExpiresAt ? idleExpiresAt : absoluteExpiresAt;
 
         var refreshToken = new RefreshToken
         {
@@ -507,7 +527,8 @@ public sealed class AuthService : IAuthService
             UserId = user.Id,
             TokenHash = refreshTokenHash,
             ExpiresAtUtc = expiresAt,
-            CreatedAtUtc = DateTimeOffset.UtcNow
+            AbsoluteExpiresAtUtc = absoluteExpiresAt,
+            CreatedAtUtc = now
         };
 
         await _repository.CreateRefreshTokenAsync(refreshToken, ct);
