@@ -118,11 +118,11 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
               <Calendar className="h-5 w-5" strokeWidth={2} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-neutral-900 leading-tight">
+              <h2 className="text-xl font-bold text-neutral-950 leading-tight">
                 Detalle del Turno
               </h2>
               {booking && (
-                <p className="text-xs text-neutral-500">
+                <p className="text-sm font-medium text-neutral-700 mt-0.5">
                   {booking.courtName} · {booking.sportName}
                 </p>
               )}
@@ -140,95 +140,95 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
           ) : (
             <>
               {/* Badge de Estado y Horario */}
-              <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-3">
+              <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-300 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {booking.status === 'confirmed' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#258653]/10 text-[#1E6E44] border border-[#258653]/20">
-                        <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
+                        <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.5} />
                         Confirmado
                       </span>
                     )}
                     {booking.status === 'pending' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                        <AlertCircle className="h-3.5 w-3.5" strokeWidth={2} />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                        <AlertCircle className="h-3.5 w-3.5" strokeWidth={2.5} />
                         Pendiente de Pago
                       </span>
                     )}
                     {booking.status === 'blocked' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-neutral-800 text-white">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-neutral-900 text-white">
                         <ShieldAlert className="h-3.5 w-3.5" strokeWidth={2} />
                         Bloqueo Operativo
                       </span>
                     )}
                     {booking.status === 'cancelled' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
                         Cancelado
                       </span>
                     )}
 
                     {booking.isRecurring && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-200 text-neutral-800">
-                        <Repeat className="h-3 w-3" strokeWidth={2} />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-neutral-200 text-neutral-800">
+                        <Repeat className="h-3.5 w-3.5 text-brand-british" strokeWidth={2} />
                         Fijo Semanal
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm text-neutral-700">
-                  <Clock className="h-4 w-4 text-neutral-500" strokeWidth={2} />
+                <div className="flex items-center gap-3 text-sm font-semibold text-neutral-800">
+                  <Clock className="h-4 w-4 text-neutral-700 shrink-0" strokeWidth={2} />
                   <span>
                     {formatDateTime(booking.startTimeUtc).time} a{' '}
                     {formatDateTime(booking.endTimeUtc).time} hs
                   </span>
                   <span className="text-neutral-400">·</span>
-                  <span>{formatDateTime(booking.startTimeUtc).date}</span>
+                  <span className="capitalize">{formatDateTime(booking.startTimeUtc).date}</span>
                 </div>
               </div>
 
               {/* Datos del Cliente */}
               {booking.status !== 'blocked' && (
-                <div className="p-4 rounded-2xl border border-neutral-200 space-y-3">
-                  <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider block">
+                <div className="p-4 rounded-2xl border border-neutral-300 space-y-3">
+                  <span className="text-xs font-bold text-neutral-700 uppercase tracking-wider block">
                     Información del Cliente
                   </span>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <div className="flex items-center gap-2.5">
-                      <User className="h-4 w-4 text-neutral-400" />
-                      <span className="text-sm font-semibold text-neutral-900">
+                      <User className="h-4 w-4 text-neutral-600 shrink-0" />
+                      <span className="text-base font-bold text-neutral-950">
                         {booking.customerName}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <Phone className="h-4 w-4 text-neutral-400" />
-                        <span className="text-sm text-neutral-700">{booking.customerPhone}</span>
+                        <Phone className="h-4 w-4 text-neutral-600 shrink-0" />
+                        <span className="text-sm font-medium text-neutral-800">{booking.customerPhone}</span>
                       </div>
                       <a
                         href={`https://wa.me/${booking.customerPhone.replace(/\D/g, '')}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs font-medium text-[#258653] hover:underline flex items-center gap-1"
+                        className="text-xs font-bold text-brand-british hover:underline flex items-center gap-1"
                       >
                         <span>WhatsApp</span>
-                        <ExternalLink className="h-3 w-3" />
+                        <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     </div>
 
                     {booking.customerEmail && (
                       <div className="flex items-center gap-2.5">
-                        <Mail className="h-4 w-4 text-neutral-400" />
-                        <span className="text-sm text-neutral-600">{booking.customerEmail}</span>
+                        <Mail className="h-4 w-4 text-neutral-600 shrink-0" />
+                        <span className="text-sm text-neutral-700">{booking.customerEmail}</span>
                       </div>
                     )}
                   </div>
 
                   {booking.notes && (
-                    <div className="mt-2 pt-2 border-t border-neutral-100 text-xs text-neutral-600">
-                      <span className="font-medium text-neutral-800">Nota: </span>
+                    <div className="mt-2 pt-2 border-t border-neutral-200 text-sm text-neutral-700">
+                      <span className="font-bold text-neutral-900">Nota: </span>
                       {booking.notes}
                     </div>
                   )}
@@ -237,41 +237,41 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
 
               {/* Si es Bloqueo Operativo */}
               {booking.status === 'blocked' && (
-                <div className="p-4 rounded-2xl border border-neutral-200 space-y-2">
-                  <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider block">
+                <div className="p-4 rounded-2xl border border-neutral-300 space-y-2">
+                  <span className="text-xs font-bold text-neutral-700 uppercase tracking-wider block">
                     Motivo del Bloqueo
                   </span>
-                  <p className="text-sm text-neutral-800">{booking.notes || 'Sin observaciones'}</p>
+                  <p className="text-sm font-medium text-neutral-900">{booking.notes || 'Sin observaciones'}</p>
                 </div>
               )}
 
               {/* Resumen Financiero */}
               {booking.status !== 'blocked' && (
-                <div className="p-4 rounded-2xl border border-neutral-200 bg-[#FAF8F5] space-y-3">
-                  <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider block">
+                <div className="p-4 rounded-2xl border border-neutral-300 bg-[#FAF8F5] space-y-3">
+                  <span className="text-xs font-bold text-neutral-700 uppercase tracking-wider block">
                     Estado de Cuenta
                   </span>
 
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="p-3 rounded-xl bg-white border border-neutral-200">
-                      <span className="text-xs text-neutral-500 block">Total</span>
-                      <span className="text-base font-bold text-neutral-900">
+                    <div className="p-3 rounded-xl bg-white border border-neutral-300">
+                      <span className="text-xs font-bold text-neutral-700 block">Total</span>
+                      <span className="text-base font-black text-neutral-950 font-mono">
                         ${booking.totalPrice.toLocaleString('es-AR')}
                       </span>
                     </div>
 
-                    <div className="p-3 rounded-xl bg-white border border-neutral-200">
-                      <span className="text-xs text-neutral-500 block">Abonado</span>
-                      <span className="text-base font-bold text-[#258653]">
+                    <div className="p-3 rounded-xl bg-white border border-neutral-300">
+                      <span className="text-xs font-bold text-neutral-700 block">Abonado</span>
+                      <span className="text-base font-black text-brand-british font-mono">
                         ${booking.depositAmount.toLocaleString('es-AR')}
                       </span>
                     </div>
 
-                    <div className="p-3 rounded-xl bg-white border border-neutral-200">
-                      <span className="text-xs text-neutral-500 block">Saldo</span>
+                    <div className="p-3 rounded-xl bg-white border border-neutral-300">
+                      <span className="text-xs font-bold text-neutral-700 block">Saldo</span>
                       <span
-                        className={`text-base font-bold ${
-                          booking.balance > 0 ? 'text-amber-700' : 'text-neutral-500'
+                        className={`text-base font-black font-mono ${
+                          booking.balance > 0 ? 'text-amber-800' : 'text-neutral-700'
                         }`}
                       >
                         ${booking.balance.toLocaleString('es-AR')}

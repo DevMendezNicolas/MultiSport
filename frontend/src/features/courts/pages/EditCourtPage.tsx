@@ -427,12 +427,12 @@ export const EditCourtPage: React.FC = () => {
       {/* Barra de Navegación Superior y Migas de Pan */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-neutral-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1">
+          <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-neutral-700 mb-1">
             <Link to="/admin/courts" className="hover:text-brand-sport transition-colors">
               Canchas
             </Link>
             <span>/</span>
-            <span className="text-neutral-900">Modificar Cancha</span>
+            <span className="text-neutral-950">Modificar Cancha</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-neutral-950 uppercase tracking-tight">
             Modificar: {court?.name || 'Cancha'}
@@ -442,7 +442,7 @@ export const EditCourtPage: React.FC = () => {
         <button
           type="button"
           onClick={handleAttemptClose}
-          className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 border border-neutral-300 text-xs font-bold uppercase tracking-wider text-neutral-700 hover:bg-neutral-50 transition-colors cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 border border-neutral-300 text-xs font-bold uppercase tracking-wider text-neutral-950 hover:bg-neutral-100 transition-colors cursor-pointer self-start sm:self-auto"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2} />
           <span>Volver a Canchas</span>
@@ -450,10 +450,10 @@ export const EditCourtPage: React.FC = () => {
       </div>
 
       {/* Banner Informativo sobre Reservas Futuras e Inmutabilidad */}
-      <div className="bg-[#FAF8F5] border border-neutral-200 p-4 sm:p-5 flex items-start gap-3.5">
-        <Info className="h-5 w-5 text-neutral-600 mt-0.5 flex-shrink-0" strokeWidth={2} />
-        <div className="text-xs text-neutral-600 leading-relaxed font-mono">
-          <strong className="text-neutral-900">Protección de Integridad:</strong> Las modificaciones en tarifas aplican exclusivamente a nuevas reservas. Los turnos futuros agendados conservan su precio original pactado. Si modificás horarios o quitás disciplinas con turnos confirmados existentes, la operación será rechazada automáticamente.
+      <div className="bg-[#FAF8F5] border border-neutral-300 p-4 sm:p-5 flex items-start gap-3.5">
+        <Info className="h-5 w-5 text-neutral-700 mt-0.5 flex-shrink-0" strokeWidth={2} />
+        <div className="text-xs text-neutral-800 leading-relaxed font-mono font-medium">
+          <strong className="text-neutral-950">Protección de Integridad:</strong> Las modificaciones en tarifas aplican exclusivamente a nuevas reservas. Los turnos futuros agendados conservan su precio original pactado. Si modificás horarios o quitás disciplinas con turnos confirmados existentes, la operación será rechazada automáticamente.
         </div>
       </div>
 
@@ -467,7 +467,7 @@ export const EditCourtPage: React.FC = () => {
         )}
 
         {/* 1. IDENTIFICACIÓN Y SUPERFICIE */}
-        <section className="bg-white border border-neutral-200 p-6 space-y-6">
+        <section className="bg-white border border-neutral-300 p-6 space-y-6">
           <div className="flex items-center gap-2 border-b border-neutral-200 pb-3">
             <Layers className="h-5 w-5 text-brand-sport" strokeWidth={2} />
             <h2 className="text-base font-black uppercase tracking-tight text-neutral-950">
@@ -477,7 +477,7 @@ export const EditCourtPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="courtName" className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1.5">
+              <label htmlFor="courtName" className="block text-xs font-mono font-bold uppercase tracking-wider text-neutral-800 mb-1.5">
                 Nombre de la Cancha *
               </label>
               <input
@@ -500,18 +500,18 @@ export const EditCourtPage: React.FC = () => {
                   errors.name ? 'border-red-500' : 'border-neutral-300 focus:border-brand-sport'
                 }`}
               />
-              {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
+              {errors.name && <p className="text-xs text-red-600 mt-1 font-mono">{errors.name}</p>}
             </div>
 
             <div>
-              <label htmlFor="surfaceType" className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1.5">
+              <label htmlFor="surfaceType" className="block text-xs font-mono font-bold uppercase tracking-wider text-neutral-800 mb-1.5">
                 Tipo de Superficie *
               </label>
               <select
                 id="surfaceType"
                 value={formData.surfaceType}
                 onChange={(e) => setFormData({ ...formData, surfaceType: e.target.value })}
-                className="w-full px-3.5 py-2.5 text-base border border-neutral-300 bg-white focus:outline-none focus:border-brand-sport"
+                className="w-full px-3.5 py-2.5 text-base border border-neutral-300 bg-white focus:outline-none focus:border-brand-sport cursor-pointer"
               >
                 {SURFACE_OPTIONS.map((surf) => (
                   <option key={surf} value={surf}>
@@ -524,44 +524,44 @@ export const EditCourtPage: React.FC = () => {
 
           {/* Características Adicionales */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            <label className="flex items-center gap-3 p-3.5 border border-neutral-200 bg-neutral-50 cursor-pointer select-none">
+            <label className="flex items-center gap-3 p-3.5 border border-neutral-300 bg-neutral-50 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={formData.isCovered}
                 onChange={(e) => setFormData({ ...formData, isCovered: e.target.checked })}
-                className="h-4 w-4 rounded-none border-neutral-300 text-brand-sport focus:ring-brand-sport"
+                className="h-4 w-4 rounded-none border-neutral-400 text-brand-sport focus:ring-brand-sport cursor-pointer"
               />
               <div>
-                <span className="text-xs font-bold text-neutral-900 block">Cancha Techada</span>
-                <span className="text-[11px] text-neutral-500">Protección contra lluvia o intemperie</span>
+                <span className="text-xs font-bold text-neutral-950 block">Cancha Techada</span>
+                <span className="text-xs font-medium text-neutral-700">Protección contra lluvia o intemperie</span>
               </div>
             </label>
 
-            <label className="flex items-center gap-3 p-3.5 border border-neutral-200 bg-neutral-50 cursor-pointer select-none">
+            <label className="flex items-center gap-3 p-3.5 border border-neutral-300 bg-neutral-50 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={formData.hasLighting}
                 onChange={(e) => setFormData({ ...formData, hasLighting: e.target.checked })}
-                className="h-4 w-4 rounded-none border-neutral-300 text-brand-sport focus:ring-brand-sport"
+                className="h-4 w-4 rounded-none border-neutral-400 text-brand-sport focus:ring-brand-sport cursor-pointer"
               />
               <div>
-                <span className="text-xs font-bold text-neutral-900 block">Iluminación Artificial</span>
-                <span className="text-[11px] text-neutral-500">Apta para turnos nocturnos</span>
+                <span className="text-xs font-bold text-neutral-950 block">Iluminación Artificial</span>
+                <span className="text-xs font-medium text-neutral-700">Apta para turnos nocturnos</span>
               </div>
             </label>
           </div>
         </section>
 
         {/* 2. DEPORTES COMPATIBLES */}
-        <section className="bg-white border border-neutral-200 p-6 space-y-6">
+        <section className="bg-white border border-neutral-300 p-6 space-y-6">
           <div className="flex items-center justify-between border-b border-neutral-200 pb-3">
             <h2 className="text-base font-black uppercase tracking-tight text-neutral-950">
               Deportes Compatibles *
             </h2>
-            <span className="text-xs text-neutral-500">Seleccioná al menos una disciplina</span>
+            <span className="text-xs font-medium text-neutral-700">Seleccioná al menos una disciplina</span>
           </div>
 
-          {errors.sportIds && <p className="text-xs text-red-600">{errors.sportIds}</p>}
+          {errors.sportIds && <p className="text-xs text-red-600 font-mono">{errors.sportIds}</p>}
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {sports.map((sport) => {
@@ -571,10 +571,10 @@ export const EditCourtPage: React.FC = () => {
                   key={sport.id}
                   type="button"
                   onClick={() => handleToggleSport(sport.id)}
-                  className={`p-3.5 border text-left transition-colors flex items-center justify-between cursor-pointer ${
+                  className={`min-h-[44px] p-3.5 border text-left transition-colors flex items-center justify-between cursor-pointer ${
                     isSelected
-                      ? 'border-brand-sport bg-brand-soft/20 text-neutral-950'
-                      : 'border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700'
+                      ? 'border-brand-sport bg-brand-soft/30 text-neutral-950'
+                      : 'border-neutral-300 bg-white hover:bg-neutral-100 text-neutral-800'
                   }`}
                 >
                   <span className="text-xs font-bold uppercase">{sport.name}</span>
@@ -587,18 +587,18 @@ export const EditCourtPage: React.FC = () => {
           {/* Opción de precios diferenciados por deporte */}
           {formData.sportIds.length > 1 && (
             <div className="pt-2">
-              <label className="flex items-center gap-3 p-3.5 border border-neutral-200 bg-[#FAF8F5] cursor-pointer select-none">
+              <label className="flex items-center gap-3 p-3.5 border border-neutral-300 bg-[#FAF8F5] cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={customizePricesBySport}
                   onChange={(e) => setCustomizePricesBySport(e.target.checked)}
-                  className="h-4 w-4 rounded-none border-neutral-300 text-brand-sport focus:ring-brand-sport"
+                  className="h-4 w-4 rounded-none border-neutral-400 text-brand-sport focus:ring-brand-sport cursor-pointer"
                 />
                 <div>
-                  <span className="text-xs font-bold text-neutral-900 block">
+                  <span className="text-xs font-bold text-neutral-950 block">
                     Personalizar precios y duraciones base según el deporte
                   </span>
-                  <span className="text-[11px] text-neutral-500">
+                  <span className="text-xs font-medium text-neutral-700">
                     Permite fijar tarifas y duraciones específicas para cada disciplina
                   </span>
                 </div>
@@ -608,7 +608,7 @@ export const EditCourtPage: React.FC = () => {
         </section>
 
         {/* 3. TARIFAS Y DURACIONES BASE */}
-        <section className="bg-white border border-neutral-200 p-6 space-y-6">
+        <section className="bg-white border border-neutral-300 p-6 space-y-6">
           <div className="border-b border-neutral-200 pb-3">
             <h2 className="text-base font-black uppercase tracking-tight text-neutral-950">
               Tarifa y Duración Base
@@ -618,11 +618,11 @@ export const EditCourtPage: React.FC = () => {
           {!customizePricesBySport ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="basePrice" className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1.5">
+                <label htmlFor="basePrice" className="block text-xs font-mono font-bold uppercase tracking-wider text-neutral-800 mb-1.5">
                   Precio Base ($) *
                 </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-neutral-400" strokeWidth={2} />
+                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-neutral-600" strokeWidth={2} />
                   <input
                     id="basePrice"
                     type="number"
@@ -630,22 +630,22 @@ export const EditCourtPage: React.FC = () => {
                     step="500"
                     value={formData.basePrice}
                     onChange={(e) => setFormData({ ...formData, basePrice: Number(e.target.value) })}
-                    className="w-full pl-9 pr-3.5 py-2.5 text-base border border-neutral-300 bg-white focus:outline-none focus:border-brand-sport font-mono"
+                    className="w-full pl-9 pr-3.5 py-2.5 text-base border border-neutral-300 bg-white focus:outline-none focus:border-brand-sport font-mono font-bold text-neutral-950"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="durationMinutes" className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-1.5">
+                <label htmlFor="durationMinutes" className="block text-xs font-mono font-bold uppercase tracking-wider text-neutral-800 mb-1.5">
                   Duración del Turno *
                 </label>
                 <div className="relative">
-                  <Clock className="absolute left-3 top-3 h-4 w-4 text-neutral-400" strokeWidth={2} />
+                  <Clock className="absolute left-3 top-3 h-4 w-4 text-neutral-600" strokeWidth={2} />
                   <select
                     id="durationMinutes"
                     value={formData.durationMinutes}
                     onChange={(e) => setFormData({ ...formData, durationMinutes: Number(e.target.value) })}
-                    className="w-full pl-9 pr-3.5 py-2.5 text-base border border-neutral-300 bg-white focus:outline-none focus:border-brand-sport"
+                    className="w-full pl-9 pr-3.5 py-2.5 text-base border border-neutral-300 bg-white focus:outline-none focus:border-brand-sport font-medium text-neutral-950 cursor-pointer"
                   >
                     <option value={30}>30 minutos</option>
                     <option value={45}>45 minutos</option>
@@ -665,10 +665,10 @@ export const EditCourtPage: React.FC = () => {
                   durationMinutes: formData.durationMinutes,
                 }
                 return (
-                  <div key={sportId} className="p-4 bg-neutral-50 border border-neutral-200 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                    <span className="text-xs font-bold uppercase text-neutral-900">{sport?.name || sportId}</span>
+                  <div key={sportId} className="p-4 bg-neutral-50 border border-neutral-300 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                    <span className="text-xs font-bold uppercase text-neutral-950">{sport?.name || sportId}</span>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-neutral-500 block mb-1">Precio Base ($)</span>
+                      <span className="text-xs font-mono uppercase font-bold text-neutral-700 block mb-1">Precio Base ($)</span>
                       <input
                         type="number"
                         min="1"
@@ -681,11 +681,11 @@ export const EditCourtPage: React.FC = () => {
                             [sportId]: { ...config, basePrice: val },
                           }))
                         }}
-                        className="w-full px-3 py-2 text-base border border-neutral-300 bg-white font-mono"
+                        className="w-full px-3 py-2 text-base border border-neutral-300 bg-white font-mono font-bold text-neutral-950"
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-neutral-500 block mb-1">Duración</span>
+                      <span className="text-xs font-mono uppercase font-bold text-neutral-700 block mb-1">Duración</span>
                       <select
                         value={config.durationMinutes}
                         onChange={(e) => {
@@ -695,7 +695,7 @@ export const EditCourtPage: React.FC = () => {
                             [sportId]: { ...config, durationMinutes: val },
                           }))
                         }}
-                        className="w-full px-3 py-2 text-base border border-neutral-300 bg-white"
+                        className="w-full px-3 py-2 text-base border border-neutral-300 bg-white font-medium text-neutral-950 cursor-pointer"
                       >
                         <option value={30}>30 minutos</option>
                         <option value={45}>45 minutos</option>
@@ -712,7 +712,7 @@ export const EditCourtPage: React.FC = () => {
         </section>
 
         {/* 4. DÍAS Y FRANJAS HORARIAS DINÁMICAS */}
-        <section className="bg-white border border-neutral-200 p-6 space-y-6">
+        <section className="bg-white border border-neutral-300 p-6 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-neutral-200 pb-3">
             <h2 className="text-base font-black uppercase tracking-tight text-neutral-950">
               Días Operativos y Franjas Horarias
@@ -721,21 +721,21 @@ export const EditCourtPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleSelectAllDays}
-                className="text-[11px] font-bold uppercase px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors cursor-pointer"
+                className="min-h-[36px] text-xs font-mono font-bold uppercase px-3 py-1.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-950 border border-neutral-300 transition-colors cursor-pointer"
               >
                 Todos
               </button>
               <button
                 type="button"
                 onClick={handleSelectWeekdays}
-                className="text-[11px] font-bold uppercase px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors cursor-pointer"
+                className="min-h-[36px] text-xs font-mono font-bold uppercase px-3 py-1.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-950 border border-neutral-300 transition-colors cursor-pointer"
               >
                 Lun-Vie
               </button>
               <button
                 type="button"
                 onClick={handleSelectWeekends}
-                className="text-[11px] font-bold uppercase px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors cursor-pointer"
+                className="min-h-[36px] text-xs font-mono font-bold uppercase px-3 py-1.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-950 border border-neutral-300 transition-colors cursor-pointer"
               >
                 Sáb-Dom
               </button>
@@ -751,10 +751,10 @@ export const EditCourtPage: React.FC = () => {
                   key={day.id}
                   type="button"
                   onClick={() => handleToggleDay(day.id)}
-                  className={`py-2 text-center text-xs font-bold uppercase transition-colors cursor-pointer border ${
+                  className={`min-h-[44px] py-2 text-center text-xs font-mono font-bold uppercase transition-colors cursor-pointer border ${
                     isSelected
-                      ? 'bg-neutral-900 border-neutral-900 text-white'
-                      : 'bg-white border-neutral-300 text-neutral-600 hover:bg-neutral-100'
+                      ? 'bg-neutral-950 border-neutral-950 text-white'
+                      : 'bg-white border-neutral-300 text-neutral-900 hover:bg-neutral-100'
                   }`}
                 >
                   {day.short}
@@ -781,7 +781,7 @@ export const EditCourtPage: React.FC = () => {
             type="button"
             onClick={handleAttemptClose}
             disabled={updateCourtMutation.isPending}
-            className="min-h-[44px] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-neutral-700 border border-neutral-300 hover:bg-neutral-50 transition-colors cursor-pointer"
+            className="min-h-[44px] px-6 py-2.5 text-sm font-bold uppercase tracking-wider text-neutral-950 border border-neutral-300 hover:bg-neutral-100 transition-colors cursor-pointer"
           >
             Cancelar
           </button>
@@ -789,7 +789,7 @@ export const EditCourtPage: React.FC = () => {
           <button
             type="submit"
             disabled={updateCourtMutation.isPending}
-            className="min-h-[44px] px-8 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-brand-sport hover:bg-brand-sport-hover transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="min-h-[44px] px-8 py-2.5 text-sm font-bold uppercase tracking-wider text-white bg-brand-sport hover:bg-brand-sport-hover transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <Save className="h-4 w-4" strokeWidth={2} />
             <span>{updateCourtMutation.isPending ? 'Guardando...' : 'Guardar Modificaciones'}</span>

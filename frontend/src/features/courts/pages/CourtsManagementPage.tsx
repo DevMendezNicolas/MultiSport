@@ -83,7 +83,7 @@ export const CourtsManagementPage: React.FC = () => {
           </div>
 
           <div className="flex flex-col sm:items-end gap-1 flex-shrink-0">
-            <span className="text-xs font-mono text-neutral-500 uppercase">
+            <span className="text-xs font-mono font-bold text-neutral-700 uppercase">
               Canchas Registradas
             </span>
             <span className="text-2xl font-black text-neutral-950 font-mono">
@@ -100,7 +100,7 @@ export const CourtsManagementPage: React.FC = () => {
             className={`min-h-[44px] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-2 cursor-pointer ${
               activeTab === 'list'
                 ? 'bg-brand-sport text-white shadow-sm hover:bg-brand-sport-hover'
-                : 'bg-white text-neutral-900 border border-neutral-300 hover:border-neutral-950'
+                : 'bg-white text-neutral-950 border border-neutral-300 hover:border-neutral-950'
             }`}
           >
             <SlidersHorizontal className="h-4 w-4" strokeWidth={2} />
@@ -113,7 +113,7 @@ export const CourtsManagementPage: React.FC = () => {
             className={`min-h-[44px] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-2 cursor-pointer ${
               activeTab === 'create'
                 ? 'bg-brand-sport text-white shadow-sm hover:bg-brand-sport-hover'
-                : 'bg-white text-neutral-900 border border-neutral-300 hover:border-neutral-950'
+                : 'bg-white text-neutral-950 border border-neutral-300 hover:border-neutral-950'
             }`}
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
@@ -132,7 +132,7 @@ export const CourtsManagementPage: React.FC = () => {
             <h2 className="text-xl sm:text-2xl font-black text-neutral-950 uppercase tracking-tight">
               Canchas Existentes
             </h2>
-            <span className="text-xs font-mono text-neutral-500">
+            <span className="text-xs font-mono font-bold text-neutral-700">
               {filteredCourts.length} de {courts.length} {courts.length === 1 ? 'espacio' : 'espacios'}
             </span>
           </div>
@@ -142,19 +142,19 @@ export const CourtsManagementPage: React.FC = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-[#FAF8F5] p-4 border border-neutral-200">
               {/* Buscador */}
               <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar por nombre de cancha..."
-                  className="w-full bg-white border border-neutral-300 pl-10 pr-9 py-2 text-xs text-neutral-950 placeholder-neutral-400 focus:outline-none focus:border-neutral-950 transition-colors"
+                  className="w-full bg-white border border-neutral-300 pl-10 pr-9 py-2 text-sm font-medium text-neutral-950 placeholder-neutral-500 focus:outline-none focus:border-neutral-950 transition-colors"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-950 cursor-pointer"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -164,16 +164,16 @@ export const CourtsManagementPage: React.FC = () => {
               {/* Filtro por Deporte */}
               {availableSports.length > 1 && (
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-mono text-neutral-500 uppercase mr-1">
+                  <span className="text-xs font-mono font-bold text-neutral-700 uppercase mr-1">
                     Disciplina:
                   </span>
                   <button
                     type="button"
                     onClick={() => setSelectedSportFilter('all')}
-                    className={`min-h-[32px] px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    className={`min-h-[36px] px-3.5 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
                       selectedSportFilter === 'all'
-                        ? 'bg-neutral-900 text-white'
-                        : 'bg-white text-neutral-700 border border-neutral-300 hover:border-neutral-500'
+                        ? 'bg-neutral-950 text-white'
+                        : 'bg-white text-neutral-800 border border-neutral-300 hover:border-neutral-950'
                     }`}
                   >
                     Todas ({courts.length})
@@ -187,10 +187,10 @@ export const CourtsManagementPage: React.FC = () => {
                         key={sport}
                         type="button"
                         onClick={() => setSelectedSportFilter(sport)}
-                        className={`min-h-[32px] px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                        className={`min-h-[36px] px-3.5 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
                           selectedSportFilter === sport
-                            ? 'bg-neutral-900 text-white'
-                            : 'bg-white text-neutral-700 border border-neutral-300 hover:border-neutral-500'
+                            ? 'bg-neutral-950 text-white'
+                            : 'bg-white text-neutral-800 border border-neutral-300 hover:border-neutral-950'
                         }`}
                       >
                         {sport} ({count})
@@ -241,8 +241,8 @@ export const CourtsManagementPage: React.FC = () => {
           ) : courts.length === 0 ? (
             /* Estado Vacío Global (Sin canchas registradas en el predio) */
             <div className="text-center py-12 border border-dashed border-neutral-300 bg-[#FAF8F5] p-6 space-y-3">
-              <p className="text-sm font-bold text-neutral-800">No hay canchas registradas todavía.</p>
-              <p className="text-xs text-neutral-500">
+              <p className="text-base font-bold text-neutral-950">No hay canchas registradas todavía.</p>
+              <p className="text-sm font-medium text-neutral-700">
                 Utilizá la acción &quot;Crear Cancha&quot; para registrar el primer espacio de tu predio.
               </p>
               <button
@@ -256,10 +256,10 @@ export const CourtsManagementPage: React.FC = () => {
           ) : filteredCourts.length === 0 ? (
             /* Estado Vacío de Búsqueda / Filtro */
             <div className="text-center py-12 border border-dashed border-neutral-300 bg-[#FAF8F5] p-6 space-y-3">
-              <p className="text-sm font-bold text-neutral-800">
+              <p className="text-base font-bold text-neutral-950">
                 No se encontraron canchas que coincidan con los filtros aplicados.
               </p>
-              <p className="text-xs text-neutral-500">
+              <p className="text-sm font-medium text-neutral-700">
                 Probá buscando con otro nombre o seleccionando otra disciplina deportiva.
               </p>
               <button
@@ -268,7 +268,7 @@ export const CourtsManagementPage: React.FC = () => {
                   setSearchQuery('')
                   setSelectedSportFilter('all')
                 }}
-                className="mt-2 min-h-[40px] px-5 py-2 text-xs font-bold uppercase tracking-wider text-neutral-800 border border-neutral-300 hover:border-neutral-950 transition-colors cursor-pointer"
+                className="mt-2 min-h-[44px] px-5 py-2 text-xs font-bold uppercase tracking-wider text-neutral-950 border border-neutral-400 hover:border-neutral-950 transition-colors cursor-pointer"
               >
                 Limpiar Filtros
               </button>
@@ -291,17 +291,17 @@ export const CourtsManagementPage: React.FC = () => {
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono uppercase bg-neutral-900 text-white px-2 py-0.5">
+                        <span className="text-xs font-mono font-bold uppercase bg-neutral-950 text-white px-2.5 py-1 tracking-wider">
                           {court.surfaceType}
                         </span>
-                        <span className="text-[11px] font-mono text-emerald-700 font-bold">
+                        <span className="text-xs font-mono text-emerald-800 font-black">
                           {court.isActive ? 'Activa' : 'Inactiva'}
                         </span>
                       </div>
-                      <h3 className="text-lg font-black text-neutral-950 tracking-tight">
+                      <h3 className="text-lg sm:text-xl font-black text-neutral-950 tracking-tight">
                         {court.name}
                       </h3>
-                      <div className="text-xs text-neutral-600 space-y-0.5">
+                      <div className="text-xs font-medium text-neutral-800 space-y-0.5">
                         <p>
                           {court.isCovered ? 'Techada' : 'Al aire libre'} ·{' '}
                           {court.hasLighting ? 'Con iluminación' : 'Sin iluminación'}
@@ -312,15 +312,15 @@ export const CourtsManagementPage: React.FC = () => {
                     {/* Días Operativos */}
                     {uniqueDays.length > 0 && (
                       <div className="space-y-1.5 border-t border-neutral-200 pt-3">
-                        <div className="text-[10px] font-mono text-neutral-500 uppercase flex items-center gap-1">
-                          <Calendar className="h-3 w-3" strokeWidth={2} />
+                        <div className="text-xs font-mono font-bold text-neutral-700 uppercase flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
                           <span>Días Habilitados ({uniqueDays.length}):</span>
                         </div>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1.5">
                           {uniqueDays.map((dayNum) => (
                             <span
                               key={dayNum}
-                              className="text-[10px] font-mono bg-neutral-200 px-1.5 py-0.5 text-neutral-800 font-bold"
+                              className="text-xs font-mono bg-neutral-200 px-2 py-0.5 text-neutral-950 font-bold border border-neutral-300"
                             >
                               {DAY_NAMES[dayNum]}
                             </span>
@@ -331,18 +331,18 @@ export const CourtsManagementPage: React.FC = () => {
 
                     {/* Deportes y Tarifas */}
                     <div className="pt-3 border-t border-neutral-200 space-y-2">
-                      <div className="text-[10px] font-mono text-neutral-500 uppercase flex items-center gap-1">
-                        <Clock className="h-3 w-3" strokeWidth={2} />
+                      <div className="text-xs font-mono font-bold text-neutral-700 uppercase flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" strokeWidth={2} />
                         <span>Disciplinas y Tarifas:</span>
                       </div>
                       <div className="space-y-1.5">
                         {court.sports.map((s) => (
                           <div
                             key={s.courtSportId || s.sportId}
-                            className="bg-white border border-neutral-200 p-2 text-xs flex items-center justify-between"
+                            className="bg-white border border-neutral-300 p-2.5 text-xs flex items-center justify-between"
                           >
-                            <span className="font-bold text-neutral-900">{s.sportName}</span>
-                            <span className="font-mono text-[11px] text-neutral-600">
+                            <span className="text-sm font-bold text-neutral-950">{s.sportName}</span>
+                            <span className="font-mono text-xs font-bold text-neutral-800">
                               ${s.basePrice} · {s.durationMinutes} min
                             </span>
                           </div>
@@ -356,18 +356,18 @@ export const CourtsManagementPage: React.FC = () => {
                         type="button"
                         onClick={() => navigate(`/admin/bookings?courtId=${court.id}`)}
                         title="Ver agenda de reservas de esta cancha"
-                        className="flex-1 min-h-[40px] px-2.5 py-2 bg-brand-sport/10 hover:bg-brand-sport/15 text-brand-sport border border-brand-sport/30 text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="flex-1 min-h-[44px] px-2.5 py-2 bg-brand-sport/10 hover:bg-brand-sport/20 text-[#164734] border border-brand-sport/40 text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
-                        <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
+                        <Calendar className="h-4 w-4" strokeWidth={2} />
                         <span>Agenda</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleOpenEdit(court.id)}
-                        className="flex-1 min-h-[40px] px-2.5 py-2 bg-white border border-neutral-300 hover:border-neutral-950 text-neutral-900 text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="flex-1 min-h-[44px] px-2.5 py-2 bg-white border border-neutral-400 hover:border-neutral-950 text-neutral-950 text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
-                        <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2} />
+                        <SlidersHorizontal className="h-4 w-4" strokeWidth={2} />
                         <span>Modificar</span>
                       </button>
 
@@ -375,7 +375,7 @@ export const CourtsManagementPage: React.FC = () => {
                         type="button"
                         onClick={() => setDeletingCourt(court)}
                         title="Dar de baja cancha"
-                        className="min-h-[40px] min-w-[40px] px-2.5 py-2 border border-neutral-300 hover:border-red-600 hover:bg-red-50 text-neutral-500 hover:text-red-600 inline-flex items-center justify-center transition-colors cursor-pointer"
+                        className="min-h-[44px] min-w-[44px] px-2.5 py-2 border border-neutral-400 hover:border-red-600 hover:bg-red-50 text-neutral-700 hover:text-red-700 inline-flex items-center justify-center transition-colors cursor-pointer"
                       >
                         <Trash2 className="h-4 w-4" strokeWidth={2} />
                       </button>

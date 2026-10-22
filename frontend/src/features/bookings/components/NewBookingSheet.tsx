@@ -203,10 +203,10 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
               <Calendar className="h-5 w-5" strokeWidth={2} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-neutral-900 leading-tight">
+              <h2 className="text-lg font-bold text-neutral-950 leading-tight">
                 {mode === 'booking' ? 'Nueva Reserva de Cancha' : 'Nuevo Bloqueo Operativo'}
               </h2>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs font-mono font-bold text-neutral-700">
                 {defaultDate} · {startTime} a {endTime} hs
               </p>
             </div>
@@ -215,14 +215,14 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
 
         <SheetBody className="space-y-6">
           {/* Selector de Modo (Turno vs Bloqueo) */}
-          <div className="flex rounded-xl bg-neutral-100 p-1 border border-neutral-200">
+          <div className="flex rounded-xl bg-neutral-100 p-1 border border-neutral-300">
             <button
               type="button"
               onClick={() => setMode('booking')}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 mode === 'booking'
-                  ? 'bg-white text-neutral-900 shadow-xs'
-                  : 'text-neutral-500 hover:text-neutral-900'
+                  ? 'bg-white text-neutral-950 shadow-xs'
+                  : 'text-neutral-700 hover:text-neutral-950'
               }`}
             >
               Turno Regular
@@ -230,10 +230,10 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
             <button
               type="button"
               onClick={() => setMode('block')}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 mode === 'block'
-                  ? 'bg-white text-neutral-900 shadow-xs'
-                  : 'text-neutral-500 hover:text-neutral-900'
+                  ? 'bg-white text-neutral-950 shadow-xs'
+                  : 'text-neutral-700 hover:text-neutral-950'
               }`}
             >
               Bloqueo Operativo
@@ -243,7 +243,7 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
           {/* Configuración de Cancha y Disciplina */}
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+              <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
                 Cancha Seleccionada
               </label>
               <select
@@ -256,7 +256,7 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                     setCustomDurationMinutes(targetCourt.sports[0].durationMinutes)
                   }
                 }}
-                className="w-full text-base sm:text-sm rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-neutral-900 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden cursor-pointer"
+                className="w-full text-base sm:text-sm font-medium rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-neutral-950 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden cursor-pointer"
               >
                 {courts.map((c) => (
                   <option key={c.courtId} value={c.courtId}>
@@ -268,7 +268,7 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
 
             {mode === 'booking' && selectedCourt && (
               <div>
-                <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+                <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
                   Disciplina Deportiva
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -282,12 +282,12 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                       }}
                       className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         sportId === s.sportId
-                          ? 'border-[#258653] bg-[#258653]/5 ring-1 ring-[#258653]'
-                          : 'border-neutral-200 hover:border-neutral-300 bg-white'
+                          ? 'border-[#258653] bg-[#258653]/10 ring-1 ring-[#258653]'
+                          : 'border-neutral-300 hover:border-neutral-400 bg-white'
                       }`}
                     >
-                      <span className="text-sm font-medium text-neutral-900">{s.name}</span>
-                      <span className="text-xs text-neutral-500 mt-0.5">
+                      <span className="text-sm font-bold text-neutral-950">{s.name}</span>
+                      <span className="text-xs font-mono font-bold text-neutral-700 mt-0.5">
                         {s.durationMinutes} min · Base ${s.basePrice.toLocaleString('es-AR')}
                       </span>
                     </button>
@@ -300,7 +300,7 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
           {/* Horario de Inicio */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+              <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
                 Hora de Inicio
               </label>
               <div className="relative">
@@ -308,15 +308,15 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full text-base sm:text-sm rounded-xl border border-neutral-300 bg-white px-3 py-2 text-neutral-900 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden"
+                  className="w-full text-base sm:text-sm font-mono font-bold rounded-xl border border-neutral-300 bg-white px-3 py-2 text-neutral-950 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+              <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
                 Hora de Finalización
               </label>
-              <div className="flex items-center h-[42px] px-3.5 rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-700 text-sm font-semibold">
+              <div className="flex items-center h-[42px] px-3.5 rounded-xl border border-neutral-300 bg-neutral-100 text-neutral-950 text-sm font-mono font-bold">
                 {endTime} hs
               </div>
             </div>
@@ -326,7 +326,7 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
           {mode === 'block' ? (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+                <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
                   Motivo del Bloqueo
                 </label>
                 <input
@@ -335,7 +335,7 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
                   placeholder="Ej: Mantenimiento de red, Iluminación, Torneo"
-                  className="w-full text-base sm:text-sm rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-neutral-900 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden"
+                  className="w-full text-base sm:text-sm font-medium rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-neutral-950 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden placeholder:text-neutral-500"
                 />
               </div>
             </div>
@@ -345,38 +345,38 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
               {/* Autocompletado de Cliente */}
               <div className="space-y-3 pt-2 border-t border-neutral-200">
                 <div className="relative">
-                  <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+                  <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
                     Buscar Cliente Frecuente (por Teléfono o Nombre)
                   </label>
                   <div className="relative">
-                    <Search className="absolute left-3.5 top-3 h-4 w-4 text-neutral-400" />
+                    <Search className="absolute left-3.5 top-3 h-4 w-4 text-neutral-500" />
                     <input
                       type="text"
                       value={customerSearchQuery}
                       onChange={(e) => setCustomerSearchQuery(e.target.value)}
                       placeholder="Escriba 2 o más caracteres..."
-                      className="w-full text-base sm:text-sm pl-9 pr-3.5 py-2 rounded-xl border border-neutral-300 bg-white text-neutral-900 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden"
+                      className="w-full text-base sm:text-sm pl-9 pr-3.5 py-2 rounded-xl border border-neutral-300 bg-white text-neutral-950 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden placeholder:text-neutral-500"
                     />
                   </div>
 
                   {/* Dropdown de resultados de autocompletado */}
                   {customerSearchResults && customerSearchResults.length > 0 && (
-                    <div className="absolute z-20 mt-1 w-full rounded-xl bg-white shadow-xl border border-neutral-200 py-1.5 max-h-48 overflow-y-auto">
+                    <div className="absolute z-20 mt-1 w-full rounded-xl bg-white shadow-xl border border-neutral-300 py-1.5 max-h-48 overflow-y-auto">
                       {customerSearchResults.map((cust) => (
                         <button
                           key={cust.id}
                           type="button"
                           onClick={() => handleSelectCustomer(cust)}
-                          className="w-full px-4 py-2 text-left hover:bg-neutral-50 flex items-center justify-between transition-colors cursor-pointer"
+                          className="w-full px-4 py-2 text-left hover:bg-neutral-100 flex items-center justify-between transition-colors cursor-pointer"
                         >
                           <div>
-                            <span className="text-sm font-medium text-neutral-900 block">
+                            <span className="text-sm font-bold text-neutral-950 block">
                               {cust.name}
                             </span>
-                            <span className="text-xs text-neutral-500">{cust.phone}</span>
+                            <span className="text-xs font-mono font-bold text-neutral-700">{cust.phone}</span>
                           </div>
                           {cust.email && (
-                            <span className="text-xs text-neutral-400">{cust.email}</span>
+                            <span className="text-xs font-mono text-neutral-600">{cust.email}</span>
                           )}
                         </button>
                       ))}
@@ -386,51 +386,51 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+                    <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
                       Nombre Completo *
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-neutral-400" />
+                      <User className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                       <input
                         type="text"
                         required
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         placeholder="Juan Pérez"
-                        className="w-full text-base sm:text-sm pl-9 pr-3 py-2 rounded-xl border border-neutral-300 bg-white text-neutral-900 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden"
+                        className="w-full text-base sm:text-sm pl-9 pr-3 py-2 rounded-xl border border-neutral-300 bg-white text-neutral-950 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden placeholder:text-neutral-500"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+                    <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
                       Teléfono WhatsApp *
                     </label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-neutral-400" />
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                       <input
                         type="tel"
                         required
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         placeholder="11 3456-7890"
-                        className="w-full text-base sm:text-sm pl-9 pr-3 py-2 rounded-xl border border-neutral-300 bg-white text-neutral-900 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden"
+                        className="w-full text-base sm:text-sm font-mono pl-9 pr-3 py-2 rounded-xl border border-neutral-300 bg-white text-neutral-950 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden placeholder:text-neutral-500"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+                  <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
                     Correo Electrónico (Opcional)
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-neutral-400" />
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
                     <input
                       type="email"
                       value={customerEmail}
                       onChange={(e) => setCustomerEmail(e.target.value)}
                       placeholder="juan@ejemplo.com"
-                      className="w-full text-base sm:text-sm pl-9 pr-3 py-2 rounded-xl border border-neutral-300 bg-white text-neutral-900 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden"
+                      className="w-full text-base sm:text-sm pl-9 pr-3 py-2 rounded-xl border border-neutral-300 bg-white text-neutral-950 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden placeholder:text-neutral-500"
                     />
                   </div>
                 </div>
@@ -440,15 +440,15 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
               <div className="space-y-4 pt-2 border-t border-neutral-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-semibold text-neutral-900">
+                    <span className="text-sm font-bold text-neutral-950">
                       Precio del Turno
                     </span>
-                    <span className="text-xs text-neutral-500 block">
+                    <span className="text-xs font-mono font-semibold text-neutral-700 block">
                       Tarifa sugerida: ${quotedPrice.toLocaleString('es-AR')}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-xl font-bold text-[#258653]">
+                    <span className="text-2xl font-black font-mono text-[#164734]">
                       ${effectivePrice.toLocaleString('es-AR')}
                     </span>
                   </div>
@@ -465,7 +465,7 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                     }}
                     className="h-4 w-4 text-[#258653] rounded border-neutral-300 focus:ring-[#258653] cursor-pointer"
                   />
-                  <label htmlFor="overridePrice" className="text-xs text-neutral-600 cursor-pointer">
+                  <label htmlFor="overridePrice" className="text-xs font-semibold text-neutral-800 cursor-pointer">
                     Modificar tarifa manualmente para este turno
                   </label>
                 </div>
@@ -482,7 +482,7 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                         setCustomPrice(val)
                         setDepositAmount(val)
                       }}
-                      className="w-full text-base sm:text-sm rounded-xl border border-neutral-300 px-3.5 py-2 text-neutral-900 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden"
+                      className="w-full text-base sm:text-sm font-mono font-bold rounded-xl border border-neutral-300 px-3.5 py-2 text-neutral-950 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden"
                     />
                   </div>
                 )}
@@ -490,10 +490,10 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                 {/* Seña / Anticipo Inicial */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-medium text-neutral-700">
+                    <label className="text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider">
                       Seña o Pago Registrado al Reservar
                     </label>
-                    <span className="text-xs font-semibold text-neutral-900">
+                    <span className="text-sm font-mono font-black text-neutral-950">
                       ${depositAmount.toLocaleString('es-AR')}
                     </span>
                   </div>
@@ -502,10 +502,10 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                     <button
                       type="button"
                       onClick={() => handleSetDepositPercentage(100)}
-                      className={`py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                      className={`py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
                         depositAmount === effectivePrice
-                          ? 'border-[#258653] bg-[#258653]/10 text-[#1E6E44]'
-                          : 'border-neutral-200 hover:bg-neutral-50 text-neutral-600'
+                          ? 'border-[#258653] bg-[#258653]/15 text-[#164734]'
+                          : 'border-neutral-300 hover:bg-neutral-100 text-neutral-800'
                       }`}
                     >
                       Total (100%)
@@ -513,10 +513,10 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                     <button
                       type="button"
                       onClick={() => handleSetDepositPercentage(50)}
-                      className={`py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                      className={`py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
                         depositAmount === Math.round(effectivePrice * 0.5)
-                          ? 'border-[#258653] bg-[#258653]/10 text-[#1E6E44]'
-                          : 'border-neutral-200 hover:bg-neutral-50 text-neutral-600'
+                          ? 'border-[#258653] bg-[#258653]/15 text-[#164734]'
+                          : 'border-neutral-300 hover:bg-neutral-100 text-neutral-800'
                       }`}
                     >
                       Seña 50%
@@ -524,10 +524,10 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                     <button
                       type="button"
                       onClick={() => setDepositAmount(0)}
-                      className={`py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
+                      className={`py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
                         depositAmount === 0
-                          ? 'border-[#258653] bg-[#258653]/10 text-[#1E6E44]'
-                          : 'border-neutral-200 hover:bg-neutral-50 text-neutral-600'
+                          ? 'border-[#258653] bg-[#258653]/15 text-[#164734]'
+                          : 'border-neutral-300 hover:bg-neutral-100 text-neutral-800'
                       }`}
                     >
                       Sin Seña ($0)
@@ -548,10 +548,10 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                             key={item.id}
                             type="button"
                             onClick={() => setPaymentMethod(item.id as typeof paymentMethod)}
-                            className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                            className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
                               paymentMethod === item.id
-                                ? 'border-[#258653] bg-[#258653]/5 text-[#1E6E44]'
-                                : 'border-neutral-200 hover:bg-neutral-50 text-neutral-600'
+                                ? 'border-[#258653] bg-[#258653]/15 text-[#164734]'
+                                : 'border-neutral-300 hover:bg-neutral-100 text-neutral-800'
                             }`}
                           >
                             <Icon className="h-3.5 w-3.5" strokeWidth={2} />
@@ -564,14 +564,14 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                 </div>
 
                 {/* Turno Fijo Semanal */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-neutral-50 border border-neutral-200">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-neutral-100 border border-neutral-300">
                   <div className="flex items-center gap-2.5">
-                    <Repeat className="h-4 w-4 text-[#258653]" strokeWidth={2} />
+                    <Repeat className="h-4 w-4 text-[#164734]" strokeWidth={2} />
                     <div>
-                      <span className="text-xs font-semibold text-neutral-900 block">
+                      <span className="text-sm font-bold text-neutral-950 block">
                         Turno Fijo Semanal
                       </span>
-                      <span className="text-xs text-neutral-500">
+                      <span className="text-xs font-medium text-neutral-700">
                         Reservar automáticamente todas las semanas en este horario
                       </span>
                     </div>
@@ -585,7 +585,7 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+                  <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
                     Notas u Observaciones
                   </label>
                   <textarea
@@ -593,7 +593,7 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Ej: Trae pelotas propias, abonó mitad por anticipado"
-                    className="w-full text-base sm:text-sm rounded-xl border border-neutral-300 bg-white p-3 text-neutral-900 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden"
+                    className="w-full text-base sm:text-sm rounded-xl border border-neutral-300 bg-white p-3 text-neutral-950 focus:border-[#258653] focus:ring-1 focus:ring-[#258653] outline-hidden placeholder:text-neutral-500"
                   />
                 </div>
               </div>

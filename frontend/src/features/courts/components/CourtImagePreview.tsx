@@ -34,16 +34,16 @@ export const CourtImagePreview: React.FC<CourtImagePreviewProps> = ({
     <aside className="bg-white border border-neutral-300 p-5 flex flex-col justify-between shadow-sm sticky top-24 space-y-5">
       <div>
         <div className="flex items-center justify-between border-b border-neutral-200 pb-3 mb-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-950">
             Vista Previa de Cancha
           </h3>
-          <span className="text-[11px] font-mono text-neutral-500">
+          <span className="text-xs font-mono font-bold text-neutral-700">
             {firstSportName ? firstSportName : 'Sin deporte'}
           </span>
         </div>
 
         {/* Marco de Imagen Vertical Limpio */}
-        <div className="relative w-full aspect-[4/5] sm:aspect-[3/4] bg-neutral-100 overflow-hidden border border-neutral-200">
+        <div className="relative w-full aspect-[4/5] sm:aspect-[3/4] bg-neutral-100 overflow-hidden border border-neutral-300">
           <img
             src={resolution.imageUrl}
             alt={resolution.caption}
@@ -54,29 +54,29 @@ export const CourtImagePreview: React.FC<CourtImagePreviewProps> = ({
 
       {/* Ficha Técnica de la Configuración en Tiempo Real */}
       <div className="pt-2 border-t border-neutral-200 space-y-2.5">
-        <div className="text-xs font-bold uppercase tracking-wider text-neutral-700">
+        <div className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-800">
           Parámetros Asignados
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-[#FAF8F5] border border-neutral-200 p-2.5">
-            <span className="text-[10px] font-mono text-neutral-500 uppercase block">Tarifa Base</span>
-            <span className="font-bold text-neutral-950 text-sm">{formattedPrice}</span>
+          <div className="bg-[#FAF8F5] border border-neutral-300 p-2.5">
+            <span className="text-xs font-mono font-bold text-neutral-700 uppercase block">Tarifa Base</span>
+            <span className="font-bold font-mono text-neutral-950 text-base">{formattedPrice}</span>
           </div>
 
-          <div className="bg-[#FAF8F5] border border-neutral-200 p-2.5">
-            <span className="text-[10px] font-mono text-neutral-500 uppercase block">Duración Turno</span>
-            <span className="font-bold text-neutral-950 text-sm">{durationMinutes || 60} min</span>
+          <div className="bg-[#FAF8F5] border border-neutral-300 p-2.5">
+            <span className="text-xs font-mono font-bold text-neutral-700 uppercase block">Duración Turno</span>
+            <span className="font-bold font-mono text-neutral-950 text-base">{durationMinutes || 60} min</span>
           </div>
 
-          <div className="bg-[#FAF8F5] border border-neutral-200 p-2.5">
-            <span className="text-[10px] font-mono text-neutral-500 uppercase block">Estructura</span>
-            <span className="font-medium text-neutral-800">{isCovered ? 'Techada' : 'Al aire libre'}</span>
+          <div className="bg-[#FAF8F5] border border-neutral-300 p-2.5">
+            <span className="text-xs font-mono font-bold text-neutral-700 uppercase block">Estructura</span>
+            <span className="font-bold text-neutral-950 text-sm">{isCovered ? 'Techada' : 'Al aire libre'}</span>
           </div>
 
-          <div className="bg-[#FAF8F5] border border-neutral-200 p-2.5">
-            <span className="text-[10px] font-mono text-neutral-500 uppercase block">Iluminación</span>
-            <span className="font-medium text-neutral-800">{hasLighting ? 'Con reflectores' : 'Sin luz'}</span>
+          <div className="bg-[#FAF8F5] border border-neutral-300 p-2.5">
+            <span className="text-xs font-mono font-bold text-neutral-700 uppercase block">Iluminación</span>
+            <span className="font-bold text-neutral-950 text-sm">{hasLighting ? 'Con reflectores' : 'Sin luz'}</span>
           </div>
         </div>
       </div>

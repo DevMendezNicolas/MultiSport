@@ -168,17 +168,17 @@ export const DailyOperationalCalendar: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-neutral-200 bg-white">
-              <CalendarIcon className="h-4 w-4 text-[#258653]" strokeWidth={2} />
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-neutral-300 bg-white">
+              <CalendarIcon className="h-4 w-4 text-brand-british shrink-0" strokeWidth={2.5} />
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="text-xs font-medium text-neutral-800 bg-transparent outline-hidden cursor-pointer capitalize"
+                className="text-xs sm:text-sm font-semibold text-neutral-900 bg-transparent outline-hidden cursor-pointer capitalize"
               />
             </div>
 
-            <span className="hidden md:inline-block text-sm font-semibold text-neutral-900 capitalize ml-2">
+            <span className="hidden md:inline-block text-base font-bold text-neutral-950 capitalize ml-2">
               {formattedDateTitle}
             </span>
           </div>
@@ -189,7 +189,7 @@ export const DailyOperationalCalendar: React.FC = () => {
               type="button"
               onClick={() => refetch()}
               disabled={isFetching}
-              className="h-10 w-10 rounded-xl border border-neutral-200 bg-white text-neutral-600 hover:text-neutral-950 flex items-center justify-center transition-colors cursor-pointer"
+              className="h-10 w-10 rounded-xl border border-neutral-300 bg-white text-neutral-700 hover:text-neutral-950 flex items-center justify-center transition-colors cursor-pointer"
               aria-label="Refrescar agenda"
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} strokeWidth={2} />
@@ -198,9 +198,9 @@ export const DailyOperationalCalendar: React.FC = () => {
             <button
               type="button"
               onClick={() => openNewBooking()}
-              className="min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-[#258653] hover:bg-[#1E6E44] active:bg-[#164734] transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+              className="min-h-[44px] px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-brand-sport hover:bg-brand-sport-hover active:bg-brand-british transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
             >
-              <Plus className="h-4 w-4" strokeWidth={2} />
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
               <span>Nuevo Turno</span>
             </button>
           </div>
@@ -208,14 +208,14 @@ export const DailyOperationalCalendar: React.FC = () => {
 
         {/* Filtros de Deportes */}
         {availableSports.length > 0 && (
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-neutral-100 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-neutral-200 overflow-x-auto no-scrollbar">
             <button
               type="button"
               onClick={() => setSelectedSport('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors cursor-pointer ${
                 selectedSport === 'all'
-                  ? 'bg-[#258653] text-white'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  ? 'bg-brand-sport text-white shadow-xs'
+                  : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'
               }`}
             >
               Todas las Canchas
@@ -225,10 +225,10 @@ export const DailyOperationalCalendar: React.FC = () => {
                 key={sport}
                 type="button"
                 onClick={() => setSelectedSport(sport)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors cursor-pointer ${
                   selectedSport.toLowerCase() === sport.toLowerCase()
-                    ? 'bg-[#258653] text-white'
-                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    ? 'bg-brand-sport text-white shadow-xs'
+                    : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'
                 }`}
               >
                 {sport}
@@ -244,10 +244,10 @@ export const DailyOperationalCalendar: React.FC = () => {
               key={c.courtId}
               type="button"
               onClick={() => setSelectedMobileCourtId(c.courtId)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap border transition-all cursor-pointer ${
                 (activeMobileCourt?.courtId === c.courtId)
-                  ? 'border-[#258653] bg-[#258653]/10 text-[#1E6E44]'
-                  : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
+                  ? 'border-brand-sport bg-brand-sport/15 text-brand-british shadow-xs'
+                  : 'border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-100'
               }`}
             >
               {c.courtName}
@@ -286,7 +286,7 @@ export const DailyOperationalCalendar: React.FC = () => {
                 }}
               >
                 {/* Cabecera: Eje de Tiempo */}
-                <div className="p-3.5 border-b border-r border-neutral-200 bg-neutral-50 text-xs font-semibold text-neutral-500 flex items-center justify-center sticky left-0 z-10">
+                <div className="p-3.5 border-b border-r border-neutral-300 bg-neutral-100/90 text-xs font-mono font-black uppercase text-neutral-800 flex items-center justify-center sticky left-0 z-10">
                   Horario
                 </div>
 
@@ -294,12 +294,12 @@ export const DailyOperationalCalendar: React.FC = () => {
                 {filteredCourts.map((court) => (
                   <div
                     key={court.courtId}
-                    className="p-3.5 border-b border-r border-neutral-200 bg-neutral-50/80 text-center"
+                    className="p-3.5 border-b border-r border-neutral-200 bg-neutral-50/90 text-center"
                   >
-                    <span className="text-sm font-bold text-neutral-900 block truncate">
+                    <span className="text-sm sm:text-base font-black text-neutral-950 block truncate">
                       {court.courtName}
                     </span>
-                    <span className="text-xs text-neutral-500 truncate block mt-0.5">
+                    <span className="text-xs font-medium text-neutral-700 truncate block mt-0.5">
                       {court.surface} {court.isIndoor ? '· Techada' : ''}
                     </span>
                   </div>
@@ -308,15 +308,15 @@ export const DailyOperationalCalendar: React.FC = () => {
                 {/* Cuerpo del Cronograma con Slots de 30 min */}
                 <div className="contents">
                   {/* Columna Izquierda de Horas */}
-                  <div className="relative border-r border-neutral-200 bg-neutral-50 sticky left-0 z-10">
+                  <div className="relative border-r border-neutral-300 bg-neutral-50 sticky left-0 z-10">
                     {TIME_SLOTS_30.map((slot) => {
                       const isFullHour = slot.endsWith(':00')
                       return (
                         <div
                           key={slot}
                           style={{ height: `${SLOT_HEIGHT_PX}px` }}
-                          className={`flex items-center justify-center text-[11px] font-medium border-b border-neutral-100 ${
-                            isFullHour ? 'text-neutral-800 font-semibold' : 'text-neutral-400'
+                          className={`flex items-center justify-center text-xs font-mono border-b border-neutral-200 ${
+                            isFullHour ? 'text-neutral-950 font-black bg-neutral-100/80' : 'text-neutral-800 font-bold'
                           }`}
                         >
                           {slot}
@@ -338,9 +338,9 @@ export const DailyOperationalCalendar: React.FC = () => {
                           key={slot}
                           onClick={() => openNewBooking(court.courtId, slot)}
                           style={{ height: `${SLOT_HEIGHT_PX}px` }}
-                          className="border-b border-neutral-100 hover:bg-[#258653]/5 transition-colors cursor-pointer group flex items-center justify-end px-2"
+                          className="border-b border-neutral-100 hover:bg-brand-sport/10 transition-colors cursor-pointer group flex items-center justify-end px-2.5"
                         >
-                          <span className="text-[10px] text-[#258653] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-xs text-brand-british font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                             + Reservar
                           </span>
                         </div>
@@ -363,44 +363,44 @@ export const DailyOperationalCalendar: React.FC = () => {
                             style={style}
                             className={`absolute left-1 right-1 rounded-xl p-2.5 text-xs shadow-xs transition-all hover:shadow-md cursor-pointer flex flex-col justify-between overflow-hidden border ${
                               isConfirmed
-                                ? 'bg-[#258653]/10 border-[#258653]/30 text-neutral-900 hover:border-[#258653]'
+                                ? 'bg-emerald-50/95 border-emerald-400 text-neutral-950 hover:border-emerald-600'
                                 : isBlocked
-                                ? 'bg-neutral-800 text-white border-neutral-700'
+                                ? 'bg-neutral-900 text-white border-neutral-800'
                                 : isPending
-                                ? 'bg-amber-50 border-amber-200 text-amber-950'
-                                : 'bg-neutral-100 border-neutral-200 text-neutral-700'
+                                ? 'bg-amber-50 border-amber-300 text-neutral-950'
+                                : 'bg-neutral-100 border-neutral-300 text-neutral-800'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-1">
                               <div className="min-w-0">
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1.5">
                                   {isBlocked ? (
-                                    <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-neutral-300" />
+                                    <ShieldAlert className="h-4 w-4 shrink-0 text-neutral-300" />
                                   ) : (
-                                    <User className="h-3.5 w-3.5 shrink-0 text-[#258653]" />
+                                    <User className="h-4 w-4 shrink-0 text-brand-british" />
                                   )}
-                                  <span className="font-bold truncate text-xs">
+                                  <span className="font-bold truncate text-sm text-neutral-950">
                                     {booking.customerName}
                                   </span>
                                 </div>
                                 {!isBlocked && (
-                                  <span className="text-[11px] text-neutral-500 block truncate">
+                                  <span className="text-xs text-neutral-700 font-medium block truncate mt-0.5">
                                     {booking.sportName} · {booking.customerPhone}
                                   </span>
                                 )}
                               </div>
 
                               {booking.isRecurring && (
-                                <Repeat className="h-3.5 w-3.5 shrink-0 text-[#258653]" />
+                                <Repeat className="h-3.5 w-3.5 shrink-0 text-brand-british" />
                               )}
                             </div>
 
-                            <div className="flex items-center justify-between text-[11px] pt-1">
-                              <span className="font-semibold">
+                            <div className="flex items-center justify-between text-xs pt-1">
+                              <span className="font-mono font-black text-xs sm:text-sm text-neutral-950">
                                 ${booking.totalPrice.toLocaleString('es-AR')}
                               </span>
                               {isPending && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 font-medium">
+                                <span className="text-xs px-2 py-0.5 rounded-md bg-amber-200 text-amber-950 font-bold border border-amber-300">
                                   Seña Pendiente
                                 </span>
                               )}
@@ -418,11 +418,11 @@ export const DailyOperationalCalendar: React.FC = () => {
             <div className="md:hidden">
               {activeMobileCourt && (
                 <div>
-                  <div className="p-3 bg-neutral-50 border-b border-neutral-200 text-center">
-                    <span className="text-sm font-bold text-neutral-900 block">
+                  <div className="p-3 bg-neutral-100/80 border-b border-neutral-200 text-center">
+                    <span className="text-base font-black text-neutral-950 block">
                       {activeMobileCourt.courtName}
                     </span>
-                    <span className="text-xs text-neutral-500">
+                    <span className="text-xs font-semibold text-neutral-700 mt-0.5 block">
                       {activeMobileCourt.surface} {activeMobileCourt.isIndoor ? '· Techada' : ''}
                     </span>
                   </div>
@@ -432,12 +432,12 @@ export const DailyOperationalCalendar: React.FC = () => {
                     style={{ gridTemplateColumns: '70px 1fr' }}
                   >
                     {/* Horarios */}
-                    <div className="relative border-r border-neutral-200 bg-neutral-50">
+                    <div className="relative border-r border-neutral-300 bg-neutral-50">
                       {TIME_SLOTS_30.map((slot) => (
                         <div
                           key={slot}
                           style={{ height: `${SLOT_HEIGHT_PX}px` }}
-                          className="flex items-center justify-center text-[11px] text-neutral-600 border-b border-neutral-100 font-medium"
+                          className="flex items-center justify-center text-xs font-mono font-bold text-neutral-800 border-b border-neutral-200"
                         >
                           {slot}
                         </div>
@@ -454,9 +454,9 @@ export const DailyOperationalCalendar: React.FC = () => {
                           key={slot}
                           onClick={() => openNewBooking(activeMobileCourt.courtId, slot)}
                           style={{ height: `${SLOT_HEIGHT_PX}px` }}
-                          className="border-b border-neutral-100 hover:bg-[#258653]/5 transition-colors cursor-pointer flex items-center justify-end px-3"
+                          className="border-b border-neutral-100 hover:bg-brand-sport/10 transition-colors cursor-pointer flex items-center justify-end px-3"
                         >
-                          <span className="text-[10px] text-[#258653] font-medium">
+                          <span className="text-xs text-brand-british font-bold">
                             + Reservar
                           </span>
                         </div>
@@ -477,28 +477,28 @@ export const DailyOperationalCalendar: React.FC = () => {
                             style={style}
                             className={`absolute left-1.5 right-1.5 rounded-xl p-2.5 text-xs shadow-xs transition-all cursor-pointer flex flex-col justify-between border ${
                               isConfirmed
-                                ? 'bg-[#258653]/10 border-[#258653]/30 text-neutral-900'
+                                ? 'bg-emerald-50/95 border-emerald-400 text-neutral-950'
                                 : isBlocked
-                                ? 'bg-neutral-800 text-white border-neutral-700'
-                                : 'bg-amber-50 border-amber-200 text-amber-950'
+                                ? 'bg-neutral-900 text-white border-neutral-800'
+                                : 'bg-amber-50 border-amber-300 text-neutral-950'
                             }`}
                           >
                             <div className="flex items-start justify-between">
                               <div>
-                                <span className="font-bold block truncate">
+                                <span className="font-bold block truncate text-sm text-neutral-950">
                                   {booking.customerName}
                                 </span>
-                                <span className="text-[11px] text-neutral-500 block truncate">
+                                <span className="text-xs text-neutral-700 font-medium block truncate mt-0.5">
                                   {booking.sportName} · {booking.customerPhone}
                                 </span>
                               </div>
                               {booking.isRecurring && (
-                                <Repeat className="h-3.5 w-3.5 text-[#258653]" />
+                                <Repeat className="h-4 w-4 text-brand-british shrink-0" />
                               )}
                             </div>
 
-                            <div className="flex items-center justify-between text-[11px] pt-1">
-                              <span className="font-semibold">
+                            <div className="flex items-center justify-between text-xs pt-1">
+                              <span className="font-mono font-black text-sm text-neutral-950">
                                 ${booking.totalPrice.toLocaleString('es-AR')}
                               </span>
                             </div>
