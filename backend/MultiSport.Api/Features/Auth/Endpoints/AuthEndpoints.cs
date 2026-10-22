@@ -19,8 +19,8 @@ public static class AuthEndpoints
 
         group.MapPost("/register-complex", RegisterComplex)
              .WithName("RegisterComplex")
-             .WithSummary("Registra un nuevo complejo deportivo y su cuenta administradora")
-             .Produces<AuthResponse>(StatusCodes.Status200OK)
+             .WithSummary("Registra un nuevo complejo deportivo y envía email de verificación")
+             .Produces<RegisterSuccessResponse>(StatusCodes.Status200OK)
              .ProducesValidationProblem()
              .ProducesProblem(StatusCodes.Status409Conflict);
 
@@ -65,14 +65,38 @@ public static class AuthEndpoints
              .ProducesValidationProblem()
              .ProducesProblem(StatusCodes.Status400BadRequest);
 
+        group.MapPost("/verify-email", VerifyEmail)
+             .WithName("VerifyEmail")
+             .WithSummary("Verifica la dirección de correo electrónico mediante token criptográfico")
+             .Produces<ProblemDetails>(StatusCodes.Status200OK)
+             .ProducesValidationProblem()
+             .ProducesProblem(StatusCodes.Status400BadRequest)
+             .ProducesProblem(StatusCodes.Status410Gone);
+
+        group.MapPost("/resend-verification", ResendVerification)
+             .WithName("ResendVerification")
+             .WithSummary("Reenvía el enlace de verificación de correo electrónico")
+             .Produces<ProblemDetails>(StatusCodes.Status200OK)
+             .ProducesValidationProblem()
+             .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        group.MapPut("/complex-profile", UpdateComplexProfile)
+             .WithName("UpdateComplexProfile")
+             .WithSummary("Actualiza los datos complementarios del perfil del complejo deportivo")
+             .RequireAuthorization()
+             .Produces(StatusCodes.Status204NoContent)
+             .ProducesValidationProblem()
+             .Produces(StatusCodes.Status401Unauthorized)
+             .Produces(StatusCodes.Status404NotFound)
+             .ProducesProblem(StatusCodes.Status400BadRequest);
+
         return app;
     }
 
-    private static async Task<Results<Ok<AuthResponse>, ValidationProblem, Conflict<ProblemDetails>>> RegisterComplex(
+    private static async Task<Results<Ok<RegisterSuccessResponse>, ValidationProblem, Conflict<ProblemDetails>>> RegisterComplex(
         [FromBody] RegisterComplexRequest request,
         IValidator<RegisterComplexRequest> validator,
         IAuthService service,
-        HttpContext httpContext,
         CancellationToken ct)
     {
         var validationResult = await validator.ValidateAsync(request, ct);
@@ -81,10 +105,10 @@ public static class AuthEndpoints
             return TypedResults.ValidationProblem(validationResult.ToDictionary());
         }
 
-        var result = await service.RegisterComplexAsync(request, httpContext, ct);
+        var result = await service.RegisterComplexAsync(request, ct);
         return result.Result switch
         {
-            Ok<AuthResponse> ok => TypedResults.Ok(ok.Value!),
+            Ok<RegisterSuccessResponse> ok => TypedResults.Ok(ok.Value!),
             Conflict<ProblemDetails> conflict => TypedResults.Conflict(conflict.Value!),
             _ => throw new InvalidOperationException("Respuesta no esperada del servicio de autenticación.")
         };
@@ -193,6 +217,77 @@ public static class AuthEndpoints
         return result.Result switch
         {
             NoContent => TypedResults.NoContent(),
+            ProblemHttpResult problem => problem,
+            _ => throw new InvalidOperationException("Respuesta no esperada del servicio de autenticación.")
+        };
+    }
+
+    private static async Task<Results<Ok<ProblemDetails>, ValidationProblem, ProblemHttpResult>> VerifyEmail(
+        [FromBody] VerifyEmailRequest request,
+        IValidator<VerifyEmailRequest> validator,
+        IAuthService service,
+        CancellationToken ct)
+    {
+        var validationResult = await validator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+        {
+            return TypedResults.ValidationProblem(validationResult.ToDictionary());
+        }
+
+        var result = await service.VerifyEmailAsync(request, ct);
+        return result.Result switch
+        {
+            Ok<ProblemDetails> ok => TypedResults.Ok(ok.Value!),
+            ProblemHttpResult problem => problem,
+            _ => throw new InvalidOperationException("Respuesta no esperada del servicio de autenticación.")
+        };
+    }
+
+    private static async Task<Results<Ok<ProblemDetails>, ValidationProblem, ProblemHttpResult>> ResendVerification(
+        [FromBody] ResendVerificationRequest request,
+        IValidator<ResendVerificationRequest> validator,
+        IAuthService service,
+        CancellationToken ct)
+    {
+        var validationResult = await validator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+        {
+            return TypedResults.ValidationProblem(validationResult.ToDictionary());
+        }
+
+        var result = await service.ResendVerificationAsync(request, ct);
+        return result.Result switch
+        {
+            Ok<ProblemDetails> ok => TypedResults.Ok(ok.Value!),
+            ProblemHttpResult problem => problem,
+            _ => throw new InvalidOperationException("Respuesta no esperada del servicio de autenticación.")
+        };
+    }
+
+    private static async Task<Results<NoContent, ValidationProblem, ProblemHttpResult, NotFound, UnauthorizedHttpResult>> UpdateComplexProfile(
+        [FromBody] UpdateComplexProfileRequest request,
+        IValidator<UpdateComplexProfileRequest> validator,
+        IAuthService service,
+        ClaimsPrincipal claimsPrincipal,
+        CancellationToken ct)
+    {
+        var validationResult = await validator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+        {
+            return TypedResults.ValidationProblem(validationResult.ToDictionary());
+        }
+
+        var complexIdClaim = claimsPrincipal.FindFirst("complex_id")?.Value;
+        if (!Guid.TryParse(complexIdClaim, out var complexId))
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var result = await service.UpdateComplexProfileAsync(complexId, request, ct);
+        return result.Result switch
+        {
+            NoContent => TypedResults.NoContent(),
+            NotFound => TypedResults.NotFound(),
             ProblemHttpResult problem => problem,
             _ => throw new InvalidOperationException("Respuesta no esperada del servicio de autenticación.")
         };

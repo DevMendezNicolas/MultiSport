@@ -15,6 +15,65 @@ export const setAccessToken = (token: string | null): void => {
   }
 }
 
+export interface JwtPayload {
+  sub?: string
+  email?: string
+  role?: string
+  complex_id?: string
+  exp?: number
+  nbf?: number
+  iat?: number
+}
+
+export const parseJwt = (token: string): JwtPayload | null => {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const base64Url = parts[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    return JSON.parse(jsonPayload) as JwtPayload
+  } catch {
+    return null
+  }
+}
+
+export const isTokenExpired = (token: string | null, thresholdSeconds: number = 0): boolean => {
+  if (!token) return true
+  const payload = parseJwt(token)
+  if (!payload || !payload.exp) return true
+  const nowInSeconds = Math.floor(Date.now() / 1000)
+  return payload.exp <= nowInSeconds + thresholdSeconds
+}
+
+export type AuthExpiredReason = 'INACTIVITY' | 'SESSION_EXPIRED' | 'LOGOUT'
+
+type AuthExpiredListener = (reason: AuthExpiredReason) => void
+const authExpiredListeners: Set<AuthExpiredListener> = new Set()
+
+export const onAuthExpired = (listener: AuthExpiredListener): (() => void) => {
+  authExpiredListeners.add(listener)
+  return () => {
+    authExpiredListeners.delete(listener)
+  }
+}
+
+export const notifyAuthExpired = (reason: AuthExpiredReason = 'SESSION_EXPIRED'): void => {
+  authExpiredListeners.forEach((listener) => {
+    try {
+      listener(reason)
+    } catch (e) {
+      console.error('Error executing auth expired listener:', e)
+    }
+  })
+}
+
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api/v1',
   withCredentials: true,
@@ -65,6 +124,7 @@ api.interceptors.response.use(
         originalRequest.url?.includes('/auth/refresh')
       ) {
         setAccessToken(null)
+        notifyAuthExpired('SESSION_EXPIRED')
         return Promise.reject(error)
       }
 
@@ -103,6 +163,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null)
         setAccessToken(null)
+        notifyAuthExpired('SESSION_EXPIRED')
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

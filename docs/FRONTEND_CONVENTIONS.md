@@ -22,7 +22,7 @@ frontend/src/
 │   │   └── types/          # AuthCredentials, UserSession
 │   ├── courts/
 │   │   ├── api/            # React Query hooks (useCourts, useCourtMutations)
-│   │   ├── components/     # CourtCard, CourtFormModal, SportBadge
+│   │   ├── components/     # CourtCard, CourtCardList, SportBadge
 │   │   ├── types/          # Feature TypeScript interfaces
 │   │   └── index.ts        # Public module barrel export
 │   ├── bookings/
@@ -129,7 +129,7 @@ All remote API calls must go through the shared instance configured in `frontend
   * Components are installed via CLI into `frontend/src/components/ui/`.
   * Conditional styling composition must exclusively use the `cn(...)` helper (`clsx` + `tailwind-merge`).
 * **Micro-interactions & Animation:**
-  * Use **Framer Motion** for smooth transitions in modals, side panels (*Sheets*), and tournament bracket progressions.
+  * Use **Framer Motion** for smooth transitions in side panels (*Sheets*), drawers, and tournament bracket progressions.
   * Use **Sonner** for confirmation, warning, and network error toasts.
 * **Mandatory Skeletons:** Tables, calendars, and cards must display animated `<Skeleton />` placeholders during data loading; full-screen isolated spinners are prohibited.
 * **Sobriedad Visual y Criterios Anti-Ruido (Anti-AI Clutter):**
@@ -191,9 +191,12 @@ All remote API calls must go through the shared instance configured in `frontend
 * **Cuadros de Torneos y Tablas de Posiciones:**
   * Las tablas deben priorizar la información esencial (puntos, posición) en móvil, ocultando métricas accesorias o permitiendo su consulta mediante desplazamiento interno delimitado.
   * Los cuadros de eliminación directa (brackets) deben soportar deslizamiento táctil horizontal fluido con gestos de arrastre nativos.
-* **Modales y Formularios Operativos:**
-  * En monitores se admiten ventanas modales centradas.
-  * En teléfonos, los diálogos de alta o cobro deben transformarse preferentemente en paneles que emergen desde la parte inferior de la pantalla (Drawer / Bottom Sheet), maximizando el espacio útil y facilitando el uso a una sola mano.
+* **Política de Cero Popups y Formularios Operativos:**
+  * **Prohibición de Popups Flotantes Centrados:** Queda prohibido el uso de ventanas modales o popups centrados para tareas operativas, formularios de creación/edición, vistas de detalle o captura de prospectos.
+  * **Operaciones Ágiles de Agenda (Detalle y Alta Rápida de Turnos):** En pantallas medianas y grandes se implementan mediante Paneles Laterales Deslizantes (*Slide-over Sheets* anclados al margen derecho), preservando la visibilidad contextual de la grilla horaria. En dispositivos móviles, se transforman automáticamente en paneles inferiores deslizables (*Bottom Sheets / Drawers*), alineados con la zona del pulgar (Ley de Fitts).
+  * **Configuraciones Densas y ABMs Complejos (Canchas, Tarifas, Torneos):** Se articulan a través de rutas y páginas dedicadas independientes (ej. `/admin/courts/new`, `/admin/courts/:id/edit`), provistas de navegación clara, migas de pan (*breadcrumbs*) y botón de regreso, evitando encapsular formularios complejos en cajas flotantes.
+  * **Landing Page y Captura:** Las solicitudes de contacto o demo se integran como secciones nativas al pie de página con desplazamiento suave (*smooth scroll*), erradicando modales emergentes.
+  * **Excepción Única de Confirmación Destructiva:** Únicamente se admiten diálogos modales centrados (`AlertDialog` de shadcn/ui) para confirmaciones críticas e irreversibles (baja de canchas, cancelaciones de reservas), con redacción concisa en lenguaje humano, fondo desenfocado sutil y botón de confirmación en rojo semántico (`destructive`).
 
 ---
 

@@ -4,11 +4,11 @@ public sealed class Complex
 {
     public Guid Id { get; init; }
     public string Name { get; init; } = string.Empty;
-    public string TaxId { get; init; } = string.Empty;
-    public string CbuAlias { get; init; } = string.Empty;
-    public string Address { get; init; } = string.Empty;
-    public string Phone { get; init; } = string.Empty;
-    public string City { get; init; } = string.Empty;
+    public string? TaxId { get; init; }
+    public string? CbuAlias { get; init; }
+    public string? Address { get; init; }
+    public string? Phone { get; init; }
+    public string? City { get; init; }
     public string? LogoUrl { get; init; }
     public bool IsActive { get; init; } = true;
     public DateTimeOffset CreatedAt { get; init; }

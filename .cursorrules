@@ -24,6 +24,7 @@ This repository contains strict architectural and stylistic standards. All AI ag
 7. **NO Try-Catch in Minimal API Endpoints:** Rely on the native `IExceptionHandler` middleware configured in `MultiSport.Api/Common/` returning RFC 7807 `ProblemDetails`.
 8. **NO String Interpolation in Logs:** Never use string interpolation in logging calls (`logger.LogInformation($"...")` ❌). Use structured semantic templates exclusively (`logger.LogInformation("... {Prop}", val)`).
 9. **NO Deletion of Financial Records:** Records in financial or payment tables (`payments`) must never be deleted (neither hard nor soft delete). Record adjustments as negative refund rows.
+10. **NO Autonomous Git Adds, Commits, or Pushes:** AI agents are strictly forbidden from executing `git add`, `git commit`, `git push`, or modifying Git repository state without explicit, prior user instruction or approval. After generating, editing, or refactoring code and completing verification, the agent MUST present the results to the user and wait for explicit confirmation before staging, committing, or pushing any changes.
 
 ---
 
@@ -82,6 +83,7 @@ This repository contains strict architectural and stylistic standards. All AI ag
 - **Branch names:** `<type>/<module>-<description>` in lowercase kebab-case (e.g., `feature/canchas-disponibilidad`, `chore/docker-postgres-setup`).
 - **Commits:** Conventional Commits in lowercase and in Spanish: `<tipo>(<modulo>): <descripcion>` (e.g., `feat(turnos): implementar validacion de solapamiento de horarios`, `fix(canchas): corregir consulta dapper de disponibilidad`).
 - **Pull Requests:** Titles and descriptions must follow `.github/pull_request_template.md` in Spanish. All PR discussions, feedback, and review comments must be in Spanish.
+- **Approval Gate for Git Actions:** Never execute `git add`, `git commit`, or `git push` autonomously. Staging and committing code without explicit user instruction is considered a direct violation of repository rules. Always present modified files and verification results first, waiting for the user's explicit command to proceed.
 
 ---
 

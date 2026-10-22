@@ -91,7 +91,7 @@ export const DashboardOverview: React.FC = () => {
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-neutral-950 uppercase">
               {user?.complexName || 'MultiSport Club'}
             </h1>
-            <p className="text-xs sm:text-sm text-neutral-500 mt-1 capitalize font-medium">
+            <p className="text-sm sm:text-base text-neutral-700 mt-1.5 capitalize font-semibold">
               {todayFormatted}
             </p>
           </div>
@@ -100,7 +100,7 @@ export const DashboardOverview: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               to="/admin/bookings"
-              className="min-h-[44px] px-6 py-2.5 rounded-full bg-brand-sport text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-sport-hover transition-colors shadow-sm inline-flex items-center gap-2"
+              className="min-h-[44px] px-6 py-2.5 rounded-full bg-brand-sport text-white text-xs sm:text-sm font-bold uppercase tracking-wider hover:bg-brand-sport-hover transition-colors shadow-sm inline-flex items-center gap-2"
             >
               <span>Ir a la Agenda de Turnos</span>
               <ArrowRight className="h-4 w-4" strokeWidth={2} />
@@ -108,7 +108,7 @@ export const DashboardOverview: React.FC = () => {
 
             <Link
               to="/admin/courts"
-              className="min-h-[44px] px-6 py-2.5 rounded-full bg-neutral-950 text-white text-xs font-bold uppercase tracking-wider hover:bg-neutral-800 transition-colors shadow-sm inline-flex items-center gap-2"
+              className="min-h-[44px] px-6 py-2.5 rounded-full bg-neutral-950 text-white text-xs sm:text-sm font-bold uppercase tracking-wider hover:bg-neutral-800 transition-colors shadow-sm inline-flex items-center gap-2"
             >
               <span>Ver Estado de Canchas</span>
             </Link>
@@ -119,10 +119,10 @@ export const DashboardOverview: React.FC = () => {
       {/* Grilla Operativa de Turnos del Día */}
       <section className="space-y-3">
         <div className="flex items-center justify-between border-b border-neutral-300 pb-2">
-          <h2 className="text-lg font-black uppercase tracking-tight text-neutral-950">
+          <h2 className="text-xl font-black uppercase tracking-tight text-neutral-950">
             Agenda Operativa Diaria
           </h2>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 font-semibold">
+          <span className="text-xs font-bold text-neutral-800 bg-neutral-200/90 px-3 py-1 rounded-md">
             Grilla en Vivo
           </span>
         </div>
@@ -133,10 +133,10 @@ export const DashboardOverview: React.FC = () => {
       {/* Grilla de Módulos de Gestión */}
       <section className="space-y-4 pt-4">
         <div className="flex items-center justify-between border-b border-neutral-300 pb-3">
-          <h2 className="text-lg font-black uppercase tracking-tight text-neutral-950">
+          <h2 className="text-xl font-black uppercase tracking-tight text-neutral-950">
             Módulos del Establecimiento
           </h2>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 font-semibold">
+          <span className="text-xs font-bold text-neutral-800 bg-neutral-200/90 px-3 py-1 rounded-md">
             {modules.length} Módulos Disponibles
           </span>
         </div>
@@ -163,7 +163,7 @@ export const DashboardOverview: React.FC = () => {
                   <h3 className="text-xl font-black text-neutral-950 tracking-tight group-hover:text-brand-sport transition-colors">
                     {module.title}
                   </h3>
-                  <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed font-normal">
+                  <p className="text-sm text-neutral-700 leading-relaxed font-medium">
                     {module.description}
                   </p>
                 </div>
@@ -171,7 +171,7 @@ export const DashboardOverview: React.FC = () => {
                 <div className="pt-2">
                   <Link
                     to={module.to}
-                    className={`min-h-[44px] px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider inline-flex items-center justify-between w-full transition-all ${
+                    className={`min-h-[44px] px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider inline-flex items-center justify-between w-full transition-all ${
                       module.isPrimary
                         ? 'bg-brand-sport text-white hover:bg-brand-sport-hover shadow-sm'
                         : 'bg-neutral-950 text-white hover:bg-neutral-800'

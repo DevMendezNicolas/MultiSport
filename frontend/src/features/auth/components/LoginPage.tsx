@@ -1,15 +1,17 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import axios from 'axios'
 import { MultiSportLogo } from '@/features/landing/components/MultiSportLogo'
 import { useAuth } from '../hooks/useAuth'
+import { authApi } from '../api/authApi'
 import type { LoginPayload } from '../types'
-import axios from 'axios'
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
 
   const [credentials, setCredentials] = useState<LoginPayload>({
@@ -18,6 +20,7 @@ export const LoginPage: React.FC = () => {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
 
   const loginMutation = useMutation({
     mutationFn: (payload: LoginPayload) => login(payload),
@@ -25,7 +28,9 @@ export const LoginPage: React.FC = () => {
       toast.success('Inicio de sesión exitoso', {
         description: `Bienvenido, ${data.user.complexName}.`,
       })
-      navigate('/admin')
+      const from = (location.state as { from?: { pathname: string; search?: string } })?.from
+      const returnUrl = from ? `${from.pathname}${from.search || ''}` : '/admin'
+      navigate(returnUrl, { replace: true })
     },
     onError: (error) => {
       if (axios.isAxiosError(error) && error.response) {
@@ -40,9 +45,18 @@ export const LoginPage: React.FC = () => {
         }
 
         if (status === 403) {
-          toast.error('Cuenta suspendida', {
-            description: problem?.detail || 'La cuenta de tu complejo se encuentra suspendida.',
-          })
+          const detail = problem?.detail || ''
+          const isUnverified = problem?.title === 'EmailNoVerificado' || detail.toLowerCase().includes('verificar tu correo')
+          if (isUnverified) {
+            setUnverifiedEmail(credentials.email)
+            toast.error('Correo no verificado', {
+              description: 'Debés verificar tu correo electrónico antes de ingresar.',
+            })
+          } else {
+            toast.error('Cuenta suspendida', {
+              description: detail || 'La cuenta de tu complejo se encuentra suspendida.',
+            })
+          }
           return
         }
 
@@ -60,17 +74,44 @@ export const LoginPage: React.FC = () => {
     },
   })
 
+  const resendMutation = useMutation({
+    mutationFn: (email: string) => authApi.resendVerification({ email }),
+    onSuccess: () => {
+      toast.success('Enlace de activación reenviado', {
+        description: 'Revisá tu casilla de correo electrónico (expira en 15 minutos).',
+      })
+    },
+    onError: (error) => {
+      if (axios.isAxiosError(error) && error.response) {
+        const problem = error.response.data
+        toast.error('Error al reenviar', {
+          description: problem?.detail || 'No se pudo despachar el correo de activación.',
+        })
+        return
+      }
+      toast.error('Error de conexión', {
+        description: 'Verificá tu conexión a internet.',
+      })
+    },
+  })
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setUnverifiedEmail(null)
     loginMutation.mutate(credentials)
   }
 
-  return (
-    <div className="min-h-screen bg-brand-dark text-neutral-50 flex flex-col justify-between selection:bg-brand-red selection:text-white relative overflow-hidden">
-      {/* Resplandor de fondo deportivo sutil */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-brand-red/5 blur-[140px] rounded-full pointer-events-none" />
+  const handleResend = () => {
+    if (!unverifiedEmail) return
+    resendMutation.mutate(unverifiedEmail)
+  }
 
-      {/* Cabecera / Navegación de Regreso */}
+  return (
+    <div className="min-h-screen bg-brand-dark text-neutral-50 flex flex-col justify-between selection:bg-brand-sport selection:text-white relative overflow-hidden">
+      {/* Resplandor deportivo de fondo */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-brand-sport/10 blur-[140px] rounded-full pointer-events-none" />
+
+      {/* Cabecera / Navegación */}
       <header className="relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         <Link to="/" className="group flex items-center gap-2">
           <MultiSportLogo />
@@ -89,25 +130,41 @@ export const LoginPage: React.FC = () => {
       <main className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-6 py-12">
         <div className="w-full max-w-md bg-neutral-900/80 border border-neutral-800 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-2xl">
           
-          {/* Kicker y Título */}
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-4 h-[2px] bg-brand-red inline-block" />
-              <span className="text-[11px] font-mono font-bold tracking-widest text-brand-red uppercase">
-                ACCESO ADMINISTRATIVO
-              </span>
-            </div>
-
-            <h1 className="text-3xl font-black tracking-tight text-white">
-              Bienvenido de nuevo<span className="text-brand-red">.</span>
+          <div className="mb-6">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              Bienvenido de nuevo
             </h1>
             <p className="mt-2 text-sm text-neutral-400 leading-relaxed">
               Ingresá con tu cuenta para gestionar turnos, canchas y torneos.
             </p>
           </div>
 
+          {/* Banner de Correo No Verificado */}
+          {unverifiedEmail && (
+            <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-xs text-amber-200">
+              <div className="flex items-start gap-2.5">
+                <ShieldAlert className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" strokeWidth={2} />
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-300 mb-1">Activación de cuenta pendiente</p>
+                  <p className="text-neutral-300 leading-relaxed mb-3">
+                    Tu correo <span className="text-white font-medium">{unverifiedEmail}</span> aún no ha sido verificado.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resendMutation.isPending}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${resendMutation.isPending ? 'animate-spin' : ''}`} strokeWidth={2} />
+                    <span>{resendMutation.isPending ? 'Reenviando...' : 'Reenviar enlace de activación'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Formulario */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Campo Email */}
             <div>
               <label
@@ -129,7 +186,7 @@ export const LoginPage: React.FC = () => {
                     setCredentials({ ...credentials, email: e.target.value })
                   }
                   placeholder="admin@complejo.com"
-                  className="w-full bg-neutral-950/80 border border-neutral-800 rounded-xl pl-10 pr-4 py-3 text-base sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red/30 transition-all"
+                  className="w-full bg-neutral-950/80 border border-neutral-800 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-brand-sport focus:ring-1 focus:ring-brand-sport/30 transition-all"
                 />
               </div>
             </div>
@@ -147,10 +204,10 @@ export const LoginPage: React.FC = () => {
                   type="button"
                   onClick={() => {
                     toast.info('Recuperación de contraseña', {
-                      description: 'Ingresá a la sección de ayuda para solicitar un token de reseteo.',
+                      description: 'Ingresá a la sección de ayuda para solicitar un token de restablecimiento.',
                     })
                   }}
-                  className="text-xs text-neutral-400 hover:text-brand-red transition-colors"
+                  className="text-xs text-neutral-400 hover:text-brand-soft transition-colors"
                 >
                   ¿Olvidaste tu contraseña?
                 </button>
@@ -168,7 +225,7 @@ export const LoginPage: React.FC = () => {
                     setCredentials({ ...credentials, password: e.target.value })
                   }
                   placeholder="••••••••••••"
-                  className="w-full bg-neutral-950/80 border border-neutral-800 rounded-xl pl-10 pr-11 py-3 text-base sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red/30 transition-all"
+                  className="w-full bg-neutral-950/80 border border-neutral-800 rounded-xl pl-10 pr-11 py-2.5 text-base sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-brand-sport focus:ring-1 focus:ring-brand-sport/30 transition-all"
                 />
                 <button
                   type="button"
@@ -192,7 +249,7 @@ export const LoginPage: React.FC = () => {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-neutral-700 bg-neutral-950 text-brand-red accent-brand-red focus:ring-brand-red/30"
+                className="h-4 w-4 rounded border-neutral-700 bg-neutral-950 text-brand-sport accent-brand-sport focus:ring-brand-sport/30"
               />
               <label htmlFor="remember" className="text-xs text-neutral-400 select-none cursor-pointer">
                 Recordar mi sesión en este dispositivo
@@ -203,14 +260,14 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loginMutation.isPending}
-              className="mt-2 w-full min-h-[48px] rounded-full bg-brand-red text-white font-bold hover:bg-brand-red-hover flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-brand-red/20"
+              className="mt-2 w-full min-h-[48px] rounded-xl bg-brand-sport hover:bg-brand-sport-hover text-white font-bold flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-brand-sport/20"
             >
               {loginMutation.isPending ? (
                 <span>Iniciando sesión...</span>
               ) : (
                 <>
                   <span>Iniciar sesión</span>
-                  <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                  <ArrowRight className="h-4 w-4" strokeWidth={2} />
                 </>
               )}
             </button>
@@ -221,7 +278,7 @@ export const LoginPage: React.FC = () => {
             ¿Tu complejo deportivo aún no usa MultiSport?{' '}
             <Link
               to="/register"
-              className="text-brand-red font-semibold hover:underline transition-colors block sm:inline mt-1 sm:mt-0"
+              className="text-brand-soft font-semibold hover:underline transition-colors block sm:inline mt-1 sm:mt-0"
             >
               Registrá tu predio acá
             </Link>
@@ -230,7 +287,7 @@ export const LoginPage: React.FC = () => {
         </div>
       </main>
 
-      {/* Pie de Página Minimalista */}
+      {/* Pie de Página */}
       <footer className="relative z-10 py-6 px-4 text-center text-xs text-neutral-500 font-mono flex items-center justify-center gap-2">
         <ShieldCheck className="h-3.5 w-3.5 text-neutral-600" strokeWidth={2} />
         <span>MultiSport 2026 &bull; Conexión segura TLS &bull; Todos los derechos reservados</span>

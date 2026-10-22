@@ -8,6 +8,8 @@ public sealed class User
     public string PasswordHash { get; init; } = string.Empty;
     public string Role { get; init; } = "complex_admin";
     public bool IsActive { get; init; } = true;
+    public bool IsEmailVerified { get; init; }
+    public DateTimeOffset? EmailVerifiedAtUtc { get; init; }
     public int FailedLoginAttempts { get; init; }
     public DateTimeOffset? LockoutEndUtc { get; init; }
     public DateTimeOffset? LastLoginAtUtc { get; init; }

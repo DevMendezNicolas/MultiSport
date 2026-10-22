@@ -6,14 +6,31 @@ import type {
   LoginPayload,
   ProblemDetails,
   RegisterComplexPayload,
+  RegisterSuccessResponse,
+  ResendVerificationPayload,
   ResetPasswordPayload,
+  UpdateComplexProfilePayload,
+  VerifyEmailPayload,
 } from '../types'
 
 export const authApi = {
-  async registerComplex(payload: RegisterComplexPayload): Promise<AuthResponse> {
-    const { data } = await api.post<AuthResponse>('/auth/register-complex', payload)
-    setAccessToken(data.accessToken)
+  async registerComplex(payload: RegisterComplexPayload): Promise<RegisterSuccessResponse> {
+    const { data } = await api.post<RegisterSuccessResponse>('/auth/register-complex', payload)
     return data
+  },
+
+  async verifyEmail(payload: VerifyEmailPayload): Promise<ProblemDetails> {
+    const { data } = await api.post<ProblemDetails>('/auth/verify-email', payload)
+    return data
+  },
+
+  async resendVerification(payload: ResendVerificationPayload): Promise<ProblemDetails> {
+    const { data } = await api.post<ProblemDetails>('/auth/resend-verification', payload)
+    return data
+  },
+
+  async updateComplexProfile(payload: UpdateComplexProfilePayload): Promise<void> {
+    await api.put('/auth/complex-profile', payload)
   },
 
   async login(payload: LoginPayload): Promise<AuthResponse> {

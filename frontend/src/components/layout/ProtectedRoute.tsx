@@ -1,13 +1,54 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/features/auth'
+import { isTokenExpired } from '@/lib/axios'
+import { getLastActivityTimestamp } from '@/features/auth/services/authSync'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth()
-  const location = useLocation()
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000 // 30 minutos
 
-  if (isLoading) {
+export const ProtectedRoute: React.FC = () => {
+  const { isAuthenticated, isLoading, accessToken, refreshSession, handleSessionExpired } = useAuth()
+  const location = useLocation()
+  const [isVerifying, setIsVerifying] = useState<boolean>(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const verifyTokenFreshness = async () => {
+      if (!isAuthenticated || !accessToken) return
+
+      const timeSinceActivity = Date.now() - getLastActivityTimestamp()
+
+      // Si pasaron 30 minutos sin actividad, forzar expiración inmediata
+      if (timeSinceActivity >= IDLE_TIMEOUT_MS) {
+        await handleSessionExpired('Tu sesión expiró por 30 minutos de inactividad.')
+        return
+      }
+
+      // Si el access token ya expiró o le restan menos de 10 segundos, renovarlo proactivamente antes de renderizar
+      if (isTokenExpired(accessToken, 10)) {
+        setIsVerifying(true)
+        try {
+          await refreshSession()
+        } catch {
+          await handleSessionExpired('Tu sesión ha expirado. Inicia sesión nuevamente.')
+        } finally {
+          if (isMounted) {
+            setIsVerifying(false)
+          }
+        }
+      }
+    }
+
+    void verifyTokenFreshness()
+
+    return () => {
+      isMounted = false
+    }
+  }, [location.pathname, isAuthenticated, accessToken, refreshSession, handleSessionExpired])
+
+  if (isLoading || isVerifying) {
     return (
       <div className="min-h-screen bg-brand-dark text-neutral-50 flex flex-col p-6 space-y-6">
         {/* Skeleton Cabecera */}

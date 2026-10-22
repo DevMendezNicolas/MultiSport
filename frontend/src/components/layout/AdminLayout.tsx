@@ -64,14 +64,14 @@ export const AdminLayout: React.FC = () => {
         {/* Acciones de Usuario */}
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex flex-col text-right">
-            <span className="text-xs font-medium text-white truncate max-w-[160px]">{user?.email}</span>
-            <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider">{user?.role}</span>
+            <span className="text-xs font-semibold text-white truncate max-w-[160px]">{user?.email}</span>
+            <span className="text-xs font-mono font-bold text-neutral-300 uppercase tracking-wider">{user?.role}</span>
           </div>
 
           <button
             type="button"
             onClick={handleLogout}
-            className="min-h-[44px] min-w-[44px] px-3 py-2 rounded-lg text-xs font-medium text-neutral-400 hover:text-red-400 hover:bg-neutral-900 border border-neutral-800/80 flex items-center gap-2 transition-colors"
+            className="min-h-[44px] min-w-[44px] px-3.5 py-2 rounded-lg text-xs font-semibold text-neutral-300 hover:text-red-400 hover:bg-neutral-900 border border-neutral-800 flex items-center gap-2 transition-colors cursor-pointer"
             title="Cerrar sesión"
           >
             <LogOut className="h-4 w-4" strokeWidth={2} />
@@ -93,10 +93,10 @@ export const AdminLayout: React.FC = () => {
                 end={item.end}
                 className={({ isActive }) =>
                   cn(
-                    'min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+                    'min-h-[44px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors',
                     isActive
                       ? 'bg-brand-sport/15 text-brand-sport border border-brand-sport/40 font-bold'
-                      : 'text-neutral-400 hover:text-neutral-100 hover:bg-neutral-900'
+                      : 'text-neutral-300 hover:text-white hover:bg-neutral-900'
                   )
                 }
               >
@@ -119,13 +119,13 @@ export const AdminLayout: React.FC = () => {
             >
               <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold text-white">{user?.complexName}</span>
-                  <span className="text-[10px] font-mono text-neutral-400">{user?.email}</span>
+                  <span className="text-sm font-bold text-white">{user?.complexName}</span>
+                  <span className="text-xs font-mono font-medium text-neutral-300">{user?.email}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="h-11 w-11 flex items-center justify-center text-neutral-400 hover:text-white"
+                  className="h-11 w-11 flex items-center justify-center text-neutral-300 hover:text-white"
                   aria-label="Cerrar menú"
                 >
                   <X className="h-5 w-5" strokeWidth={2} />

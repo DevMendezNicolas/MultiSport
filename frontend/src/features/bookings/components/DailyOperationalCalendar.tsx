@@ -1,752 +1,537 @@
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  Clock,
   Calendar as CalendarIcon,
-  CheckCircle2,
-  AlertCircle,
   ShieldAlert,
+  Repeat,
   RefreshCw,
   LayoutGrid,
-  List,
+  User,
 } from 'lucide-react'
-import { toast } from 'sonner'
-import { useCourts } from '@/features/courts/hooks/useCourts'
-import {
-  TIME_SLOTS,
-  DEFAULT_OPERATIONAL_COURTS,
-  generateMockBookingsForDate,
-  type OperationalCourt,
-  type OperationalBooking,
-} from '../mock/mockBookingsData'
-import { BookingDetailModal } from './BookingDetailModal'
-import { NewBookingModal } from './NewBookingModal'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useDailyGrid } from '../hooks/useBookings'
+import { BookingDetailSheet } from './BookingDetailSheet'
+import { NewBookingSheet } from './NewBookingSheet'
+import type { GridBookingItem } from '../types'
+
+// Generar slots de 30 minutos desde las 08:00 hasta las 23:30
+const GENERATE_30_MIN_SLOTS = () => {
+  const slots: string[] = []
+  for (let hour = 8; hour <= 23; hour++) {
+    const h = hour.toString().padStart(2, '0')
+    slots.push(`${h}:00`)
+    slots.push(`${h}:30`)
+  }
+  return slots
+}
+
+const TIME_SLOTS_30 = GENERATE_30_MIN_SLOTS()
+const SLOT_HEIGHT_PX = 48 // Altura en píxeles de cada bloque de 30 minutos
 
 export const DailyOperationalCalendar: React.FC = () => {
-  // Manejo de fecha seleccionada (formato YYYY-MM-DD)
-  const [selectedDate, setSelectedDate] = React.useState<string>(() => {
+  // Manejo de fecha seleccionada (formato YYYY-MM-DD en hora local)
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date()
     return today.toISOString().split('T')[0]
   })
 
   // Filtro por deporte
-  const [selectedSport, setSelectedSport] = React.useState<string>('all')
+  const [selectedSport, setSelectedSport] = useState<string>('all')
 
-  // Obtener canchas reales si existen
-  const { data: serverCourts, isLoading: isLoadingCourts } = useCourts()
+  // Vista adaptativa en móvil (cancha única vs grilla)
+  const [selectedMobileCourtId, setSelectedMobileCourtId] = useState<string>('')
 
-  const courts: OperationalCourt[] = React.useMemo(() => {
-    if (serverCourts && serverCourts.length > 0) {
-      return serverCourts.map((c) => ({
-        id: c.id,
-        name: c.name,
-        sport: c.sports?.[0]?.sportName || 'Polideportivo',
-        surface: c.surfaceType,
-        isCovered: c.isCovered,
-      }))
-    }
-    return DEFAULT_OPERATIONAL_COURTS
-  }, [serverCourts])
+  // Estados de Sheets
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
 
-  // Lista de deportes disponibles para filtrado
-  const availableSports = React.useMemo(() => {
-    const set = new Set<string>()
-    courts.forEach((c) => set.add(c.sport))
-    return Array.from(set)
+  const [isNewBookingOpen, setIsNewBookingOpen] = useState(false)
+  const [newBookingParams, setNewBookingParams] = useState<{
+    courtId?: string
+    timeSlot?: string
+  }>({})
+
+  // Consumo del Endpoint Real de Grilla Operativa
+  const { data: gridData, isLoading, refetch, isFetching } = useDailyGrid(selectedDate)
+
+  const courts = useMemo(() => gridData?.courts || [], [gridData])
+
+  // Obtener lista única de deportes presentes en las canchas
+  const availableSports = useMemo(() => {
+    const sportSet = new Set<string>()
+    courts.forEach((c) => {
+      c.sports.forEach((s) => sportSet.add(s.name))
+    })
+    return Array.from(sportSet)
   }, [courts])
 
-  const filteredCourts = React.useMemo(() => {
+  // Filtrado de canchas por deporte seleccionado
+  const filteredCourts = useMemo(() => {
     if (selectedSport === 'all') return courts
-    return courts.filter((c) => c.sport.toLowerCase() === selectedSport.toLowerCase())
+    return courts.filter((c) =>
+      c.sports.some((s) => s.name.toLowerCase() === selectedSport.toLowerCase())
+    )
   }, [courts, selectedSport])
 
-  // Estados para vista adaptativa móvil (Ergonomía Fitts / Hick)
-  const [selectedCourtIdForMobile, setSelectedCourtIdForMobile] = React.useState<string>('')
-  const [mobileViewMode, setMobileViewMode] = React.useState<'single' | 'matrix'>('single')
-
-  const activeMobileCourt = React.useMemo(() => {
+  // Cancha activa para vista móvil
+  const activeMobileCourt = useMemo(() => {
     if (!filteredCourts.length) return null
-    const found = filteredCourts.find((c) => c.id === selectedCourtIdForMobile)
-    return found || filteredCourts[0]
-  }, [filteredCourts, selectedCourtIdForMobile])
+    return (
+      filteredCourts.find((c) => c.courtId === selectedMobileCourtId) || filteredCourts[0]
+    )
+  }, [filteredCourts, selectedMobileCourtId])
 
-  // Almacenamiento en memoria de turnos por fecha
-  const [bookingsByDate, setBookingsByDate] = React.useState<Record<string, OperationalBooking[]>>(
-    {}
-  )
-
-  // Cargar mock por defecto para la fecha si aún no existe
-  React.useEffect(() => {
-    setBookingsByDate((prev) => {
-      if (prev[selectedDate]) return prev
-      return {
-        ...prev,
-        [selectedDate]: generateMockBookingsForDate(selectedDate),
-      }
-    })
-  }, [selectedDate])
-
-  const activeBookings = bookingsByDate[selectedDate] || []
-
-  // Estados de Modales
-  const [selectedBooking, setSelectedBooking] = React.useState<OperationalBooking | null>(null)
-  const [isDetailOpen, setIsDetailOpen] = React.useState(false)
-
-  const [slotToCreate, setSlotToCreate] = React.useState<{
-    court: OperationalCourt
-    timeSlot: string
-  } | null>(null)
-  const [isCreateOpen, setIsCreateOpen] = React.useState(false)
-
-  // Navegación de fecha
-  const handleShiftDate = (days: number) => {
-    const [y, m, d] = selectedDate.split('-').map(Number)
-    const current = new Date(y, m - 1, d)
-    current.setDate(current.getDate() + days)
-    const nextY = current.getFullYear()
-    const nextM = String(current.getMonth() + 1).padStart(2, '0')
-    const nextD = String(current.getDate()).padStart(2, '0')
-    setSelectedDate(`${nextY}-${nextM}-${nextD}`)
+  // Navegación de Fechas
+  const handleDateChange = (daysDelta: number) => {
+    const current = new Date(`${selectedDate}T12:00:00Z`)
+    current.setDate(current.getDate() + daysDelta)
+    setSelectedDate(current.toISOString().split('T')[0])
   }
 
-  const handleSelectQuickDate = (type: 'today' | 'tomorrow' | 'afterTomorrow') => {
-    const d = new Date()
-    if (type === 'tomorrow') d.setDate(d.getDate() + 1)
-    if (type === 'afterTomorrow') d.setDate(d.getDate() + 2)
-    const nextY = d.getFullYear()
-    const nextM = String(d.getMonth() + 1).padStart(2, '0')
-    const nextD = String(d.getDate()).padStart(2, '0')
-    setSelectedDate(`${nextY}-${nextM}-${nextD}`)
+  const handleToday = () => {
+    const today = new Date()
+    setSelectedDate(today.toISOString().split('T')[0])
   }
 
-  const formattedDateTitle = React.useMemo(() => {
-    const [y, m, d] = selectedDate.split('-').map(Number)
-    const dateObj = new Date(y, m - 1, d)
-    return new Intl.DateTimeFormat('es-AR', {
+  const formattedDateTitle = useMemo(() => {
+    const d = new Date(`${selectedDate}T12:00:00Z`)
+    return d.toLocaleDateString('es-AR', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-    }).format(dateObj)
+    })
   }, [selectedDate])
 
-  // Métricas del día seleccionado
-  const metrics = React.useMemo(() => {
-    const nonBlocked = activeBookings.filter((b) => b.status !== 'blocked')
-    const confirmedCount = nonBlocked.filter((b) => b.status === 'confirmed').length
-    const partialCount = nonBlocked.filter((b) => b.status === 'partial_deposit').length
-    const blockedCount = activeBookings.filter((b) => b.status === 'blocked').length
-
-    let pendingTotal = 0
-    nonBlocked.forEach((b) => {
-      pendingTotal += Math.max(0, b.totalPrice - b.depositAmount)
-    })
-
-    const totalPossibleSlots = filteredCourts.length * TIME_SLOTS.length
-    const totalOccupied = activeBookings.length
-    const occupancyRate =
-      totalPossibleSlots > 0 ? Math.round((totalOccupied / totalPossibleSlots) * 100) : 0
-
-    return {
-      totalBookings: nonBlocked.length,
-      confirmedCount,
-      partialCount,
-      blockedCount,
-      pendingTotal,
-      occupancyRate,
-    }
-  }, [activeBookings, filteredCourts.length])
-
-  // Handlers para actualizar turnos en memoria
-  const handleUpdateBooking = (updated: OperationalBooking) => {
-    setBookingsByDate((prev) => ({
-      ...prev,
-      [selectedDate]: (prev[selectedDate] || []).map((b) => (b.id === updated.id ? updated : b)),
-    }))
-    toast.success('Cobro de saldo registrado correctamente')
+  const openNewBooking = (courtId?: string, timeSlot?: string) => {
+    setNewBookingParams({ courtId, timeSlot })
+    setIsNewBookingOpen(true)
   }
 
-  const handleCancelBooking = (bookingId: string) => {
-    setBookingsByDate((prev) => ({
-      ...prev,
-      [selectedDate]: (prev[selectedDate] || []).filter((b) => b.id !== bookingId),
-    }))
-    toast.info('El turno ha sido cancelado y el horario está disponible')
+  const openBookingDetail = (bookingId: string) => {
+    setSelectedBookingId(bookingId)
+    setIsDetailOpen(true)
   }
 
-  const handleCreateBooking = (newBooking: OperationalBooking) => {
-    setBookingsByDate((prev) => ({
-      ...prev,
-      [selectedDate]: [...(prev[selectedDate] || []), newBooking],
-    }))
-    toast.success(`Turno reservado para ${newBooking.customerName}`)
-  }
+  // Función auxiliar para calcular el posicionamiento vertical de un turno
+  const computeBookingStyle = (booking: GridBookingItem) => {
+    const start = new Date(booking.startTimeUtc)
+    const end = new Date(booking.endTimeUtc)
 
-  const handleResetDay = () => {
-    setBookingsByDate((prev) => ({
-      ...prev,
-      [selectedDate]: generateMockBookingsForDate(selectedDate),
-    }))
-    toast.info('Grilla horaria restablecida con datos demo')
+    const startMinutes = start.getUTCHours() * 60 + start.getUTCMinutes()
+    const endMinutes = end.getUTCHours() * 60 + end.getUTCMinutes()
+
+    const timelineStartMinutes = 8 * 60 // 08:00
+    const offsetMinutes = Math.max(0, startMinutes - timelineStartMinutes)
+    const durationMinutes = Math.max(30, endMinutes - startMinutes)
+
+    const top = (offsetMinutes / 30) * SLOT_HEIGHT_PX
+    const height = (durationMinutes / 30) * SLOT_HEIGHT_PX - 4 // -4px para margen visual
+
+    return { top: `${top}px`, height: `${height}px` }
   }
 
   return (
-    <section className="bg-white border border-neutral-300 shadow-sm overflow-hidden">
-      {/* Barra Superior: Control de Fecha y Filtros */}
-      <div className="p-4 sm:p-6 border-b border-neutral-200 bg-neutral-50/50 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        {/* Selector y Navegación de Fecha */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="flex items-center border border-neutral-300 bg-white shadow-xs">
-            <button
-              type="button"
-              onClick={() => handleShiftDate(-1)}
-              className="p-2.5 text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Día anterior"
-            >
-              <ChevronLeft className="h-5 w-5" strokeWidth={2} />
-            </button>
-            <div className="px-3 py-2 text-center border-x border-neutral-200 min-w-[180px]">
-              <span className="text-xs sm:text-sm font-black uppercase tracking-tight text-neutral-950 block capitalize">
-                {formattedDateTitle}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleShiftDate(1)}
-              className="p-2.5 text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Día siguiente"
-            >
-              <ChevronRight className="h-5 w-5" strokeWidth={2} />
-            </button>
-          </div>
+    <div className="flex flex-col h-full bg-[#FAF8F5]">
+      {/* Barra de Control y Navegación de Agenda */}
+      <header className="sticky top-0 z-20 bg-white border-b border-neutral-200 px-4 sm:px-6 py-3.5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Navegador de Fecha */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-neutral-100 rounded-xl p-1 border border-neutral-200">
+              <button
+                type="button"
+                onClick={() => handleDateChange(-1)}
+                className="h-9 w-9 rounded-lg flex items-center justify-center text-neutral-600 hover:text-neutral-950 hover:bg-white transition-all cursor-pointer"
+                aria-label="Día anterior"
+              >
+                <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+              </button>
 
-          {/* Atajos Rápidos */}
-          <div className="inline-flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => handleSelectQuickDate('today')}
-              className="min-h-[44px] px-3.5 py-2 text-xs font-bold uppercase tracking-wider bg-white border border-neutral-300 hover:bg-neutral-100 transition-colors"
-            >
-              Hoy
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectQuickDate('tomorrow')}
-              className="min-h-[44px] px-3.5 py-2 text-xs font-bold uppercase tracking-wider bg-white border border-neutral-300 hover:bg-neutral-100 transition-colors"
-            >
-              Mañana
-            </button>
-            <div className="relative">
+              <button
+                type="button"
+                onClick={handleToday}
+                className="px-3 h-9 text-xs font-semibold text-neutral-700 hover:text-neutral-950 hover:bg-white rounded-lg transition-all cursor-pointer"
+              >
+                Hoy
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDateChange(1)}
+                className="h-9 w-9 rounded-lg flex items-center justify-center text-neutral-600 hover:text-neutral-950 hover:bg-white transition-all cursor-pointer"
+                aria-label="Día siguiente"
+              >
+                <ChevronRight className="h-5 w-5" strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-neutral-300 bg-white">
+              <CalendarIcon className="h-4 w-4 text-brand-british shrink-0" strokeWidth={2.5} />
               <input
                 type="date"
                 value={selectedDate}
-                onChange={(e) => {
-                  if (e.target.value) setSelectedDate(e.target.value)
-                }}
-                className="min-h-[44px] px-3 py-2 text-xs font-bold bg-white border border-neutral-300 hover:bg-neutral-100 cursor-pointer text-neutral-800"
-                aria-label="Seleccionar fecha específica"
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="text-xs sm:text-sm font-semibold text-neutral-900 bg-transparent outline-hidden cursor-pointer capitalize"
               />
             </div>
+
+            <span className="hidden md:inline-block text-base font-bold text-neutral-950 capitalize ml-2">
+              {formattedDateTitle}
+            </span>
+          </div>
+
+          {/* Acciones Rápidas */}
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="h-10 w-10 rounded-xl border border-neutral-300 bg-white text-neutral-700 hover:text-neutral-950 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Refrescar agenda"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} strokeWidth={2} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openNewBooking()}
+              className="min-h-[44px] px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-brand-sport hover:bg-brand-sport-hover active:bg-brand-british transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+              <span>Nuevo Turno</span>
+            </button>
           </div>
         </div>
 
-        {/* Filtros por Deporte y Acciones */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 border border-neutral-300 bg-white p-1">
+        {/* Filtros de Deportes */}
+        {availableSports.length > 0 && (
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-neutral-200 overflow-x-auto no-scrollbar">
             <button
               type="button"
               onClick={() => setSelectedSport('all')}
-              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors min-h-[36px] ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors cursor-pointer ${
                 selectedSport === 'all'
                   ? 'bg-brand-sport text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
+                  : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'
               }`}
             >
-              Todos ({courts.length})
+              Todas las Canchas
             </button>
             {availableSports.map((sport) => (
               <button
                 key={sport}
                 type="button"
                 onClick={() => setSelectedSport(sport)}
-                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors min-h-[36px] ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors cursor-pointer ${
                   selectedSport.toLowerCase() === sport.toLowerCase()
                     ? 'bg-brand-sport text-white shadow-xs'
-                    : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
+                    : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'
                 }`}
               >
                 {sport}
               </button>
             ))}
           </div>
-
-          <button
-            type="button"
-            onClick={handleResetDay}
-            title="Restablecer turnos demo para este día"
-            className="min-h-[44px] px-3 py-2 text-xs font-bold uppercase text-neutral-500 hover:text-neutral-900 border border-neutral-300 bg-white hover:bg-neutral-100 transition-colors inline-flex items-center gap-1.5"
-          >
-            <RefreshCw className="h-3.5 w-3.5" strokeWidth={2} />
-            <span className="hidden sm:inline">Restablecer</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Franja de Métricas Operativas del Día */}
-      <div className="grid grid-cols-2 md:grid-cols-4 border-b border-neutral-200 bg-white text-xs divide-x divide-y md:divide-y-0 divide-neutral-200">
-        <div className="p-3.5 sm:p-4 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] uppercase font-bold text-neutral-500 block">
-              Turnos Reservados
-            </span>
-            <span className="text-lg sm:text-xl font-black text-neutral-950 font-mono">
-              {metrics.totalBookings}
-            </span>
-          </div>
-          <CalendarIcon className="h-5 w-5 text-neutral-400" strokeWidth={2} />
-        </div>
-
-        <div className="p-3.5 sm:p-4 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] uppercase font-bold text-neutral-500 block">
-              Saldos en Mostrador
-            </span>
-            <span className="text-lg sm:text-xl font-black text-amber-900 font-mono">
-              ${metrics.pendingTotal.toLocaleString('es-AR')}
-            </span>
-          </div>
-          <AlertCircle className="h-5 w-5 text-amber-500" strokeWidth={2} />
-        </div>
-
-        <div className="p-3.5 sm:p-4 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] uppercase font-bold text-neutral-500 block">
-              Cobros Completos
-            </span>
-            <span className="text-lg sm:text-xl font-black text-brand-sport font-mono">
-              {metrics.confirmedCount}
-            </span>
-          </div>
-          <CheckCircle2 className="h-5 w-5 text-brand-sport" strokeWidth={2} />
-        </div>
-
-        <div className="p-3.5 sm:p-4 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] uppercase font-bold text-neutral-500 block">
-              Ocupación General
-            </span>
-            <span className="text-lg sm:text-xl font-black text-neutral-950 font-mono">
-              {metrics.occupancyRate}%
-            </span>
-          </div>
-          <Clock className="h-5 w-5 text-neutral-400" strokeWidth={2} />
-        </div>
-      </div>
-
-      {/* Selector de Modo Móvil (Por Cancha vs Matriz) */}
-      <div className="md:hidden p-3 border-b border-neutral-200 bg-neutral-50 flex items-center justify-between gap-2">
-        <div className="inline-flex rounded-lg border border-neutral-300 p-0.5 bg-neutral-200/60">
-          <button
-            type="button"
-            onClick={() => setMobileViewMode('single')}
-            className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md inline-flex items-center gap-1.5 min-h-[36px] transition-colors ${
-              mobileViewMode === 'single'
-                ? 'bg-white text-neutral-950 shadow-xs'
-                : 'text-neutral-600 hover:text-neutral-950'
-            }`}
-          >
-            <List className="h-3.5 w-3.5" strokeWidth={2} />
-            <span>Por Cancha</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileViewMode('matrix')}
-            className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md inline-flex items-center gap-1.5 min-h-[36px] transition-colors ${
-              mobileViewMode === 'matrix'
-                ? 'bg-white text-neutral-950 shadow-xs'
-                : 'text-neutral-600 hover:text-neutral-950'
-            }`}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" strokeWidth={2} />
-            <span>Matriz</span>
-          </button>
-        </div>
-        {mobileViewMode === 'single' && activeMobileCourt && (
-          <span className="text-xs font-semibold text-neutral-500 truncate max-w-[130px]">
-            {activeMobileCourt.name}
-          </span>
         )}
-      </div>
 
-      {/* Vista Móvil: Cronología por Cancha Individual */}
-      {mobileViewMode === 'single' && activeMobileCourt && (
-        <div className="md:hidden border-b border-neutral-200">
-          {/* Selector de Canchas Móvil */}
-          <div className="p-2.5 bg-white border-b border-neutral-200 overflow-x-auto flex gap-2">
-            {filteredCourts.map((court) => {
-              const isSelected = activeMobileCourt.id === court.id
-              const courtBookingsCount = activeBookings.filter((b) => b.courtId === court.id).length
-              return (
-                <button
-                  key={court.id}
-                  type="button"
-                  onClick={() => setSelectedCourtIdForMobile(court.id)}
-                  className={`min-h-[44px] px-3.5 py-2 text-xs font-bold shrink-0 flex items-center gap-2 border transition-all ${
-                    isSelected
-                      ? 'bg-brand-sport text-white border-brand-sport shadow-xs'
-                      : 'bg-neutral-50 text-neutral-700 border-neutral-300 hover:bg-neutral-100'
-                  }`}
-                >
-                  <span>{court.name}</span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.5 font-mono ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-neutral-200 text-neutral-700'
-                    }`}
-                  >
-                    {courtBookingsCount}
-                  </span>
-                </button>
-              )
-            })}
+        {/* Selector de Cancha en Dispositivos Móviles (Ergonomía Fitts / Hick) */}
+        <div className="md:hidden mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          {filteredCourts.map((c) => (
+            <button
+              key={c.courtId}
+              type="button"
+              onClick={() => setSelectedMobileCourtId(c.courtId)}
+              className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap border transition-all cursor-pointer ${
+                (activeMobileCourt?.courtId === c.courtId)
+                  ? 'border-brand-sport bg-brand-sport/15 text-brand-british shadow-xs'
+                  : 'border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-100'
+              }`}
+            >
+              {c.courtName}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {/* Contenido Principal de la Grilla Operativa */}
+      <main className="flex-1 overflow-auto p-3 sm:p-6">
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-[600px] w-full rounded-2xl" />
           </div>
-
-          {/* Ficha de la Cancha Activa */}
-          <div className="px-4 py-2.5 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
-            <div>
-              <span className="text-xs font-black uppercase text-neutral-950 block">
-                {activeMobileCourt.name}
-              </span>
-              <span className="text-[11px] text-neutral-500">
-                {activeMobileCourt.surface} · {activeMobileCourt.isCovered ? 'Cubierta' : 'Descubierta'}
-              </span>
+        ) : filteredCourts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-96 rounded-2xl border-2 border-dashed border-neutral-300 bg-white p-8 text-center">
+            <div className="h-14 w-14 rounded-2xl bg-[#258653]/10 flex items-center justify-center text-[#258653] mb-4">
+              <LayoutGrid className="h-7 w-7" strokeWidth={2} />
             </div>
-            <span className="text-xs font-bold text-brand-british uppercase">
-              {activeMobileCourt.sport}
-            </span>
+            <h3 className="text-base font-semibold text-neutral-900">
+              No hay canchas registradas en este complejo
+            </h3>
+            <p className="mt-1 text-sm text-neutral-500 max-w-sm">
+              Para comenzar a gestionar turnos, cree sus canchas deportivas desde la sección de configuración.
+            </p>
           </div>
-
-          {/* Lista de Turnos por Horario */}
-          <div className="p-3 space-y-2 bg-neutral-100/40">
-            {TIME_SLOTS.map((time) => {
-              const booking = activeBookings.find(
-                (b) => b.courtId === activeMobileCourt.id && b.startTime === time
-              )
-              const startH = parseInt(time.split(':')[0], 10)
-              const endH = (startH + 1).toString().padStart(2, '0')
-              const timeRange = `${time} - ${endH}:00 hs`
-
-              if (!booking) {
-                return (
-                  <div
-                    key={time}
-                    onClick={() => {
-                      setSlotToCreate({ court: activeMobileCourt, timeSlot: time })
-                      setIsCreateOpen(true)
-                    }}
-                    className="p-3 bg-white border border-dashed border-neutral-300 flex items-center justify-between gap-3 cursor-pointer hover:border-brand-sport hover:bg-brand-soft/10 transition-colors min-h-[56px]"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Clock className="h-4 w-4 text-neutral-400" strokeWidth={2} />
-                      <span className="text-xs font-mono font-bold text-neutral-700">{timeRange}</span>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-sport uppercase tracking-wider">
-                      <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-                      <span>Disponible</span>
-                    </span>
-                  </div>
-                )
-              }
-
-              if (booking.status === 'blocked') {
-                return (
-                  <div
-                    key={time}
-                    onClick={() => {
-                      setSelectedBooking(booking)
-                      setIsDetailOpen(true)
-                    }}
-                    className="p-3 bg-neutral-100 border border-neutral-300 flex items-center justify-between gap-3 cursor-pointer hover:border-neutral-500 transition-colors min-h-[56px]"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <ShieldAlert className="h-4 w-4 text-neutral-600" strokeWidth={2} />
-                      <div>
-                        <span className="text-xs font-mono font-bold text-neutral-800 block">{timeRange}</span>
-                        <span className="text-xs font-medium text-neutral-600">{booking.customerName}</span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-600 bg-neutral-200 px-2 py-0.5">
-                      Bloqueo
-                    </span>
-                  </div>
-                )
-              }
-
-              const isFull = booking.status === 'confirmed'
-              const pending = Math.max(0, booking.totalPrice - booking.depositAmount)
-
-              return (
-                <div
-                  key={time}
-                  onClick={() => {
-                    setSelectedBooking(booking)
-                    setIsDetailOpen(true)
-                  }}
-                  className={`p-3 border flex items-center justify-between gap-3 cursor-pointer transition-colors min-h-[56px] ${
-                    isFull
-                      ? 'bg-brand-soft/20 border-brand-sport/50 hover:border-brand-sport'
-                      : 'bg-amber-50 border-amber-300 hover:border-amber-500'
-                  }`}
-                >
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-neutral-900">{timeRange}</span>
-                      {isFull ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-brand-sport" strokeWidth={2} />
-                      ) : (
-                        <AlertCircle className="h-3.5 w-3.5 text-amber-700" strokeWidth={2} />
-                      )}
-                    </div>
-                    <p className="text-xs font-bold text-neutral-950">{booking.customerName}</p>
-                  </div>
-
-                  <div className="text-right font-mono text-xs">
-                    <span className="font-bold text-neutral-900 block">
-                      ${booking.totalPrice.toLocaleString('es-AR')}
-                    </span>
-                    {!isFull && pending > 0 ? (
-                      <span className="text-[10px] font-bold text-amber-800 block">
-                        Resta ${pending.toLocaleString('es-AR')}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-semibold text-brand-sport uppercase">
-                        Pagado
-                      </span>
-                    )}
-                  </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-xs overflow-hidden">
+            {/* Vista Desktop: Multi-Columna Paralela */}
+            <div className="hidden md:block overflow-x-auto">
+              <div
+                className="grid min-w-[750px]"
+                style={{
+                  gridTemplateColumns: `80px repeat(${filteredCourts.length}, minmax(220px, 1fr))`,
+                }}
+              >
+                {/* Cabecera: Eje de Tiempo */}
+                <div className="p-3.5 border-b border-r border-neutral-300 bg-neutral-100/90 text-xs font-mono font-black uppercase text-neutral-800 flex items-center justify-center sticky left-0 z-10">
+                  Horario
                 </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
-      {/* Matriz / Grilla de Turnos (Desktop o modo Matriz en móvil) */}
-      {isLoadingCourts ? (
-        <div className="p-12 text-center text-neutral-500 text-sm">
-          Cargando configuración de canchas...
-        </div>
-      ) : (
-        <div className={`relative overflow-x-auto ${mobileViewMode === 'matrix' ? 'block' : 'hidden md:block'}`}>
-          <table className="w-full border-collapse text-left select-none min-w-[1280px]">
-            {/* Cabecera de Horarios */}
-            <thead>
-              <tr className="border-b border-neutral-300 bg-neutral-100">
-                <th
-                  scope="col"
-                  className="sticky left-0 z-20 bg-neutral-100 px-4 py-3 text-xs font-black uppercase tracking-wider text-neutral-900 border-r border-neutral-300 w-56 min-w-[220px]"
-                >
-                  Cancha / Instalación
-                </th>
-                {TIME_SLOTS.map((time) => (
-                  <th
-                    key={time}
-                    scope="col"
-                    className="px-3 py-3 text-center text-xs font-bold text-neutral-800 border-r border-neutral-200 min-w-[110px]"
+                {/* Cabeceras de Canchas */}
+                {filteredCourts.map((court) => (
+                  <div
+                    key={court.courtId}
+                    className="p-3.5 border-b border-r border-neutral-200 bg-neutral-50/90 text-center"
                   >
-                    <span className="font-mono">{time}</span>
-                  </th>
+                    <span className="text-sm sm:text-base font-black text-neutral-950 block truncate">
+                      {court.courtName}
+                    </span>
+                    <span className="text-xs font-medium text-neutral-700 truncate block mt-0.5">
+                      {court.surface} {court.isIndoor ? '· Techada' : ''}
+                    </span>
+                  </div>
                 ))}
-              </tr>
-            </thead>
 
-            {/* Filas de Canchas */}
-            <tbody className="divide-y divide-neutral-200">
-              {filteredCourts.map((court) => (
-                <tr key={court.id} className="hover:bg-neutral-50/50 transition-colors">
-                  {/* Celda Fija de la Cancha */}
-                  <th
-                    scope="row"
-                    className="sticky left-0 z-10 bg-white px-4 py-3 border-r border-neutral-300 font-normal align-middle shadow-xs"
-                  >
-                    <div className="space-y-0.5">
-                      <span className="text-xs font-black text-neutral-950 uppercase tracking-tight block">
-                        {court.name}
-                      </span>
-                      <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
-                        <span className="font-semibold text-brand-british">{court.sport}</span>
-                        <span>·</span>
-                        <span className="truncate max-w-[130px]">{court.surface}</span>
-                      </div>
-                    </div>
-                  </th>
-
-                  {/* Celdas de Turno por Hora */}
-                  {TIME_SLOTS.map((time) => {
-                    const booking = activeBookings.find(
-                      (b) => b.courtId === court.id && b.startTime === time
-                    )
-
-                    if (!booking) {
-                      // Celda Libre / Disponible
+                {/* Cuerpo del Cronograma con Slots de 30 min */}
+                <div className="contents">
+                  {/* Columna Izquierda de Horas */}
+                  <div className="relative border-r border-neutral-300 bg-neutral-50 sticky left-0 z-10">
+                    {TIME_SLOTS_30.map((slot) => {
+                      const isFullHour = slot.endsWith(':00')
                       return (
-                        <td
-                          key={time}
-                          onClick={() => {
-                            setSlotToCreate({ court, timeSlot: time })
-                            setIsCreateOpen(true)
-                          }}
-                          className="px-2 py-2 border-r border-neutral-200 text-center align-middle cursor-pointer hover:bg-brand-soft/20 transition-all group"
-                          title={`Disponible a las ${time} hs en ${court.name} (clic para reservar)`}
-                        >
-                          <div className="h-14 w-full flex items-center justify-center border border-dashed border-neutral-200 group-hover:border-brand-sport transition-colors bg-white">
-                            <span className="hidden group-hover:inline-flex items-center gap-1 text-[11px] font-bold uppercase text-brand-sport">
-                              <Plus className="h-3 w-3" strokeWidth={2} />
-                              <span>Libre</span>
-                            </span>
-                          </div>
-                        </td>
-                      )
-                    }
-
-                    // Celda de Bloqueo
-                    if (booking.status === 'blocked') {
-                      return (
-                        <td
-                          key={time}
-                          onClick={() => {
-                            setSelectedBooking(booking)
-                            setIsDetailOpen(true)
-                          }}
-                          className="px-2 py-2 border-r border-neutral-200 align-middle cursor-pointer"
-                        >
-                          <div className="h-14 w-full p-2 bg-neutral-100 border border-neutral-300 flex flex-col justify-between hover:border-neutral-500 transition-colors">
-                            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-neutral-600">
-                              <ShieldAlert className="h-3 w-3 shrink-0" strokeWidth={2} />
-                              <span className="truncate">Bloqueo</span>
-                            </div>
-                            <span className="text-[11px] font-medium text-neutral-800 truncate">
-                              {booking.customerName}
-                            </span>
-                          </div>
-                        </td>
-                      )
-                    }
-
-                    // Celda Reservada (Confirmada o Con Seña)
-                    const isFull = booking.status === 'confirmed'
-                    const pendingAmount = Math.max(0, booking.totalPrice - booking.depositAmount)
-
-                    return (
-                      <td
-                        key={time}
-                        onClick={() => {
-                          setSelectedBooking(booking)
-                          setIsDetailOpen(true)
-                        }}
-                        className="px-2 py-2 border-r border-neutral-200 align-middle cursor-pointer"
-                      >
                         <div
-                          className={`h-14 w-full p-2 border flex flex-col justify-between transition-shadow hover:shadow-sm ${
-                            isFull
-                              ? 'bg-brand-soft/20 border-brand-sport/50 text-neutral-950 hover:border-brand-sport'
-                              : 'bg-amber-50 border-amber-300 text-amber-950 hover:border-amber-500'
+                          key={slot}
+                          style={{ height: `${SLOT_HEIGHT_PX}px` }}
+                          className={`flex items-center justify-center text-xs font-mono border-b border-neutral-200 ${
+                            isFullHour ? 'text-neutral-950 font-black bg-neutral-100/80' : 'text-neutral-800 font-bold'
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-[11px] font-bold truncate leading-tight">
-                              {booking.customerName}
-                            </span>
-                            {isFull ? (
-                              <CheckCircle2
-                                className="h-3 w-3 text-brand-sport shrink-0"
-                                strokeWidth={2}
-                              />
-                            ) : (
-                              <AlertCircle
-                                className="h-3 w-3 text-amber-700 shrink-0"
-                                strokeWidth={2}
-                              />
-                            )}
-                          </div>
-
-                          <div className="flex items-center justify-between text-[10px] font-mono leading-none">
-                            <span className="font-semibold">${booking.totalPrice.toLocaleString('es-AR')}</span>
-                            {!isFull && pendingAmount > 0 && (
-                              <span className="text-amber-800 font-bold">
-                                Resta ${pendingAmount.toLocaleString('es-AR')}
-                              </span>
-                            )}
-                            {isFull && (
-                              <span className="text-brand-sport font-semibold uppercase text-[9px]">
-                                Pagado
-                              </span>
-                            )}
-                          </div>
+                          {slot}
                         </div>
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                      )
+                    })}
+                  </div>
 
-      {/* Leyenda Operativa Inferior */}
-      <div className="p-4 border-t border-neutral-200 bg-neutral-50 flex flex-wrap items-center justify-between gap-4 text-xs">
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="font-bold uppercase tracking-wider text-neutral-500 text-[10px]">
-            Referencias:
-          </span>
-          <div className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 bg-brand-soft/30 border border-brand-sport/60 inline-block" />
-            <span className="text-neutral-700 font-medium">Turno Abonado Completo</span>
-          </div>
-          <div className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 bg-amber-50 border border-amber-300 inline-block" />
-            <span className="text-neutral-700 font-medium">Con Seña (Saldo Pendiente)</span>
-          </div>
-          <div className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 bg-neutral-100 border border-neutral-300 inline-block" />
-            <span className="text-neutral-700 font-medium">Bloqueo / Mantenimiento</span>
-          </div>
-          <div className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 bg-white border border-dashed border-neutral-300 inline-block" />
-            <span className="text-neutral-700 font-medium">Libre (Clic para agendar)</span>
-          </div>
-        </div>
+                  {/* Columnas por cada Cancha */}
+                  {filteredCourts.map((court) => (
+                    <div
+                      key={court.courtId}
+                      className="relative border-r border-neutral-200 bg-white"
+                      style={{ height: `${TIME_SLOTS_30.length * SLOT_HEIGHT_PX}px` }}
+                    >
+                      {/* Fondo de Celdas Interactivas (Slots de 30 min) */}
+                      {TIME_SLOTS_30.map((slot) => (
+                        <div
+                          key={slot}
+                          onClick={() => openNewBooking(court.courtId, slot)}
+                          style={{ height: `${SLOT_HEIGHT_PX}px` }}
+                          className="border-b border-neutral-100 hover:bg-brand-sport/10 transition-colors cursor-pointer group flex items-center justify-end px-2.5"
+                        >
+                          <span className="text-xs text-brand-british font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                            + Reservar
+                          </span>
+                        </div>
+                      ))}
 
-        <div className="text-[11px] text-neutral-500 font-medium italic">
-          * Los cambios se procesan de forma inmediata en la grilla diaria.
-        </div>
-      </div>
+                      {/* Tarjetas de Turnos Superpuestas */}
+                      {court.bookings.map((booking) => {
+                        const style = computeBookingStyle(booking)
+                        const isConfirmed = booking.status === 'confirmed'
+                        const isBlocked = booking.status === 'blocked'
+                        const isPending = booking.status === 'pending'
 
-      {/* Modales Interactivos */}
-      <BookingDetailModal
-        booking={selectedBooking}
+                        return (
+                          <div
+                            key={booking.id}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openBookingDetail(booking.id)
+                            }}
+                            style={style}
+                            className={`absolute left-1 right-1 rounded-xl p-2.5 text-xs shadow-xs transition-all hover:shadow-md cursor-pointer flex flex-col justify-between overflow-hidden border ${
+                              isConfirmed
+                                ? 'bg-emerald-50/95 border-emerald-400 text-neutral-950 hover:border-emerald-600'
+                                : isBlocked
+                                ? 'bg-neutral-900 text-white border-neutral-800'
+                                : isPending
+                                ? 'bg-amber-50 border-amber-300 text-neutral-950'
+                                : 'bg-neutral-100 border-neutral-300 text-neutral-800'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-1">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  {isBlocked ? (
+                                    <ShieldAlert className="h-4 w-4 shrink-0 text-neutral-300" />
+                                  ) : (
+                                    <User className="h-4 w-4 shrink-0 text-brand-british" />
+                                  )}
+                                  <span className="font-bold truncate text-sm text-neutral-950">
+                                    {booking.customerName}
+                                  </span>
+                                </div>
+                                {!isBlocked && (
+                                  <span className="text-xs text-neutral-700 font-medium block truncate mt-0.5">
+                                    {booking.sportName} · {booking.customerPhone}
+                                  </span>
+                                )}
+                              </div>
+
+                              {booking.isRecurring && (
+                                <Repeat className="h-3.5 w-3.5 shrink-0 text-brand-british" />
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs pt-1">
+                              <span className="font-mono font-black text-xs sm:text-sm text-neutral-950">
+                                ${booking.totalPrice.toLocaleString('es-AR')}
+                              </span>
+                              {isPending && (
+                                <span className="text-xs px-2 py-0.5 rounded-md bg-amber-200 text-amber-950 font-bold border border-amber-300">
+                                  Seña Pendiente
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Vista Móvil: Cancha Única Adaptativa (Previene scroll horizontal desmedido) */}
+            <div className="md:hidden">
+              {activeMobileCourt && (
+                <div>
+                  <div className="p-3 bg-neutral-100/80 border-b border-neutral-200 text-center">
+                    <span className="text-base font-black text-neutral-950 block">
+                      {activeMobileCourt.courtName}
+                    </span>
+                    <span className="text-xs font-semibold text-neutral-700 mt-0.5 block">
+                      {activeMobileCourt.surface} {activeMobileCourt.isIndoor ? '· Techada' : ''}
+                    </span>
+                  </div>
+
+                  <div
+                    className="grid"
+                    style={{ gridTemplateColumns: '70px 1fr' }}
+                  >
+                    {/* Horarios */}
+                    <div className="relative border-r border-neutral-300 bg-neutral-50">
+                      {TIME_SLOTS_30.map((slot) => (
+                        <div
+                          key={slot}
+                          style={{ height: `${SLOT_HEIGHT_PX}px` }}
+                          className="flex items-center justify-center text-xs font-mono font-bold text-neutral-800 border-b border-neutral-200"
+                        >
+                          {slot}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Contenido Cancha */}
+                    <div
+                      className="relative bg-white"
+                      style={{ height: `${TIME_SLOTS_30.length * SLOT_HEIGHT_PX}px` }}
+                    >
+                      {TIME_SLOTS_30.map((slot) => (
+                        <div
+                          key={slot}
+                          onClick={() => openNewBooking(activeMobileCourt.courtId, slot)}
+                          style={{ height: `${SLOT_HEIGHT_PX}px` }}
+                          className="border-b border-neutral-100 hover:bg-brand-sport/10 transition-colors cursor-pointer flex items-center justify-end px-3"
+                        >
+                          <span className="text-xs text-brand-british font-bold">
+                            + Reservar
+                          </span>
+                        </div>
+                      ))}
+
+                      {activeMobileCourt.bookings.map((booking) => {
+                        const style = computeBookingStyle(booking)
+                        const isConfirmed = booking.status === 'confirmed'
+                        const isBlocked = booking.status === 'blocked'
+
+                        return (
+                          <div
+                            key={booking.id}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openBookingDetail(booking.id)
+                            }}
+                            style={style}
+                            className={`absolute left-1.5 right-1.5 rounded-xl p-2.5 text-xs shadow-xs transition-all cursor-pointer flex flex-col justify-between border ${
+                              isConfirmed
+                                ? 'bg-emerald-50/95 border-emerald-400 text-neutral-950'
+                                : isBlocked
+                                ? 'bg-neutral-900 text-white border-neutral-800'
+                                : 'bg-amber-50 border-amber-300 text-neutral-950'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <span className="font-bold block truncate text-sm text-neutral-950">
+                                  {booking.customerName}
+                                </span>
+                                <span className="text-xs text-neutral-700 font-medium block truncate mt-0.5">
+                                  {booking.sportName} · {booking.customerPhone}
+                                </span>
+                              </div>
+                              {booking.isRecurring && (
+                                <Repeat className="h-4 w-4 text-brand-british shrink-0" />
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs pt-1">
+                              <span className="font-mono font-black text-sm text-neutral-950">
+                                ${booking.totalPrice.toLocaleString('es-AR')}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Slide-over Sheets */}
+      <NewBookingSheet
+        isOpen={isNewBookingOpen}
+        onClose={() => setIsNewBookingOpen(false)}
+        courts={courts}
+        defaultCourtId={newBookingParams.courtId}
+        defaultDate={selectedDate}
+        defaultTimeSlot={newBookingParams.timeSlot || '18:00'}
+      />
+
+      <BookingDetailSheet
         isOpen={isDetailOpen}
         onClose={() => {
           setIsDetailOpen(false)
-          setSelectedBooking(null)
+          setSelectedBookingId(null)
         }}
-        onUpdateBooking={handleUpdateBooking}
-        onCancelBooking={handleCancelBooking}
+        bookingId={selectedBookingId}
       />
-
-      <NewBookingModal
-        court={slotToCreate?.court || null}
-        timeSlot={slotToCreate?.timeSlot || '08:00'}
-        date={selectedDate}
-        isOpen={isCreateOpen}
-        onClose={() => {
-          setIsCreateOpen(false)
-          setSlotToCreate(null)
-        }}
-        onCreateBooking={handleCreateBooking}
-      />
-    </section>
+    </div>
   )
 }
