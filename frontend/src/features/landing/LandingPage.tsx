@@ -32,7 +32,7 @@ export const LandingPage: React.FC = () => {
   }, [searchParams])
 
   return (
-    <div className="min-h-screen bg-brand-dark text-neutral-50 flex flex-col font-sans selection:bg-brand-yellow selection:text-neutral-950">
+    <div className="min-h-screen bg-[#17181C] text-[#F2F3F5] flex flex-col font-body selection:bg-[#D46211] selection:text-white">
       {/* Barra de Navegación Superior */}
       <LandingNavbar />
 

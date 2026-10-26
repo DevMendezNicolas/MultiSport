@@ -1,7 +1,6 @@
 import React from 'react'
-import { ArrowUpRight, Play } from 'lucide-react'
-import heroCourtImg from '@/assets/landing/hero-court.jpg'
-import heroAthletesImg from '@/assets/landing/hero-athletes.jpg'
+import { Link } from 'react-router-dom'
+import { ArrowRight, Calendar, CheckCircle2, DollarSign, ShieldCheck, TrendingUp, Zap } from 'lucide-react'
 
 interface HeroSectionProps {
   onOpenDemo: () => void
@@ -9,130 +8,357 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenDemo }) => {
   return (
-    <section className="relative w-full bg-brand-dark overflow-hidden pt-6 pb-16 sm:py-20 lg:py-24 border-b border-neutral-900">
+    <section className="relative w-full bg-[#17181C] py-16 lg:py-24 overflow-hidden border-b border-[#31343E] font-body">
+      {/* Resplandor ambiental superior */}
+      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[980px] h-[480px] bg-[#D46211]/10 rounded-full blur-3xl pointer-events-none -z-10" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+        
+        {/* Cabecera Principal de Impacto */}
+        <div className="max-w-4xl mx-auto text-center flex flex-col items-center">
           
-          {/* Columna Izquierda: Copywriting y Métricas */}
-          <div className="lg:col-span-6 flex flex-col justify-center z-10">
-            {/* Kicker */}
-            <div className="flex items-center gap-2 mb-6">
-              <span className="w-6 h-[2px] bg-brand-yellow inline-block" />
-              <span className="text-xs font-mono font-bold tracking-widest text-brand-yellow uppercase">
-                GESTIÓN DEPORTIVA, SIN LÍMITES
-              </span>
-            </div>
-
-            {/* Título Principal de Impacto */}
-            <h1 className="font-black text-5xl sm:text-6xl lg:text-7xl tracking-tighter leading-[0.95] text-white">
-              Más juego.
-              <br />
-              <span className="text-brand-yellow">Menos</span>
-              <br />
-              <span className="text-brand-yellow">caos.</span>
-            </h1>
-
-            {/* Bajada */}
-            <p className="mt-6 text-neutral-400 text-base sm:text-lg leading-relaxed max-w-lg">
-              La plataforma que ordena la operación de tu complejo deportivo para que vos te enfoques en hacerlo crecer.
-            </p>
-
-            {/* Acciones CTAs */}
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <button
-                type="button"
-                onClick={onOpenDemo}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-brand-yellow text-neutral-950 font-bold text-base hover:bg-brand-yellow-hover transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-brand-yellow/10"
-              >
-                <span>Quiero una demo</span>
-                <ArrowUpRight className="h-4 w-4" strokeWidth={2.5} />
-              </button>
-
-              <a
-                href="#como-funciona"
-                className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full text-neutral-200 hover:text-white transition-colors group"
-              >
-                <div className="h-8 w-8 rounded-full border border-neutral-700 group-hover:border-brand-yellow flex items-center justify-center transition-colors">
-                  <Play className="h-3.5 w-3.5 fill-current text-brand-yellow ml-0.5" />
-                </div>
-                <span className="text-sm font-semibold">Ver cómo funciona</span>
-              </a>
-            </div>
-
-            {/* Barra Inferior de Métricas */}
-            <div className="mt-14 pt-8 border-t border-neutral-800/80 grid grid-cols-3 gap-4 max-w-md">
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-white">100%</div>
-                <div className="text-[11px] font-mono font-medium text-neutral-400 tracking-wider uppercase mt-1">
-                  EN LA NUBE
-                </div>
-              </div>
-
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-white">24/7</div>
-                <div className="text-[11px] font-mono font-medium text-neutral-400 tracking-wider uppercase mt-1">
-                  DISPONIBLE
-                </div>
-              </div>
-
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-white">0</div>
-                <div className="text-[11px] font-mono font-medium text-neutral-400 tracking-wider uppercase mt-1">
-                  CRUCES
-                </div>
-              </div>
-            </div>
+          {/* Status Indicator Pill */}
+          <div className="inline-flex items-center gap-2 pl-2 pr-3.5 py-1 rounded-full bg-[#22242B] border border-[#31343E] text-[#9497A1] text-xs font-mono tracking-wide shadow-sm mb-6">
+            <span className="w-2 h-2 rounded-full bg-[#327357] animate-pulse" />
+            <span className="font-semibold text-[#F2F3F5] uppercase tracking-wider">MultiSport OS</span>
+            <span className="text-[#9497A1] hidden sm:inline">• Pistas y recintos de alta rotación</span>
           </div>
 
-          {/* Columna Derecha: Composición Gráfica Urbana */}
-          <div className="lg:col-span-6 relative flex justify-center lg:justify-end">
-            <div className="relative w-full max-w-lg lg:max-w-none">
-              
-              {/* Contenedor Fotográfico Principal */}
-              <div className="relative rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900 aspect-[4/3] sm:aspect-[16/11] shadow-2xl">
-                <img
-                  src={heroCourtImg}
-                  alt="Cancha de básquet urbana con graffiti"
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                  fetchPriority="high"
-                />
-                
-                {/* Overlay degradado sutil */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+          {/* Título H1 */}
+          <h1 className="font-headline text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#F2F3F5] tracking-tight leading-[1.08] text-balance">
+            El sistema operativo para tu complejo deportivo
+          </h1>
 
-                {/* Badge Flotante Superior Derecho */}
-                <div className="absolute top-4 right-4 bg-brand-yellow text-neutral-950 p-3 sm:p-4 rounded-lg shadow-lg flex flex-col items-center justify-center min-w-[100px]">
-                  <span className="text-xl sm:text-2xl font-black leading-none">
-                    +30%
-                  </span>
-                  <span className="text-[9px] font-mono font-bold tracking-widest uppercase mt-1">
-                    MÁS CONTROL
-                  </span>
-                </div>
-              </div>
+          {/* Bajada */}
+          <p className="mt-5 text-base sm:text-lg text-[#9497A1] max-w-2xl text-balance leading-relaxed">
+            Reservas en tiempo real, gestión de turnos, cobros y fixtures de torneos en una única plataforma diseñada para la velocidad operativa.
+          </p>
 
-              {/* Tarjeta Superpuesta: Fotografía Urbana de Atletas */}
-              <div className="absolute -bottom-8 left-4 sm:-left-6 w-44 sm:w-56 aspect-square rounded-xl overflow-hidden border-4 border-brand-dark bg-neutral-900 shadow-2xl transform -rotate-1 hover:rotate-0 hover:scale-105 transition-all duration-300">
-                <img
-                  src={heroAthletesImg}
-                  alt="Fotografía documental de atletas urbanos descansando en complejo deportivo"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
+          {/* Doble Call To Action */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 w-full sm:w-auto">
+            <Link
+              to="/register"
+              className="min-h-[48px] px-7 rounded-lg bg-[#D46211] hover:bg-[#E37A24] text-white font-semibold text-base inline-flex items-center justify-center gap-2 shadow-md shadow-[#D46211]/20 transition-all transform active:scale-95 cursor-pointer"
+            >
+              <span>Registrar Complejo</span>
+              <ArrowRight className="w-4 h-4" strokeWidth={2} />
+            </Link>
 
-              {/* Firma y Año inferior derecha */}
-              <div className="mt-4 flex justify-end">
-                <span className="text-[11px] font-mono text-neutral-500 uppercase tracking-widest">
-                  MULTISPORT / 2026
-                </span>
-              </div>
+            <a
+              href="#agenda-preview"
+              className="min-h-[48px] px-6 rounded-lg bg-[#22242B] hover:bg-[#2d303a] border border-[#31343E] text-[#F2F3F5] font-semibold text-base inline-flex items-center justify-center gap-2 shadow-sm transition-all"
+            >
+              <Calendar className="w-4 h-4 text-[#D46211]" strokeWidth={1.75} />
+              <span>Ver Agenda en Vivo</span>
+            </a>
+          </div>
 
+          {/* Métricas Flotantes con Iconos de Lucide */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-[#9497A1] text-xs font-mono">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-[#327357]" strokeWidth={2} />
+              <span>Sincronización menor a 120ms</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-[#327357]" strokeWidth={2} />
+              <span>Control de solapamientos 0.0s</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-[#327357]" strokeWidth={2} />
+              <span>Multi-dispositivo en tiempo real</span>
             </div>
           </div>
 
         </div>
+
+        {/* PREVIEW DE AGENDA OPERATIVA EN VIVO (#agenda-preview) */}
+        <div className="mt-14 relative w-full" id="agenda-preview">
+          
+          {/* Barra Superior de Estado y KPIs */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
+            
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-[#22242B] border border-[#31343E] px-3.5 py-2 rounded-lg shadow-sm">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#327357] animate-ping" />
+                <span className="text-sm font-semibold text-[#F2F3F5]">Viernes, 24 de Octubre</span>
+                <span className="text-xs text-[#9497A1]">| En directo</span>
+              </div>
+
+              {/* Leyenda de estados */}
+              <div className="hidden lg:flex items-center gap-2 text-xs text-[#9497A1] font-mono">
+                <span className="w-2.5 h-2.5 rounded bg-[#327357] inline-block" /> Confirmado
+                <span className="w-2.5 h-2.5 rounded bg-[#D46211] inline-block ml-2" /> Seña Pendiente
+                <span className="w-2.5 h-2.5 rounded bg-[#111215] border border-[#31343E] inline-block ml-2" /> Libre
+              </div>
+            </div>
+
+            {/* Tarjetas KPI compactas */}
+            <div className="flex items-center gap-3">
+              <div className="bg-[#22242B] border border-[#31343E] px-3.5 py-1.5 rounded-lg shadow-sm flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-[#17181C] border border-[#31343E] flex items-center justify-center text-[#327357]">
+                  <TrendingUp className="w-3.5 h-3.5" strokeWidth={2} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-mono text-[#9497A1] uppercase">Ocupación Hoy</p>
+                  <p className="text-sm font-bold text-[#F2F3F5]">
+                    94% <span className="text-[#327357] text-xs font-normal">▲ 12%</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[#22242B] border border-[#31343E] px-3.5 py-1.5 rounded-lg shadow-sm flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-[#17181C] border border-[#31343E] flex items-center justify-center text-[#D46211]">
+                  <DollarSign className="w-3.5 h-3.5" strokeWidth={2} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-mono text-[#9497A1] uppercase">Señas Recibidas</p>
+                  <p className="text-sm font-bold text-[#F2F3F5] font-mono">$342.000</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Schedule Matrix Container */}
+          <div className="bg-[#22242B] border border-[#31343E] rounded-xl shadow-2xl overflow-hidden p-4 sm:p-5">
+            
+            {/* Window Top Bar */}
+            <div className="flex items-center justify-between pb-3 mb-3 bg-[#17181C] border border-[#31343E] rounded-lg px-4 py-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#D46211]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#327357]" />
+                <span className="ml-2 text-xs sm:text-sm font-medium text-[#F2F3F5]">
+                  Control Maestro • Sede Principal Las Lomas
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-mono text-[#9497A1]">
+                <span className="px-2 py-0.5 rounded bg-[#22242B] border border-[#31343E] text-[#F2F3F5]">
+                  Auto-Sync On
+                </span>
+                <span className="hidden sm:inline">UTC-3</span>
+              </div>
+            </div>
+
+            {/* RIESGO 2: Scroll Horizontal Contenido (no desborda el viewport móvil) */}
+            <div className="overflow-x-auto no-scrollbar pb-1">
+              <div className="min-w-[980px] flex flex-col space-y-2">
+                
+                {/* Timeline Header Row */}
+                <div className="grid grid-cols-[180px_repeat(10,1fr)] gap-2 pb-1 text-center text-xs font-mono text-[#9497A1] uppercase">
+                  <div className="text-left pl-2">Pista / Horario</div>
+                  <div>08:00</div>
+                  <div>09:30</div>
+                  <div>11:00</div>
+                  <div>14:00</div>
+                  <div>15:30</div>
+                  <div>17:00</div>
+                  <div>18:30</div>
+                  <div>20:00</div>
+                  <div>21:30</div>
+                  <div>23:00</div>
+                </div>
+
+                {/* Fila 1: Pádel 1 Cristal */}
+                <div className="grid grid-cols-[180px_repeat(10,1fr)] gap-2 items-center">
+                  <div className="bg-[#17181C] border border-[#31343E] px-3 py-2.5 rounded-lg flex flex-col justify-center">
+                    <span className="text-xs font-semibold text-[#F2F3F5]">Pádel 1 Cristal</span>
+                    <span className="text-[10px] text-[#9497A1] truncate">Césped Texturado • Cubierta</span>
+                  </div>
+                  {/* Slots */}
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">G. Valdez</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">L. Gómez</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                  <div onClick={onOpenDemo} className="bg-[#17181C] hover:bg-[#252831] border border-[#31343E] cursor-pointer text-[#9497A1] p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] transition-colors">
+                    <span className="text-xs text-[#F2F3F5]">Libre</span>
+                    <span className="text-[10px] text-[#D46211] font-semibold">Reservar</span>
+                  </div>
+                  <div className="bg-[#D46211] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#D46211]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">M. Soria</span>
+                    <span className="text-[10px] text-white/90">Seña Pendiente</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">Academia Jr</span>
+                    <span className="text-[10px] text-white/80 font-mono">$22.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">Clase Torneo</span>
+                    <span className="text-[10px] text-white/80 font-mono">$24.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">P. Rossi</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">J. Morales</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">R. Alvarez</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                  <div onClick={onOpenDemo} className="bg-[#17181C] hover:bg-[#252831] border border-[#31343E] cursor-pointer text-[#9497A1] p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] transition-colors">
+                    <span className="text-xs text-[#F2F3F5]">Libre</span>
+                    <span className="text-[10px] text-[#D46211] font-semibold">Reservar</span>
+                  </div>
+                </div>
+
+                {/* Fila 2: Pádel 2 Panorámica */}
+                <div className="grid grid-cols-[180px_repeat(10,1fr)] gap-2 items-center">
+                  <div className="bg-[#17181C] border border-[#31343E] px-3 py-2.5 rounded-lg flex flex-col justify-center">
+                    <span className="text-xs font-semibold text-[#F2F3F5]">Pádel 2 Panorámica</span>
+                    <span className="text-[10px] text-[#9497A1] truncate">World Padel Grade • Vidrio 12mm</span>
+                  </div>
+                  <div onClick={onOpenDemo} className="bg-[#17181C] hover:bg-[#252831] border border-[#31343E] cursor-pointer text-[#9497A1] p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] transition-colors">
+                    <span className="text-xs text-[#F2F3F5]">Libre</span>
+                    <span className="text-[10px] text-[#D46211] font-semibold">Reservar</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">C. Bianchi</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">D. Ruiz</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                  <div onClick={onOpenDemo} className="bg-[#17181C] hover:bg-[#252831] border border-[#31343E] cursor-pointer text-[#9497A1] p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] transition-colors">
+                    <span className="text-xs text-[#F2F3F5]">Libre</span>
+                    <span className="text-[10px] text-[#D46211] font-semibold">Reservar</span>
+                  </div>
+                  <div className="bg-[#D46211] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#D46211]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">T. Ramos</span>
+                    <span className="text-[10px] text-white/90">Seña Pendiente</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">S. Miller</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">M. Benítez</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">H. Castro</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">E. Silva</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">L. Ferrero</span>
+                    <span className="text-[10px] text-white/80 font-mono">$18.000</span>
+                  </div>
+                </div>
+
+                {/* Fila 3: Tenis 2 Polvo de Ladrillo */}
+                <div className="grid grid-cols-[180px_repeat(10,1fr)] gap-2 items-center">
+                  <div className="bg-[#17181C] border border-[#31343E] px-3 py-2.5 rounded-lg flex flex-col justify-center">
+                    <span className="text-xs font-semibold text-[#F2F3F5]">Tenis 2 Polvo</span>
+                    <span className="text-[10px] text-[#9497A1] truncate">Iluminación LED 800 lux</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">C. Nalbandian</span>
+                    <span className="text-[10px] text-white/80 font-mono">$15.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">A. Agassi Jr</span>
+                    <span className="text-[10px] text-white/80 font-mono">$15.000</span>
+                  </div>
+                  <div onClick={onOpenDemo} className="bg-[#17181C] hover:bg-[#252831] border border-[#31343E] cursor-pointer text-[#9497A1] p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] transition-colors">
+                    <span className="text-xs text-[#F2F3F5]">Libre</span>
+                    <span className="text-[10px] text-[#D46211] font-semibold">Reservar</span>
+                  </div>
+                  <div onClick={onOpenDemo} className="bg-[#17181C] hover:bg-[#252831] border border-[#31343E] cursor-pointer text-[#9497A1] p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] transition-colors">
+                    <span className="text-xs text-[#F2F3F5]">Libre</span>
+                    <span className="text-[10px] text-[#D46211] font-semibold">Reservar</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">Escuela Tenis</span>
+                    <span className="text-[10px] text-white/80 font-mono">$20.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">Escuela Tenis</span>
+                    <span className="text-[10px] text-white/80 font-mono">$20.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">F. Gaudio</span>
+                    <span className="text-[10px] text-white/80 font-mono">$15.000</span>
+                  </div>
+                  <div className="bg-[#D46211] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#D46211]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">K. Novak</span>
+                    <span className="text-[10px] text-white/90">Seña Pendiente</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">O. Prieto</span>
+                    <span className="text-[10px] text-white/80 font-mono">$15.000</span>
+                  </div>
+                  <div onClick={onOpenDemo} className="bg-[#17181C] hover:bg-[#252831] border border-[#31343E] cursor-pointer text-[#9497A1] p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] transition-colors">
+                    <span className="text-xs text-[#F2F3F5]">Libre</span>
+                    <span className="text-[10px] text-[#D46211] font-semibold">Reservar</span>
+                  </div>
+                </div>
+
+                {/* Fila 4: Fútbol 5 Sintético */}
+                <div className="grid grid-cols-[180px_repeat(10,1fr)] gap-2 items-center">
+                  <div className="bg-[#17181C] border border-[#31343E] px-3 py-2.5 rounded-lg flex flex-col justify-center">
+                    <span className="text-xs font-semibold text-[#F2F3F5]">Fútbol 5 Sintético</span>
+                    <span className="text-[10px] text-[#9497A1] truncate">Monofilamento 55mm • Rejas</span>
+                  </div>
+                  <div onClick={onOpenDemo} className="bg-[#17181C] hover:bg-[#252831] border border-[#31343E] cursor-pointer text-[#9497A1] p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] transition-colors">
+                    <span className="text-xs text-[#F2F3F5]">Libre</span>
+                    <span className="text-[10px] text-[#D46211] font-semibold">Reservar</span>
+                  </div>
+                  <div onClick={onOpenDemo} className="bg-[#17181C] hover:bg-[#252831] border border-[#31343E] cursor-pointer text-[#9497A1] p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] transition-colors">
+                    <span className="text-xs text-[#F2F3F5]">Libre</span>
+                    <span className="text-[10px] text-[#D46211] font-semibold">Reservar</span>
+                  </div>
+                  <div onClick={onOpenDemo} className="bg-[#17181C] hover:bg-[#252831] border border-[#31343E] cursor-pointer text-[#9497A1] p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] transition-colors">
+                    <span className="text-xs text-[#F2F3F5]">Libre</span>
+                    <span className="text-[10px] text-[#D46211] font-semibold">Reservar</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">Torneo Senior</span>
+                    <span className="text-[10px] text-white/80 font-mono">$28.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">Torneo Senior</span>
+                    <span className="text-[10px] text-white/80 font-mono">$28.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">Torneo Senior</span>
+                    <span className="text-[10px] text-white/80 font-mono">$28.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">Los Amigos FC</span>
+                    <span className="text-[10px] text-white/80 font-mono">$30.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">Interbarrial</span>
+                    <span className="text-[10px] text-white/80 font-mono">$30.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">Sporting Club</span>
+                    <span className="text-[10px] text-white/80 font-mono">$30.000</span>
+                  </div>
+                  <div className="bg-[#327357] text-white p-1.5 rounded-lg text-center flex flex-col justify-center min-h-[52px] shadow-sm border border-[#327357]/60">
+                    <span className="text-xs font-semibold truncate leading-tight">Tercer Tiempo</span>
+                    <span className="text-[10px] text-white/80 font-mono">$30.000</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
       </div>
     </section>
   )

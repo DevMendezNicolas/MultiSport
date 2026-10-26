@@ -2,34 +2,30 @@ import React from 'react'
 
 export const TeamBannerSection: React.FC = () => {
   return (
-    <section className="relative w-full bg-brand-yellow py-20 sm:py-24 lg:py-28 overflow-hidden select-none">
-      {/* Marca de agua tipográfica decorativa "MS" */}
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 text-neutral-950/10 font-black text-[180px] sm:text-[260px] lg:text-[340px] tracking-tighter leading-none pointer-events-none select-none z-0 pr-4 sm:pr-8">
-        MS
-      </div>
+    <section className="relative w-full bg-[#111215] py-16 sm:py-20 lg:py-24 border-b border-[#31343E] overflow-hidden select-none font-body">
+      {/* Resplandor verde institucional */}
+      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-96 h-96 bg-[#327357]/15 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
           {/* Lado Izquierdo: Titular Principal */}
           <div className="lg:col-span-7">
-            <div className="text-xs font-mono font-bold tracking-widest text-neutral-950 uppercase">
+            <div className="text-xs font-mono font-bold tracking-widest text-[#D46211] uppercase">
               HECHO PARA EL MOVIMIENTO
             </div>
             
-            <h2 className="mt-4 font-black text-5xl sm:text-6xl lg:text-7xl tracking-tighter leading-[0.95] text-neutral-950">
+            <h2 className="mt-3 font-headline text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] text-[#F2F3F5]">
               Tu complejo
               <br />
-              es un
-              <br />
-              equipo.
+              es un <span className="text-[#327357]">equipo.</span>
             </h2>
           </div>
 
           {/* Lado Derecho: Párrafo de Cierre de Bloque */}
           <div className="lg:col-span-5 flex items-center">
-            <p className="text-neutral-950 font-semibold text-lg sm:text-xl lg:text-2xl leading-relaxed max-w-md">
-              Dejá de apagar incendios y empezá a tomar decisiones con una vista clara de todo lo que sucede.
+            <p className="text-[#9497A1] font-medium text-base sm:text-lg lg:text-xl leading-relaxed max-w-md">
+              Dejá de apagar incendios con cuadernos o chats dispersos y empezá a tomar decisiones con una vista clara y en vivo de tus canchas.
             </p>
           </div>
 
