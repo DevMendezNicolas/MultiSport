@@ -20,6 +20,7 @@ public static class AuthEndpoints
         group.MapPost("/register-complex", RegisterComplex)
              .WithName("RegisterComplex")
              .WithSummary("Registra un nuevo complejo deportivo y envía email de verificación")
+             .RequireRateLimiting("auth-rate-limit")
              .Produces<RegisterSuccessResponse>(StatusCodes.Status200OK)
              .ProducesValidationProblem()
              .ProducesProblem(StatusCodes.Status409Conflict);
@@ -27,6 +28,7 @@ public static class AuthEndpoints
         group.MapPost("/login", Login)
              .WithName("Login")
              .WithSummary("Inicia sesión para administradores de complejos")
+             .RequireRateLimiting("auth-rate-limit")
              .Produces<AuthResponse>(StatusCodes.Status200OK)
              .ProducesValidationProblem()
              .Produces(StatusCodes.Status401Unauthorized)
@@ -47,15 +49,19 @@ public static class AuthEndpoints
         group.MapPost("/forgot-password", ForgotPassword)
              .WithName("ForgotPassword")
              .WithSummary("Solicita la recuperación de contraseña enviando un token seguro por correo")
+             .RequireRateLimiting("auth-rate-limit")
              .Produces<ProblemDetails>(StatusCodes.Status200OK)
-             .ProducesValidationProblem();
+             .ProducesValidationProblem()
+             .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         group.MapPost("/reset-password", ResetPassword)
              .WithName("ResetPassword")
              .WithSummary("Restablece la contraseña utilizando el token de un solo uso")
+             .RequireRateLimiting("auth-rate-limit")
              .Produces<ProblemDetails>(StatusCodes.Status200OK)
              .ProducesValidationProblem()
-             .ProducesProblem(StatusCodes.Status400BadRequest);
+             .ProducesProblem(StatusCodes.Status400BadRequest)
+             .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         group.MapPost("/change-password", ChangePassword)
              .WithName("ChangePassword")
@@ -76,9 +82,11 @@ public static class AuthEndpoints
         group.MapPost("/resend-verification", ResendVerification)
              .WithName("ResendVerification")
              .WithSummary("Reenvía el enlace de verificación de correo electrónico")
+             .RequireRateLimiting("auth-rate-limit")
              .Produces<ProblemDetails>(StatusCodes.Status200OK)
              .ProducesValidationProblem()
-             .ProducesProblem(StatusCodes.Status400BadRequest);
+             .ProducesProblem(StatusCodes.Status400BadRequest)
+             .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         group.MapPut("/complex-profile", UpdateComplexProfile)
              .WithName("UpdateComplexProfile")

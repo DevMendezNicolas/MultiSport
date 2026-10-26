@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -11,7 +11,6 @@ import type { LoginPayload } from '../types'
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
-  const location = useLocation()
   const { login } = useAuth()
 
   const [credentials, setCredentials] = useState<LoginPayload>({
@@ -28,9 +27,7 @@ export const LoginPage: React.FC = () => {
       toast.success('Inicio de sesión exitoso', {
         description: `Bienvenido, ${data.user.complexName}.`,
       })
-      const from = (location.state as { from?: { pathname: string; search?: string } })?.from
-      const returnUrl = from ? `${from.pathname}${from.search || ''}` : '/admin'
-      navigate(returnUrl, { replace: true })
+      navigate('/admin', { replace: true })
     },
     onError: (error) => {
       if (axios.isAxiosError(error) && error.response) {

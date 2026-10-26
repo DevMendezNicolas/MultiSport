@@ -1,17 +1,25 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios'
 
 let inMemoryToken: string | null = null
+let isTerminatingSession = false
+
+export const startSessionTermination = (): void => {
+  isTerminatingSession = true
+  processQueue(new Error('Session is terminating'), null)
+}
+
+export const resetSessionTermination = (): void => {
+  isTerminatingSession = false
+}
 
 export const getAccessToken = (): string | null => {
-  return inMemoryToken || sessionStorage.getItem('access_token')
+  return inMemoryToken
 }
 
 export const setAccessToken = (token: string | null): void => {
   inMemoryToken = token
-  if (token) {
-    sessionStorage.setItem('access_token', token)
-  } else {
-    sessionStorage.removeItem('access_token')
+  if (token !== null) {
+    resetSessionTermination()
   }
 }
 
@@ -118,13 +126,22 @@ api.interceptors.response.use(
     const originalRequest = error.config
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Si la sesión está en proceso de terminación, abortar inmediatamente sin intentar refrescar
+      if (isTerminatingSession) {
+        return Promise.reject(error)
+      }
+
       // Don't retry if the failed call was login or refresh itself
       if (
         originalRequest.url?.includes('/auth/login') ||
         originalRequest.url?.includes('/auth/refresh')
       ) {
+        const hadToken = getAccessToken() !== null
         setAccessToken(null)
-        notifyAuthExpired('SESSION_EXPIRED')
+        // Solo notificar expiración si el usuario ya contaba con una sesión autenticada previa
+        if (hadToken) {
+          notifyAuthExpired('SESSION_EXPIRED')
+        }
         return Promise.reject(error)
       }
 
@@ -162,8 +179,11 @@ api.interceptors.response.use(
         return api(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
+        const hadToken = getAccessToken() !== null
         setAccessToken(null)
-        notifyAuthExpired('SESSION_EXPIRED')
+        if (hadToken) {
+          notifyAuthExpired('SESSION_EXPIRED')
+        }
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

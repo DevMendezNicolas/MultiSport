@@ -3,13 +3,21 @@ import { toast } from 'sonner'
 import { authApi } from '../api/authApi'
 import type { AuthResponse, LoginPayload, RegisterComplexPayload, RegisterSuccessResponse, UserInfoDto } from '../types'
 import { AuthContext, type AuthContextType } from './authContextDef'
-import { getAccessToken, setAccessToken, onAuthExpired } from '@/lib/axios'
+import {
+  getAccessToken,
+  setAccessToken,
+  onAuthExpired,
+  startSessionTermination,
+  resetSessionTermination,
+} from '@/lib/axios'
 import { queryClient } from '@/lib/queryClient'
 import { useIdleTimeout } from '../hooks/useIdleTimeout'
 import {
   broadcastLogout,
   broadcastTokenRefreshed,
   subscribeAuthSync,
+  resetActivityTimestamp,
+  clearActivityTimestamp,
   type AuthSyncMessage,
 } from '../services/authSync'
 
@@ -17,20 +25,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserInfoDto | null>(null)
   const [accessToken, setToken] = useState<string | null>(getAccessToken())
   const [isLoading, setIsLoading] = useState<boolean>(true)
+  const isExpiringRef = React.useRef<boolean>(false)
 
   const handleSessionExpired = useCallback(async (reason: string = 'Tu sesión expiró por 30 minutos de inactividad.') => {
+    if (isExpiringRef.current) return
+    isExpiringRef.current = true
+
+    startSessionTermination()
+    clearActivityTimestamp()
+
     setUser(null)
     setToken(null)
     setAccessToken(null)
     queryClient.clear()
 
+    toast.error(reason, { id: 'auth-session-expired' })
+
     try {
       await authApi.logout()
     } catch {
       // Ignorar fallo de red en logout durante expiración
+    } finally {
+      setTimeout(() => {
+        isExpiringRef.current = false
+      }, 1000)
     }
-
-    toast.error(reason)
   }, [])
 
 
@@ -43,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(data.user)
           setToken(data.accessToken)
           setAccessToken(data.accessToken)
+          resetActivityTimestamp()
         }
       } catch {
         if (isMounted) {
@@ -103,6 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user)
       setToken(data.accessToken)
       setAccessToken(data.accessToken)
+      resetActivityTimestamp()
       broadcastTokenRefreshed(data.accessToken, data.user)
     } catch (error) {
       setUser(null)
@@ -122,19 +143,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   })
 
   const login = async (payload: LoginPayload): Promise<AuthResponse> => {
+    resetSessionTermination()
     const data = await authApi.login(payload)
     setUser(data.user)
     setToken(data.accessToken)
     setAccessToken(data.accessToken)
+    resetActivityTimestamp()
     broadcastTokenRefreshed(data.accessToken, data.user)
     return data
   }
 
   const register = async (payload: RegisterComplexPayload): Promise<RegisterSuccessResponse> => {
+    clearActivityTimestamp()
     return await authApi.registerComplex(payload)
   }
 
   const logout = async (): Promise<void> => {
+    startSessionTermination()
+    clearActivityTimestamp()
     try {
       await authApi.logout()
     } finally {

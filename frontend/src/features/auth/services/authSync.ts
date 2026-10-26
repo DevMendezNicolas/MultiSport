@@ -56,13 +56,26 @@ export const subscribeAuthSync = (handler: MessageHandler): (() => void) => {
   }
 }
 
-export const broadcastActivity = (timestamp: number): void => {
+export const resetActivityTimestamp = (timestamp?: number): void => {
+  const ts = timestamp ?? Date.now()
   try {
-    channel?.postMessage({ type: 'ACTIVITY', timestamp })
-    localStorage.setItem(STORAGE_ACTIVITY_KEY, timestamp.toString())
+    channel?.postMessage({ type: 'ACTIVITY', timestamp: ts })
+    localStorage.setItem(STORAGE_ACTIVITY_KEY, ts.toString())
   } catch {
     // Ignore postMessage / quota errors
   }
+}
+
+export const clearActivityTimestamp = (): void => {
+  try {
+    localStorage.removeItem(STORAGE_ACTIVITY_KEY)
+  } catch {
+    // Ignore quota errors
+  }
+}
+
+export const broadcastActivity = (timestamp: number): void => {
+  resetActivityTimestamp(timestamp)
 }
 
 export const broadcastSessionExpired = (reason: string = 'Inactividad de 30 minutos'): void => {
@@ -76,7 +89,7 @@ export const broadcastSessionExpired = (reason: string = 'Inactividad de 30 minu
 export const broadcastLogout = (): void => {
   try {
     channel?.postMessage({ type: 'LOGOUT' })
-    localStorage.removeItem(STORAGE_ACTIVITY_KEY)
+    clearActivityTimestamp()
   } catch {
     // Ignore postMessage errors
   }
@@ -91,10 +104,14 @@ export const broadcastTokenRefreshed = (accessToken: string, user: UserInfoDto):
 }
 
 export const getLastActivityTimestamp = (): number => {
-  const stored = localStorage.getItem(STORAGE_ACTIVITY_KEY)
-  if (stored) {
-    const parsed = parseInt(stored, 10)
-    if (!isNaN(parsed)) return parsed
+  try {
+    const stored = localStorage.getItem(STORAGE_ACTIVITY_KEY)
+    if (stored) {
+      const parsed = parseInt(stored, 10)
+      if (!isNaN(parsed) && parsed > 0) return parsed
+    }
+  } catch {
+    // Ignore storage errors
   }
   return Date.now()
 }

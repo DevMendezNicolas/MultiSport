@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Calendar, Clock, DollarSign, LayoutDashboard, LogOut, Menu, Settings, Trophy, X } from 'lucide-react'
+import { Clock, LayoutDashboard, LogOut, Menu, Settings, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { MultiSportLogo } from '@/features/landing/components/MultiSportLogo'
 import { useAuth } from '@/features/auth'
@@ -25,10 +25,7 @@ export const AdminLayout: React.FC = () => {
 
   const navLinks = [
     { to: '/admin', label: 'Panel General', icon: LayoutDashboard, end: true },
-    { to: '/admin/bookings', label: 'Agenda de Turnos', icon: Calendar },
     { to: '/admin/courts', label: 'Canchas e Instalaciones', icon: Clock },
-    { to: '/admin/tournaments', label: 'Torneos y Eventos', icon: Trophy },
-    { to: '/admin/finances', label: 'Caja y Pagos', icon: DollarSign },
     { to: '/admin/settings', label: 'Configuración', icon: Settings },
   ]
 
