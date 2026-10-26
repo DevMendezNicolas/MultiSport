@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,6 +10,7 @@ import {
   RefreshCw,
   LayoutGrid,
   User,
+  ArrowLeft,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDailyGrid } from '../hooks/useBookings'
@@ -31,17 +33,27 @@ const TIME_SLOTS_30 = GENERATE_30_MIN_SLOTS()
 const SLOT_HEIGHT_PX = 48 // Altura en píxeles de cada bloque de 30 minutos
 
 export const DailyOperationalCalendar: React.FC = () => {
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
   // Manejo de fecha seleccionada (formato YYYY-MM-DD en hora local)
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date()
     return today.toISOString().split('T')[0]
   })
 
-  // Filtro por deporte
-  const [selectedSport, setSelectedSport] = useState<string>('all')
+  // Cancha focalizada desde parámetro URL (?courtId=...)
+  const courtIdParam = searchParams.get('courtId')
 
   // Vista adaptativa en móvil (cancha única vs grilla)
-  const [selectedMobileCourtId, setSelectedMobileCourtId] = useState<string>('')
+  const [selectedMobileCourtId, setSelectedMobileCourtId] = useState<string>(courtIdParam || '')
+
+  // Sincronizar selección móvil si cambia courtIdParam
+  useEffect(() => {
+    if (courtIdParam) {
+      setSelectedMobileCourtId(courtIdParam)
+    }
+  }, [courtIdParam])
 
   // Estados de Sheets
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null)
@@ -58,30 +70,42 @@ export const DailyOperationalCalendar: React.FC = () => {
 
   const courts = useMemo(() => gridData?.courts || [], [gridData])
 
-  // Obtener lista única de deportes presentes en las canchas
-  const availableSports = useMemo(() => {
-    const sportSet = new Set<string>()
-    courts.forEach((c) => {
-      c.sports.forEach((s) => sportSet.add(s.name))
-    })
-    return Array.from(sportSet)
-  }, [courts])
+  // Identificar si estamos en Modo Enfocado en una Cancha
+  const focusedCourt = useMemo(() => {
+    if (!courtIdParam) return null
+    return courts.find((c) => c.courtId === courtIdParam) || null
+  }, [courts, courtIdParam])
 
-  // Filtrado de canchas por deporte seleccionado
-  const filteredCourts = useMemo(() => {
-    if (selectedSport === 'all') return courts
-    return courts.filter((c) =>
-      c.sports.some((s) => s.name.toLowerCase() === selectedSport.toLowerCase())
-    )
-  }, [courts, selectedSport])
+  // Filtrado de canchas (si hay cancha focalizada se muestra solo esa, sino todas las canchas)
+  const displayedCourts = useMemo(() => {
+    if (focusedCourt) {
+      return [focusedCourt]
+    }
+    return courts
+  }, [courts, focusedCourt])
 
   // Cancha activa para vista móvil
   const activeMobileCourt = useMemo(() => {
-    if (!filteredCourts.length) return null
+    if (focusedCourt) return focusedCourt
+    if (!displayedCourts.length) return null
     return (
-      filteredCourts.find((c) => c.courtId === selectedMobileCourtId) || filteredCourts[0]
+      displayedCourts.find((c) => c.courtId === selectedMobileCourtId) || displayedCourts[0]
     )
-  }, [filteredCourts, selectedMobileCourtId])
+  }, [focusedCourt, displayedCourts, selectedMobileCourtId])
+
+  // Acciones de Selección de Cancha en Pestañas
+  const handleSelectCourt = (courtId: string | null) => {
+    if (!courtId) {
+      // Ver todas las canchas
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.delete('courtId')
+      setSearchParams(nextParams)
+      setSelectedMobileCourtId('')
+    } else {
+      setSearchParams({ courtId })
+      setSelectedMobileCourtId(courtId)
+    }
+  }
 
   // Navegación de Fechas
   const handleDateChange = (daysDelta: number) => {
@@ -106,7 +130,7 @@ export const DailyOperationalCalendar: React.FC = () => {
   }, [selectedDate])
 
   const openNewBooking = (courtId?: string, timeSlot?: string) => {
-    setNewBookingParams({ courtId, timeSlot })
+    setNewBookingParams({ courtId: courtId || focusedCourt?.courtId, timeSlot })
     setIsNewBookingOpen(true)
   }
 
@@ -138,8 +162,18 @@ export const DailyOperationalCalendar: React.FC = () => {
       {/* Barra de Control y Navegación de Agenda */}
       <header className="sticky top-0 z-20 bg-white border-b border-neutral-200 px-4 sm:px-6 py-3.5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          {/* Navegador de Fecha */}
-          <div className="flex items-center gap-2">
+          {/* Navegador de Fecha y Retorno al Panel General */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => navigate('/admin')}
+              className="min-h-[38px] px-3.5 py-1.5 rounded-xl border border-neutral-300 bg-white text-neutral-800 hover:text-neutral-950 hover:bg-neutral-50 text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              title="Volver al panel general"
+            >
+              <ArrowLeft className="h-4 w-4" strokeWidth={2} />
+              <span>Panel General</span>
+            </button>
+
             <div className="flex items-center bg-neutral-100 rounded-xl p-1 border border-neutral-200">
               <button
                 type="button"
@@ -178,7 +212,7 @@ export const DailyOperationalCalendar: React.FC = () => {
               />
             </div>
 
-            <span className="hidden md:inline-block text-base font-bold text-neutral-950 capitalize ml-2">
+            <span className="hidden lg:inline-block text-sm font-bold text-neutral-950 capitalize ml-1">
               {formattedDateTitle}
             </span>
           </div>
@@ -206,54 +240,62 @@ export const DailyOperationalCalendar: React.FC = () => {
           </div>
         </div>
 
-        {/* Filtros de Deportes */}
-        {availableSports.length > 0 && (
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-neutral-200 overflow-x-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={() => setSelectedSport('all')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors cursor-pointer ${
-                selectedSport === 'all'
-                  ? 'bg-brand-sport text-white shadow-xs'
-                  : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'
-              }`}
-            >
-              Todas las Canchas
-            </button>
-            {availableSports.map((sport) => (
+        {/* Pestañas de Selección de Canchas (Switcher rápido entre canchas) */}
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-neutral-200 overflow-x-auto no-scrollbar">
+          <span className="text-xs font-mono font-bold text-neutral-500 uppercase tracking-wider mr-1 shrink-0">
+            Canchas:
+          </span>
+          <button
+            type="button"
+            onClick={() => handleSelectCourt(null)}
+            className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
+              !focusedCourt
+                ? 'bg-neutral-950 text-white shadow-xs'
+                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+            }`}
+          >
+            Todas las Canchas
+          </button>
+          {courts.map((c) => {
+            const isSelected = focusedCourt?.courtId === c.courtId
+            return (
               <button
-                key={sport}
+                key={c.courtId}
                 type="button"
-                onClick={() => setSelectedSport(sport)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors cursor-pointer ${
-                  selectedSport.toLowerCase() === sport.toLowerCase()
+                onClick={() => handleSelectCourt(c.courtId)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
+                  isSelected
                     ? 'bg-brand-sport text-white shadow-xs'
-                    : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'
+                    : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'
                 }`}
               >
-                {sport}
+                {c.courtName}
               </button>
-            ))}
+            )
+          })}
+        </div>
+
+        {/* Resumen Contextual de la Cancha Focalizada */}
+        {focusedCourt && (
+          <div className="mt-3 p-3 bg-neutral-50 border border-neutral-200 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="font-black text-sm text-neutral-950 uppercase">{focusedCourt.courtName}</span>
+              <span className="font-mono bg-white px-2 py-0.5 border border-neutral-300 font-bold text-neutral-800">
+                {focusedCourt.surface} {focusedCourt.isIndoor ? '· Techada' : '· Al aire libre'}
+              </span>
+              <div className="hidden sm:flex items-center gap-2 text-neutral-700">
+                {focusedCourt.sports.map((s) => (
+                  <span key={s.sportId} className="font-medium">
+                    {s.name}: ${s.basePrice.toLocaleString('es-AR')} ({s.durationMinutes} min)
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="font-mono font-bold text-neutral-900">
+              {focusedCourt.bookings.filter((b) => b.status !== 'cancelled').length} turnos programados hoy
+            </div>
           </div>
         )}
-
-        {/* Selector de Cancha en Dispositivos Móviles (Ergonomía Fitts / Hick) */}
-        <div className="md:hidden mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          {filteredCourts.map((c) => (
-            <button
-              key={c.courtId}
-              type="button"
-              onClick={() => setSelectedMobileCourtId(c.courtId)}
-              className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap border transition-all cursor-pointer ${
-                (activeMobileCourt?.courtId === c.courtId)
-                  ? 'border-brand-sport bg-brand-sport/15 text-brand-british shadow-xs'
-                  : 'border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-100'
-              }`}
-            >
-              {c.courtName}
-            </button>
-          ))}
-        </div>
       </header>
 
       {/* Contenido Principal de la Grilla Operativa */}
@@ -263,7 +305,7 @@ export const DailyOperationalCalendar: React.FC = () => {
             <Skeleton className="h-16 w-full rounded-2xl" />
             <Skeleton className="h-[600px] w-full rounded-2xl" />
           </div>
-        ) : filteredCourts.length === 0 ? (
+        ) : displayedCourts.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-96 rounded-2xl border-2 border-dashed border-neutral-300 bg-white p-8 text-center">
             <div className="h-14 w-14 rounded-2xl bg-[#258653]/10 flex items-center justify-center text-[#258653] mb-4">
               <LayoutGrid className="h-7 w-7" strokeWidth={2} />
@@ -277,12 +319,15 @@ export const DailyOperationalCalendar: React.FC = () => {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-neutral-200 shadow-xs overflow-hidden">
-            {/* Vista Desktop: Multi-Columna Paralela */}
+            {/* Vista Desktop: Multi-Columna o Columna Ampliada si está focalizada */}
             <div className="hidden md:block overflow-x-auto">
               <div
-                className="grid min-w-[750px]"
+                className="grid"
                 style={{
-                  gridTemplateColumns: `80px repeat(${filteredCourts.length}, minmax(220px, 1fr))`,
+                  gridTemplateColumns: focusedCourt
+                    ? '80px minmax(500px, 1fr)'
+                    : `80px repeat(${displayedCourts.length}, minmax(220px, 1fr))`,
+                  minWidth: focusedCourt ? '100%' : '750px',
                 }}
               >
                 {/* Cabecera: Eje de Tiempo */}
@@ -291,7 +336,7 @@ export const DailyOperationalCalendar: React.FC = () => {
                 </div>
 
                 {/* Cabeceras de Canchas */}
-                {filteredCourts.map((court) => (
+                {displayedCourts.map((court) => (
                   <div
                     key={court.courtId}
                     className="p-3.5 border-b border-r border-neutral-200 bg-neutral-50/90 text-center"
@@ -326,7 +371,7 @@ export const DailyOperationalCalendar: React.FC = () => {
                   </div>
 
                   {/* Columnas por cada Cancha */}
-                  {filteredCourts.map((court) => (
+                  {displayedCourts.map((court) => (
                     <div
                       key={court.courtId}
                       className="relative border-r border-neutral-200 bg-white"

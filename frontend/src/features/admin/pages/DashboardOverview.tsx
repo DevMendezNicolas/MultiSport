@@ -1,11 +1,10 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Clock, Plus } from 'lucide-react'
 import { useAuth } from '@/features/auth'
-import { DailyOperationalCalendar } from '@/features/bookings'
+import { CourtOperationalCards } from '@/features/courts'
 
 import courtsTriptychImg from '@/assets/home-page/courts-triptych.jpg'
-import calendarImg from '@/assets/home-page/calendar.jpg'
 import sportsEquipmentImg from '@/assets/home-page/sports-equipment.jpg'
 import athleteActionImg from '@/assets/home-page/athlete-action.jpg'
 import courtPadelImg from '@/assets/home-page/court-padel.jpg'
@@ -24,16 +23,6 @@ export const DashboardOverview: React.FC = () => {
   const { user } = useAuth()
 
   const modules: OperationalModule[] = [
-    {
-      to: '/admin/bookings',
-      title: 'Administrar Turnos',
-      description:
-        'Control de la grilla horaria diaria, turnos eventuales y semanales, registro de señas y cobros.',
-      actionText: 'Abrir Agenda de Turnos',
-      image: calendarImg,
-      imageAlt: 'Calendario minimalista de turnos y agenda',
-      isPrimary: true,
-    },
     {
       to: '/admin/courts',
       title: 'Administrar Canchas',
@@ -99,35 +88,41 @@ export const DashboardOverview: React.FC = () => {
           {/* Accesos Rápidos Principales */}
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              to="/admin/bookings"
+              to="/admin/courts?tab=create"
               className="min-h-[44px] px-6 py-2.5 rounded-full bg-brand-sport text-white text-xs sm:text-sm font-bold uppercase tracking-wider hover:bg-brand-sport-hover transition-colors shadow-sm inline-flex items-center gap-2"
             >
-              <span>Ir a la Agenda de Turnos</span>
-              <ArrowRight className="h-4 w-4" strokeWidth={2} />
+              <Plus className="h-4 w-4" strokeWidth={2} />
+              <span>Nueva Cancha</span>
             </Link>
 
             <Link
               to="/admin/courts"
               className="min-h-[44px] px-6 py-2.5 rounded-full bg-neutral-950 text-white text-xs sm:text-sm font-bold uppercase tracking-wider hover:bg-neutral-800 transition-colors shadow-sm inline-flex items-center gap-2"
             >
+              <Clock className="h-4 w-4" strokeWidth={2} />
               <span>Ver Estado de Canchas</span>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Grilla Operativa de Turnos del Día */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between border-b border-neutral-300 pb-2">
-          <h2 className="text-xl font-black uppercase tracking-tight text-neutral-950">
-            Agenda Operativa Diaria
-          </h2>
-          <span className="text-xs font-bold text-neutral-800 bg-neutral-200/90 px-3 py-1 rounded-md">
-            Grilla en Vivo
+      {/* Grilla Operativa de Canchas del Predio */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-neutral-300 pb-3">
+          <div>
+            <h2 className="text-xl font-black uppercase tracking-tight text-neutral-950">
+              Canchas del Establecimiento
+            </h2>
+            <p className="text-xs text-neutral-600 mt-0.5 font-medium">
+              Selecciona una cancha para abrir su schedule diario y gestionar turnos en tiempo real
+            </p>
+          </div>
+          <span className="text-xs font-bold text-neutral-800 bg-neutral-200/90 px-3 py-1 rounded-md self-start sm:self-auto">
+            Estado en Vivo
           </span>
         </div>
 
-        <DailyOperationalCalendar />
+        <CourtOperationalCards />
       </section>
 
       {/* Grilla de Módulos de Gestión */}

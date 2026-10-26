@@ -13,7 +13,6 @@ import {
   CreditCard,
   Banknote,
   Building,
-  ExternalLink,
   Repeat,
 } from 'lucide-react'
 import {
@@ -28,6 +27,7 @@ import {
   useBookingDetail,
   useRecordPayment,
   useCancelBooking,
+  useRescheduleBooking,
 } from '../hooks/useBookings'
 
 interface BookingDetailSheetProps {
@@ -54,17 +54,33 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
   const [refundDeposit, setRefundDeposit] = useState(false)
   const [refundMethod, setRefundMethod] = useState<'cash' | 'transfer'>('cash')
 
+  // Estados de reprogramación de horario
+  const [showRescheduleForm, setShowRescheduleForm] = useState(false)
+  const [rescheduleDate, setRescheduleDate] = useState('')
+  const [rescheduleTime, setRescheduleTime] = useState('18:00')
+  const [rescheduleDurationMinutes, setRescheduleDurationMinutes] = useState(60)
+
   const recordPaymentMutation = useRecordPayment()
   const cancelBookingMutation = useCancelBooking()
+  const rescheduleBookingMutation = useRescheduleBooking()
 
-  // Sincronizar monto inicial al abrir formulario de pago
+  // Sincronizar estado inicial al abrir formulario de pago o cambio de reserva
   React.useEffect(() => {
     if (booking) {
       setPaymentAmount(booking.balance > 0 ? booking.balance : 0)
       setShowPaymentForm(false)
       setShowCancelDialog(false)
+      setShowRescheduleForm(false)
       setCancelReason('')
       setRefundDeposit(false)
+
+      const start = new Date(booking.startTimeUtc)
+      const end = new Date(booking.endTimeUtc)
+      const dur = Math.round((end.getTime() - start.getTime()) / 60000)
+      setRescheduleDurationMinutes(dur > 0 ? dur : 60)
+      setRescheduleDate(start.toISOString().split('T')[0])
+      const localTime = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+      setRescheduleTime(localTime)
     }
   }, [booking])
 
@@ -84,6 +100,27 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
     })
 
     setShowPaymentForm(false)
+  }
+
+  const handleConfirmReschedule = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!booking || !rescheduleDate || !rescheduleTime) return
+
+    const [hours, minutes] = rescheduleTime.split(':').map(Number)
+    const newStart = new Date(`${rescheduleDate}T00:00:00`)
+    newStart.setHours(hours, minutes, 0, 0)
+    const newEnd = new Date(newStart.getTime() + rescheduleDurationMinutes * 60 * 1000)
+
+    await rescheduleBookingMutation.mutateAsync({
+      id: booking.id,
+      payload: {
+        courtId: booking.courtId,
+        newStartTimeUtc: newStart.toISOString(),
+        newEndTimeUtc: newEnd.toISOString(),
+      },
+    })
+
+    setShowRescheduleForm(false)
   }
 
   const handleConfirmCancel = async () => {
@@ -185,6 +222,69 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
                   <span className="text-neutral-400">·</span>
                   <span className="capitalize">{formatDateTime(booking.startTimeUtc).date}</span>
                 </div>
+
+                {/* Sección de Reprogramación de Turno */}
+                {booking.status !== 'cancelled' && (
+                  <div className="pt-2 border-t border-neutral-200">
+                    {!showRescheduleForm ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowRescheduleForm(true)}
+                        className="px-3 py-1.5 rounded-lg border border-neutral-300 bg-white hover:bg-neutral-100 text-xs font-bold text-neutral-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Calendar className="h-3.5 w-3.5 text-neutral-700" strokeWidth={2} />
+                        <span>Reprogramar Horario o Fecha</span>
+                      </button>
+                    ) : (
+                      <form
+                        onSubmit={handleConfirmReschedule}
+                        className="p-3.5 bg-neutral-100 border border-neutral-300 rounded-xl space-y-3"
+                      >
+                        <span className="text-xs font-mono font-bold text-neutral-700 uppercase block">
+                          Nueva Fecha y Horario
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-xs font-bold text-neutral-700 block mb-1">Fecha</label>
+                            <input
+                              type="date"
+                              required
+                              value={rescheduleDate}
+                              onChange={(e) => setRescheduleDate(e.target.value)}
+                              className="w-full text-xs font-semibold p-2 bg-white border border-neutral-300 rounded-lg outline-hidden"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-neutral-700 block mb-1">Hora Inicio</label>
+                            <input
+                              type="time"
+                              required
+                              value={rescheduleTime}
+                              onChange={(e) => setRescheduleTime(e.target.value)}
+                              className="w-full text-xs font-semibold p-2 bg-white border border-neutral-300 rounded-lg outline-hidden"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowRescheduleForm(false)}
+                            className="px-3 py-1.5 text-xs font-bold text-neutral-700 hover:text-neutral-950 transition-colors cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={rescheduleBookingMutation.isPending}
+                            className="px-4 py-1.5 rounded-lg bg-brand-sport hover:bg-brand-sport-hover text-white text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+                          >
+                            {rescheduleBookingMutation.isPending ? 'Reprogramando...' : 'Confirmar Cambio'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Datos del Cliente */}
@@ -202,20 +302,9 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <Phone className="h-4 w-4 text-neutral-600 shrink-0" />
-                        <span className="text-sm font-medium text-neutral-800">{booking.customerPhone}</span>
-                      </div>
-                      <a
-                        href={`https://wa.me/${booking.customerPhone.replace(/\D/g, '')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs font-bold text-brand-british hover:underline flex items-center gap-1"
-                      >
-                        <span>WhatsApp</span>
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
+                    <div className="flex items-center gap-2.5">
+                      <Phone className="h-4 w-4 text-neutral-600 shrink-0" />
+                      <span className="text-sm font-medium text-neutral-800">{booking.customerPhone}</span>
                     </div>
 
                     {booking.customerEmail && (
