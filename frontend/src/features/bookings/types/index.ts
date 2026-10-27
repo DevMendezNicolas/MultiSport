@@ -133,3 +133,5 @@ export interface CustomerLookupDto {
   email?: string | null
   notes?: string | null
 }
+
+export * from './timeline.types'
