@@ -23,10 +23,7 @@ export const LoginPage: React.FC = () => {
 
   const loginMutation = useMutation({
     mutationFn: (payload: LoginPayload) => login(payload),
-    onSuccess: (data) => {
-      toast.success('Inicio de sesión exitoso', {
-        description: `Bienvenido, ${data.user.complexName}.`,
-      })
+    onSuccess: () => {
       navigate('/admin', { replace: true })
     },
     onError: (error) => {

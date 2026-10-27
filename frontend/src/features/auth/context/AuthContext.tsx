@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import { authApi } from '../api/authApi'
 import type { AuthResponse, LoginPayload, RegisterComplexPayload, RegisterSuccessResponse, UserInfoDto } from '../types'
 import { AuthContext, type AuthContextType } from './authContextDef'
@@ -27,7 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const isExpiringRef = React.useRef<boolean>(false)
 
-  const handleSessionExpired = useCallback(async (reason: string = 'Tu sesión expiró por 30 minutos de inactividad.') => {
+  const handleSessionExpired = useCallback(async (_reason?: string) => {
     if (isExpiringRef.current) return
     isExpiringRef.current = true
 
@@ -38,8 +37,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null)
     setAccessToken(null)
     queryClient.clear()
-
-    toast.error(reason, { id: 'auth-session-expired' })
 
     try {
       await authApi.logout()
