@@ -17,6 +17,7 @@ import { useDailyGrid } from '../hooks/useBookings'
 import { BookingDetailSheet } from './BookingDetailSheet'
 import { NewBookingSheet } from './NewBookingSheet'
 import type { GridBookingItem } from '../types'
+import { formatLocalDate, getTodayLocalDateStr } from '../types/timeline.types'
 
 // Generar slots de 30 minutos desde las 08:00 hasta las 23:30
 const GENERATE_30_MIN_SLOTS = () => {
@@ -38,8 +39,7 @@ export const DailyOperationalCalendar: React.FC = () => {
 
   // Manejo de fecha seleccionada (formato YYYY-MM-DD en hora local)
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    const today = new Date()
-    return today.toISOString().split('T')[0]
+    return getTodayLocalDateStr()
   })
 
   // Cancha focalizada desde parámetro URL (?courtId=...)
@@ -109,14 +109,14 @@ export const DailyOperationalCalendar: React.FC = () => {
 
   // Navegación de Fechas
   const handleDateChange = (daysDelta: number) => {
-    const current = new Date(`${selectedDate}T12:00:00Z`)
+    const [y, m, d] = selectedDate.split('-').map(Number)
+    const current = new Date(y, m - 1, d)
     current.setDate(current.getDate() + daysDelta)
-    setSelectedDate(current.toISOString().split('T')[0])
+    setSelectedDate(formatLocalDate(current))
   }
 
   const handleToday = () => {
-    const today = new Date()
-    setSelectedDate(today.toISOString().split('T')[0])
+    setSelectedDate(getTodayLocalDateStr())
   }
 
   const formattedDateTitle = useMemo(() => {

@@ -26,6 +26,7 @@ import {
   usePriceQuote,
 } from '../hooks/useBookings'
 import type { DailyGridCourtItem, CustomerLookupDto } from '../types'
+import { localToUtcIso } from '../types/timeline.types'
 
 interface NewBookingSheetProps {
   isOpen: boolean
@@ -34,6 +35,7 @@ interface NewBookingSheetProps {
   defaultCourtId?: string
   defaultDate: string
   defaultTimeSlot?: string
+  maxAvailableMinutes?: number
 }
 
 export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
@@ -43,6 +45,7 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
   defaultCourtId,
   defaultDate,
   defaultTimeSlot = '18:00',
+  maxAvailableMinutes,
 }) => {
   const [mode, setMode] = useState<'booking' | 'block'>('booking')
   const [courtId, setCourtId] = useState<string>(defaultCourtId || '')
@@ -80,7 +83,10 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
       const initialCourt = courts.find((c) => c.courtId === defaultCourtId) || courts[0]
       if (initialCourt) {
         setCourtId(initialCourt.courtId)
-        const initialSport = initialCourt.sports[0]
+        const fittingSports = maxAvailableMinutes
+          ? initialCourt.sports.filter((s) => s.durationMinutes <= maxAvailableMinutes)
+          : initialCourt.sports
+        const initialSport = fittingSports[0] || initialCourt.sports[0]
         if (initialSport) {
           setSportId(initialSport.sportId)
           setCustomDurationMinutes(initialSport.durationMinutes)
@@ -97,12 +103,19 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
       setMode('booking')
       setBlockReason('Mantenimiento')
     }
-  }, [isOpen, defaultCourtId, defaultTimeSlot, courts])
+  }, [isOpen, defaultCourtId, defaultTimeSlot, defaultDate, maxAvailableMinutes, courts])
 
   const selectedCourt = useMemo(
     () => courts.find((c) => c.courtId === courtId),
     [courts, courtId]
   )
+
+  // Filtrar disciplinas según el tiempo libre disponible si existe
+  const availableSports = useMemo(() => {
+    if (!selectedCourt) return []
+    if (!maxAvailableMinutes) return selectedCourt.sports
+    return selectedCourt.sports.filter((s) => s.durationMinutes <= maxAvailableMinutes)
+  }, [selectedCourt, maxAvailableMinutes])
 
   // Calcular hora fin a partir de startTime y duración
   const endTime = useMemo(() => {
@@ -117,8 +130,10 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
   useEffect(() => {
     if (!courtId || !sportId || !defaultDate || !startTime || !endTime) return
 
-    const startDateTimeUtc = new Date(`${defaultDate}T${startTime}:00Z`).toISOString()
-    const endDateTimeUtc = new Date(`${defaultDate}T${endTime}:00Z`).toISOString()
+    const startDateTimeUtc = localToUtcIso(defaultDate, startTime)
+    const endDateTimeUtc = new Date(
+      new Date(startDateTimeUtc).getTime() + customDurationMinutes * 60 * 1000
+    ).toISOString()
 
     priceQuoteMutation.mutate(
       {
@@ -156,8 +171,10 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const startDateTimeUtc = new Date(`${defaultDate}T${startTime}:00Z`).toISOString()
-    const endDateTimeUtc = new Date(`${defaultDate}T${endTime}:00Z`).toISOString()
+    const startDateTimeUtc = localToUtcIso(defaultDate, startTime)
+    const endDateTimeUtc = new Date(
+      new Date(startDateTimeUtc).getTime() + customDurationMinutes * 60 * 1000
+    ).toISOString()
 
     if (mode === 'block') {
       await createBlockMutation.mutateAsync({
@@ -268,31 +285,44 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
 
             {mode === 'booking' && selectedCourt && (
               <div>
-                <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider mb-1.5">
-                  Disciplina Deportiva
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {selectedCourt.sports.map((s) => (
-                    <button
-                      key={s.sportId}
-                      type="button"
-                      onClick={() => {
-                        setSportId(s.sportId)
-                        setCustomDurationMinutes(s.durationMinutes)
-                      }}
-                      className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                        sportId === s.sportId
-                          ? 'border-[#258653] bg-[#258653]/10 ring-1 ring-[#258653]'
-                          : 'border-neutral-300 hover:border-neutral-400 bg-white'
-                      }`}
-                    >
-                      <span className="text-sm font-bold text-neutral-950">{s.name}</span>
-                      <span className="text-xs font-mono font-bold text-neutral-700 mt-0.5">
-                        {s.durationMinutes} min · Base ${s.basePrice.toLocaleString('es-AR')}
-                      </span>
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-mono font-bold text-neutral-800 uppercase tracking-wider">
+                    Disciplina Deportiva
+                  </label>
+                  {maxAvailableMinutes && (
+                    <span className="text-[11px] font-mono text-[#D46211] font-bold bg-[#D46211]/10 px-2 py-0.5 rounded-md">
+                      Máx. {maxAvailableMinutes}m libres
+                    </span>
+                  )}
                 </div>
+                {availableSports.length === 0 ? (
+                  <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium">
+                    No hay disciplinas configuradas en esta cancha que entren en el tiempo disponible ({maxAvailableMinutes} min).
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {availableSports.map((s) => (
+                      <button
+                        key={s.sportId}
+                        type="button"
+                        onClick={() => {
+                          setSportId(s.sportId)
+                          setCustomDurationMinutes(s.durationMinutes)
+                        }}
+                        className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          sportId === s.sportId
+                            ? 'border-[#258653] bg-[#258653]/10 ring-1 ring-[#258653]'
+                            : 'border-neutral-300 hover:border-neutral-400 bg-white'
+                        }`}
+                      >
+                        <span className="text-sm font-bold text-neutral-950">{s.name}</span>
+                        <span className="text-xs font-mono font-bold text-neutral-700 mt-0.5">
+                          {s.durationMinutes} min · Base ${s.basePrice.toLocaleString('es-AR')}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

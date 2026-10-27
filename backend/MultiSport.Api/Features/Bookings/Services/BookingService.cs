@@ -12,6 +12,7 @@ public sealed class BookingService : IBookingService
 {
     private readonly IBookingRepository _repository;
     private readonly ILogger<BookingService> _logger;
+    private static readonly TimeSpan ArgentinaOffset = TimeSpan.FromHours(-3);
 
     public BookingService(IBookingRepository repository, ILogger<BookingService> logger)
     {
@@ -26,7 +27,7 @@ public sealed class BookingService : IBookingService
     {
         var courts = await _repository.GetComplexCourtsWithSportsAsync(complexId, ct);
 
-        var startOfDayUtc = new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var startOfDayUtc = new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), ArgentinaOffset).ToUniversalTime();
         var endOfDayUtc = startOfDayUtc.AddDays(1);
 
         var actualBookings = await _repository.GetBookingsForDateRangeAsync(complexId, startOfDayUtc, endOfDayUtc, ct);
@@ -44,8 +45,12 @@ public sealed class BookingService : IBookingService
             var courtRules = recurringRules.Where(r => r.CourtId == court.CourtId);
             foreach (var rule in courtRules)
             {
-                var ruleStartUtc = new DateTimeOffset(date.ToDateTime(rule.StartTime), TimeSpan.Zero);
-                var ruleEndUtc = new DateTimeOffset(date.ToDateTime(rule.EndTime), TimeSpan.Zero);
+                var ruleStartUtc = new DateTimeOffset(date.ToDateTime(rule.StartTime), ArgentinaOffset).ToUniversalTime();
+                var ruleEndUtc = new DateTimeOffset(date.ToDateTime(rule.EndTime), ArgentinaOffset).ToUniversalTime();
+                if (ruleEndUtc <= ruleStartUtc)
+                {
+                    ruleEndUtc = ruleEndUtc.AddDays(1);
+                }
 
                 bool overlapsExisting = courtBookings.Any(b =>
                     b.StartTimeUtc < ruleEndUtc && b.EndTimeUtc > ruleStartUtc);
@@ -100,6 +105,9 @@ public sealed class BookingService : IBookingService
         CreateBookingRequest request,
         CancellationToken ct)
     {
+        var localStartTime = request.StartTimeUtc.ToOffset(ArgentinaOffset);
+        var localEndTime = request.EndTimeUtc.ToOffset(ArgentinaOffset);
+
         // 1. Obtener o cotizar precio
         decimal totalPrice;
         if (request.CustomPrice.HasValue)
@@ -111,8 +119,8 @@ public sealed class BookingService : IBookingService
             var (quotedPrice, _, _) = await _repository.GetPriceQuoteAsync(
                 request.CourtId,
                 request.SportId,
-                (int)request.StartTimeUtc.DayOfWeek,
-                TimeOnly.FromTimeSpan(request.StartTimeUtc.TimeOfDay),
+                (int)localStartTime.DayOfWeek,
+                TimeOnly.FromTimeSpan(localStartTime.TimeOfDay),
                 ct);
             totalPrice = quotedPrice;
         }
@@ -182,9 +190,9 @@ public sealed class BookingService : IBookingService
                 SportId = request.SportId,
                 CustomerName = request.CustomerName.Trim(),
                 CustomerPhone = request.CustomerPhone.Trim(),
-                DayOfWeek = (int)request.StartTimeUtc.DayOfWeek,
-                StartTime = TimeOnly.FromTimeSpan(request.StartTimeUtc.TimeOfDay),
-                EndTime = TimeOnly.FromTimeSpan(request.EndTimeUtc.TimeOfDay),
+                DayOfWeek = (int)localStartTime.DayOfWeek,
+                StartTime = TimeOnly.FromTimeSpan(localStartTime.TimeOfDay),
+                EndTime = TimeOnly.FromTimeSpan(localEndTime.TimeOfDay),
                 Price = totalPrice,
                 IsActive = true,
                 Notes = request.Notes?.Trim(),
@@ -464,11 +472,12 @@ public sealed class BookingService : IBookingService
         PriceQuoteRequest request,
         CancellationToken ct)
     {
+        var localStartTime = request.StartTimeUtc.ToOffset(ArgentinaOffset);
         var (price, ruleName, hasRule) = await _repository.GetPriceQuoteAsync(
             request.CourtId,
             request.SportId,
-            (int)request.StartTimeUtc.DayOfWeek,
-            TimeOnly.FromTimeSpan(request.StartTimeUtc.TimeOfDay),
+            (int)localStartTime.DayOfWeek,
+            TimeOnly.FromTimeSpan(localStartTime.TimeOfDay),
             ct);
 
         return TypedResults.Ok(new PriceQuoteResponse(price, ruleName, hasRule));
