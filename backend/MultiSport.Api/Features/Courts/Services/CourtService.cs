@@ -471,7 +471,11 @@ public sealed class CourtService : ICourtService
 
             foreach (var tier in effectiveTiers)
             {
-                var effectivePrice = tier.Price;
+                // Si la franja es general (sin deporte específico) y el deporte tiene tarifa base propia configurada,
+                // respetamos el precio de la disciplina en lugar de aplanarlo al base general de la cancha.
+                var effectivePrice = tier.SportId.HasValue 
+                    ? tier.Price 
+                    : (courtSport.BasePrice > 0 ? courtSport.BasePrice : tier.Price);
                 var effectiveDuration = tier.DurationMinutes ?? courtSport.DurationMinutes;
 
                 var start = tier.StartTime;
