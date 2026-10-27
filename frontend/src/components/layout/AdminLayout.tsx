@@ -102,7 +102,7 @@ export const AdminLayout: React.FC = () => {
                       'min-h-[44px] flex items-center rounded-xl text-xs font-semibold transition-all cursor-pointer',
                       isSidebarCollapsed ? 'w-12 justify-center p-2 mx-auto' : 'w-full gap-3 px-3.5 py-2.5',
                       isActive
-                        ? 'bg-[#D46211] text-white shadow-sm font-bold'
+                        ? 'bg-[#258653] text-white shadow-sm font-bold'
                         : 'text-[#9497A1] hover:text-white hover:bg-[#22242B]'
                     )
                   }
@@ -174,7 +174,7 @@ export const AdminLayout: React.FC = () => {
                         cn(
                           'min-h-[44px] flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors',
                           isActive
-                            ? 'bg-[#D46211] text-white font-bold'
+                            ? 'bg-[#258653] text-white font-bold'
                             : 'text-[#9497A1] hover:bg-[#22242B] hover:text-white'
                         )
                       }

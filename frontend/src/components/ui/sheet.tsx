@@ -59,13 +59,13 @@ export const Sheet: React.FC<SheetProps> = ({
         ref={sheetRef}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'relative z-50 flex flex-col bg-white shadow-2xl transition-all duration-300 ease-out',
+          'relative z-50 flex flex-col bg-[#17181C] text-[#F2F3F5] shadow-2xl transition-all duration-300 ease-out',
           // Desktop y mobile adaptivo para side right
           side === 'right' &&
-            'w-full max-sm:max-h-[92vh] max-sm:rounded-t-2xl max-sm:border-t sm:h-full sm:max-w-md md:max-w-lg lg:max-w-xl sm:border-l border-neutral-300 animate-in max-sm:slide-in-from-bottom sm:slide-in-from-right',
+            'w-full max-sm:max-h-[92vh] max-sm:rounded-t-2xl max-sm:border-t sm:h-full sm:max-w-md md:max-w-lg lg:max-w-xl sm:border-l border-[#31343E] animate-in max-sm:slide-in-from-bottom sm:slide-in-from-right',
           // Side bottom explícito
           side === 'bottom' &&
-            'w-full max-h-[92vh] border-t border-neutral-300 rounded-t-2xl self-end animate-in slide-in-from-bottom',
+            'w-full max-h-[92vh] border-t border-[#31343E] rounded-t-2xl self-end animate-in slide-in-from-bottom',
           className
         )}
       >
@@ -83,7 +83,7 @@ export const SheetHeader: React.FC<{
 }> = ({ children, className, onClose }) => (
   <div
     className={cn(
-      'flex items-center justify-between border-b border-neutral-200 px-5 sm:px-6 py-4 bg-white sticky top-0 z-10',
+      'flex items-center justify-between border-b border-[#31343E] px-5 sm:px-6 py-4 bg-[#111215] sticky top-0 z-10',
       className
     )}
   >
@@ -92,7 +92,7 @@ export const SheetHeader: React.FC<{
       <button
         type="button"
         onClick={onClose}
-        className="min-h-[44px] min-w-[44px] -mr-2 p-2 flex items-center justify-center text-neutral-500 hover:text-neutral-950 transition-colors cursor-pointer"
+        className="min-h-[44px] min-w-[44px] -mr-2 p-2 flex items-center justify-center text-[#9497A1] hover:text-[#F2F3F5] transition-colors cursor-pointer"
         aria-label="Cerrar panel"
       >
         <X className="h-5 w-5" strokeWidth={2} />
@@ -105,7 +105,7 @@ export const SheetBody: React.FC<{
   children: React.ReactNode
   className?: string
 }> = ({ children, className }) => (
-  <div className={cn('flex-1 overflow-y-auto px-5 sm:px-6 py-5', className)}>
+  <div className={cn('flex-1 overflow-y-auto px-5 sm:px-6 py-5 bg-[#17181C] text-[#F2F3F5]', className)}>
     {children}
   </div>
 )
@@ -116,7 +116,7 @@ export const SheetFooter: React.FC<{
 }> = ({ children, className }) => (
   <div
     className={cn(
-      'border-t border-neutral-200 px-5 sm:px-6 py-4 bg-[#FAF8F5] sticky bottom-0 z-10 flex items-center justify-end gap-3',
+      'border-t border-[#31343E] px-5 sm:px-6 py-4 bg-[#111215] sticky bottom-0 z-10 flex items-center justify-end gap-3',
       className
     )}
   >
