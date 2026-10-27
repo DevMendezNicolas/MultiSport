@@ -31,19 +31,19 @@ export const CourtImagePreview: React.FC<CourtImagePreviewProps> = ({
   }, [basePrice])
 
   return (
-    <aside className="bg-white border border-neutral-300 p-5 flex flex-col justify-between shadow-sm sticky top-24 space-y-5">
+    <aside className="bg-[#1E2027] border border-[#31343E] rounded-2xl p-5 flex flex-col justify-between shadow-xl sticky top-24 space-y-5">
       <div>
-        <div className="flex items-center justify-between border-b border-neutral-200 pb-3 mb-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-950">
+        <div className="flex items-center justify-between border-b border-[#31343E] pb-3 mb-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#F2F3F5] font-headline">
             Vista Previa de Cancha
           </h3>
-          <span className="text-xs font-mono font-bold text-neutral-700">
+          <span className="text-xs font-mono font-bold text-[#327357] bg-[#258653]/15 px-2 py-0.5 rounded-md border border-[#327357]/30">
             {firstSportName ? firstSportName : 'Sin deporte'}
           </span>
         </div>
 
         {/* Marco de Imagen Vertical Limpio */}
-        <div className="relative w-full aspect-[4/5] sm:aspect-[3/4] bg-neutral-100 overflow-hidden border border-neutral-300">
+        <div className="relative w-full aspect-[4/5] sm:aspect-[3/4] bg-[#16181D] overflow-hidden border border-[#31343E] rounded-xl">
           <img
             src={resolution.imageUrl}
             alt={resolution.caption}
@@ -53,30 +53,30 @@ export const CourtImagePreview: React.FC<CourtImagePreviewProps> = ({
       </div>
 
       {/* Ficha Técnica de la Configuración en Tiempo Real */}
-      <div className="pt-2 border-t border-neutral-200 space-y-2.5">
-        <div className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-800">
+      <div className="pt-2 border-t border-[#31343E] space-y-2.5">
+        <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#9497A1]">
           Parámetros Asignados
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-[#FAF8F5] border border-neutral-300 p-2.5">
-            <span className="text-xs font-mono font-bold text-neutral-700 uppercase block">Tarifa Base</span>
-            <span className="font-bold font-mono text-neutral-950 text-base">{formattedPrice}</span>
+          <div className="bg-[#16181D] border border-[#31343E] rounded-xl p-2.5">
+            <span className="text-[10px] font-mono font-bold text-[#9497A1] uppercase block">Tarifa Base</span>
+            <span className="font-bold font-mono text-[#327357] text-base">{formattedPrice}</span>
           </div>
 
-          <div className="bg-[#FAF8F5] border border-neutral-300 p-2.5">
-            <span className="text-xs font-mono font-bold text-neutral-700 uppercase block">Duración Turno</span>
-            <span className="font-bold font-mono text-neutral-950 text-base">{durationMinutes || 60} min</span>
+          <div className="bg-[#16181D] border border-[#31343E] rounded-xl p-2.5">
+            <span className="text-[10px] font-mono font-bold text-[#9497A1] uppercase block">Duración Turno</span>
+            <span className="font-bold font-mono text-[#F2F3F5] text-base">{durationMinutes || 60} min</span>
           </div>
 
-          <div className="bg-[#FAF8F5] border border-neutral-300 p-2.5">
-            <span className="text-xs font-mono font-bold text-neutral-700 uppercase block">Estructura</span>
-            <span className="font-bold text-neutral-950 text-sm">{isCovered ? 'Techada' : 'Al aire libre'}</span>
+          <div className="bg-[#16181D] border border-[#31343E] rounded-xl p-2.5">
+            <span className="text-[10px] font-mono font-bold text-[#9497A1] uppercase block">Estructura</span>
+            <span className="font-bold text-[#F2F3F5] text-sm">{isCovered ? 'Techada' : 'Al aire libre'}</span>
           </div>
 
-          <div className="bg-[#FAF8F5] border border-neutral-300 p-2.5">
-            <span className="text-xs font-mono font-bold text-neutral-700 uppercase block">Iluminación</span>
-            <span className="font-bold text-neutral-950 text-sm">{hasLighting ? 'Con reflectores' : 'Sin luz'}</span>
+          <div className="bg-[#16181D] border border-[#31343E] rounded-xl p-2.5">
+            <span className="text-[10px] font-mono font-bold text-[#9497A1] uppercase block">Iluminación</span>
+            <span className="font-bold text-[#F2F3F5] text-sm">{hasLighting ? 'Con luz' : 'Sin luz'}</span>
           </div>
         </div>
       </div>

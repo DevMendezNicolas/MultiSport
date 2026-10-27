@@ -415,26 +415,26 @@ export const EditCourtPage: React.FC = () => {
   if (isLoadingCourt || isLoadingSports) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        <div className="h-10 bg-neutral-100 animate-pulse border border-neutral-200" />
-        <div className="h-32 bg-neutral-100 animate-pulse border border-neutral-200" />
-        <div className="h-64 bg-neutral-100 animate-pulse border border-neutral-200" />
+        <div className="h-10 bg-[#22242B] animate-pulse rounded-xl border border-[#31343E]" />
+        <div className="h-32 bg-[#22242B] animate-pulse rounded-xl border border-[#31343E]" />
+        <div className="h-64 bg-[#22242B] animate-pulse rounded-xl border border-[#31343E]" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 text-[#F2F3F5]">
       {/* Barra de Navegación Superior y Migas de Pan */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-neutral-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#31343E] pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-neutral-700 mb-1">
-            <Link to="/admin/courts" className="hover:text-brand-sport transition-colors">
+          <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-[#9497A1] mb-1">
+            <Link to="/admin/courts" className="hover:text-emerald-400 transition-colors">
               Canchas
             </Link>
             <span>/</span>
-            <span className="text-neutral-950">Modificar Cancha</span>
+            <span className="text-[#F2F3F5]">Modificar Cancha</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-neutral-950 uppercase tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#F2F3F5] uppercase tracking-tight font-headline">
             Modificar: {court?.name || 'Cancha'}
           </h1>
         </div>
@@ -442,7 +442,7 @@ export const EditCourtPage: React.FC = () => {
         <button
           type="button"
           onClick={handleAttemptClose}
-          className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 border border-neutral-300 text-xs font-bold uppercase tracking-wider text-neutral-950 hover:bg-neutral-100 transition-colors cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 border border-[#31343E] bg-[#22242B] rounded-xl text-xs font-bold uppercase tracking-wider text-[#F2F3F5] hover:bg-[#2d3039] transition-colors cursor-pointer self-start sm:self-auto"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={2} />
           <span>Volver a Canchas</span>
@@ -450,34 +450,34 @@ export const EditCourtPage: React.FC = () => {
       </div>
 
       {/* Banner Informativo sobre Reservas Futuras e Inmutabilidad */}
-      <div className="bg-[#FAF8F5] border border-neutral-300 p-4 sm:p-5 flex items-start gap-3.5">
-        <Info className="h-5 w-5 text-neutral-700 mt-0.5 flex-shrink-0" strokeWidth={2} />
-        <div className="text-xs text-neutral-800 leading-relaxed font-mono font-medium">
-          <strong className="text-neutral-950">Protección de Integridad:</strong> Las modificaciones en tarifas aplican exclusivamente a nuevas reservas. Los turnos futuros agendados conservan su precio original pactado. Si modificás horarios o quitás disciplinas con turnos confirmados existentes, la operación será rechazada automáticamente.
+      <div className="bg-[#16181D] border border-[#31343E] rounded-xl p-4 sm:p-5 flex items-start gap-3.5">
+        <Info className="h-5 w-5 text-[#327357] mt-0.5 shrink-0" strokeWidth={2} />
+        <div className="text-xs text-[#9497A1] leading-relaxed font-mono font-medium">
+          <strong className="text-[#F2F3F5]">Protección de Integridad:</strong> Las modificaciones en tarifas aplican exclusivamente a nuevas reservas. Los turnos futuros agendados conservan su precio original pactado. Si modificás horarios o quitás disciplinas con turnos confirmados existentes, la operación será rechazada automáticamente.
         </div>
       </div>
 
       {/* Formulario Principal */}
       <form onSubmit={handleSubmit} className="space-y-8">
         {errors.general && (
-          <div className="p-4 bg-red-50 border border-red-300 text-red-700 text-xs font-mono flex items-center gap-2.5">
-            <AlertCircle className="h-4 w-4 flex-shrink-0" strokeWidth={2} />
+          <div className="p-4 bg-red-950/30 border border-red-800/50 rounded-xl text-red-300 text-xs font-mono flex items-center gap-2.5">
+            <AlertCircle className="h-4 w-4 shrink-0 text-red-400" strokeWidth={2} />
             <span>{errors.general}</span>
           </div>
         )}
 
         {/* 1. IDENTIFICACIÓN Y SUPERFICIE */}
-        <section className="bg-white border border-neutral-300 p-6 space-y-6">
-          <div className="flex items-center gap-2 border-b border-neutral-200 pb-3">
-            <Layers className="h-5 w-5 text-brand-sport" strokeWidth={2} />
-            <h2 className="text-base font-black uppercase tracking-tight text-neutral-950">
+        <section className="bg-[#16181D] border border-[#31343E] rounded-2xl p-6 space-y-6">
+          <div className="flex items-center gap-2 border-b border-[#31343E] pb-3">
+            <Layers className="h-5 w-5 text-[#327357]" strokeWidth={2} />
+            <h2 className="text-base font-black uppercase tracking-tight text-[#F2F3F5] font-headline">
               Identificación y Superficie
             </h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="courtName" className="block text-xs font-mono font-bold uppercase tracking-wider text-neutral-800 mb-1.5">
+              <label htmlFor="courtName" className="block text-xs font-mono font-bold uppercase tracking-wider text-[#9497A1] mb-1.5">
                 Nombre de la Cancha *
               </label>
               <input
@@ -496,25 +496,25 @@ export const EditCourtPage: React.FC = () => {
                     })
                   }
                 }}
-                className={`w-full px-3.5 py-2.5 text-base border bg-white focus:outline-none ${
-                  errors.name ? 'border-red-500' : 'border-neutral-300 focus:border-brand-sport'
+                className={`w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border bg-[#22242B] text-[#F2F3F5] focus:outline-hidden ${
+                  errors.name ? 'border-red-500' : 'border-[#31343E] focus:border-[#258653]'
                 }`}
               />
-              {errors.name && <p className="text-xs text-red-600 mt-1 font-mono">{errors.name}</p>}
+              {errors.name && <p className="text-xs text-red-400 mt-1 font-mono">{errors.name}</p>}
             </div>
 
             <div>
-              <label htmlFor="surfaceType" className="block text-xs font-mono font-bold uppercase tracking-wider text-neutral-800 mb-1.5">
+              <label htmlFor="surfaceType" className="block text-xs font-mono font-bold uppercase tracking-wider text-[#9497A1] mb-1.5">
                 Tipo de Superficie *
               </label>
               <select
                 id="surfaceType"
                 value={formData.surfaceType}
                 onChange={(e) => setFormData({ ...formData, surfaceType: e.target.value })}
-                className="w-full px-3.5 py-2.5 text-base border border-neutral-300 bg-white focus:outline-none focus:border-brand-sport cursor-pointer"
+                className="w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-[#31343E] bg-[#22242B] text-[#F2F3F5] focus:outline-hidden focus:border-[#258653] cursor-pointer"
               >
                 {SURFACE_OPTIONS.map((surf) => (
-                  <option key={surf} value={surf}>
+                  <option key={surf} value={surf} className="bg-[#22242B] text-[#F2F3F5]">
                     {surf}
                   </option>
                 ))}
@@ -524,44 +524,44 @@ export const EditCourtPage: React.FC = () => {
 
           {/* Características Adicionales */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            <label className="flex items-center gap-3 p-3.5 border border-neutral-300 bg-neutral-50 cursor-pointer select-none">
+            <label className="flex items-center gap-3 p-3.5 border border-[#31343E] bg-[#22242B] rounded-xl cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={formData.isCovered}
                 onChange={(e) => setFormData({ ...formData, isCovered: e.target.checked })}
-                className="h-4 w-4 rounded-none border-neutral-400 text-brand-sport focus:ring-brand-sport cursor-pointer"
+                className="h-4 w-4 rounded border-[#31343E] bg-[#16181D] text-[#258653] focus:ring-0 cursor-pointer"
               />
               <div>
-                <span className="text-xs font-bold text-neutral-950 block">Cancha Techada</span>
-                <span className="text-xs font-medium text-neutral-700">Protección contra lluvia o intemperie</span>
+                <span className="text-xs font-bold text-[#F2F3F5] block">Cancha Techada</span>
+                <span className="text-xs font-medium text-[#9497A1]">Protección contra lluvia o intemperie</span>
               </div>
             </label>
 
-            <label className="flex items-center gap-3 p-3.5 border border-neutral-300 bg-neutral-50 cursor-pointer select-none">
+            <label className="flex items-center gap-3 p-3.5 border border-[#31343E] bg-[#22242B] rounded-xl cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={formData.hasLighting}
                 onChange={(e) => setFormData({ ...formData, hasLighting: e.target.checked })}
-                className="h-4 w-4 rounded-none border-neutral-400 text-brand-sport focus:ring-brand-sport cursor-pointer"
+                className="h-4 w-4 rounded border-[#31343E] bg-[#16181D] text-[#258653] focus:ring-0 cursor-pointer"
               />
               <div>
-                <span className="text-xs font-bold text-neutral-950 block">Iluminación Artificial</span>
-                <span className="text-xs font-medium text-neutral-700">Apta para turnos nocturnos</span>
+                <span className="text-xs font-bold text-[#F2F3F5] block">Iluminación Artificial</span>
+                <span className="text-xs font-medium text-[#9497A1]">Apta para turnos nocturnos</span>
               </div>
             </label>
           </div>
         </section>
 
         {/* 2. DEPORTES COMPATIBLES */}
-        <section className="bg-white border border-neutral-300 p-6 space-y-6">
-          <div className="flex items-center justify-between border-b border-neutral-200 pb-3">
-            <h2 className="text-base font-black uppercase tracking-tight text-neutral-950">
+        <section className="bg-[#16181D] border border-[#31343E] rounded-2xl p-6 space-y-6">
+          <div className="flex items-center justify-between border-b border-[#31343E] pb-3">
+            <h2 className="text-base font-black uppercase tracking-tight text-[#F2F3F5] font-headline">
               Deportes Compatibles *
             </h2>
-            <span className="text-xs font-medium text-neutral-700">Seleccioná al menos una disciplina</span>
+            <span className="text-xs font-medium text-[#9497A1]">Seleccioná al menos una disciplina</span>
           </div>
 
-          {errors.sportIds && <p className="text-xs text-red-600 font-mono">{errors.sportIds}</p>}
+          {errors.sportIds && <p className="text-xs text-red-400 font-mono">{errors.sportIds}</p>}
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {sports.map((sport) => {
@@ -571,14 +571,14 @@ export const EditCourtPage: React.FC = () => {
                   key={sport.id}
                   type="button"
                   onClick={() => handleToggleSport(sport.id)}
-                  className={`min-h-[44px] p-3.5 border text-left transition-colors flex items-center justify-between cursor-pointer ${
+                  className={`min-h-[44px] p-3.5 rounded-xl border text-left transition-colors flex items-center justify-between cursor-pointer ${
                     isSelected
-                      ? 'border-brand-sport bg-brand-soft/30 text-neutral-950'
-                      : 'border-neutral-300 bg-white hover:bg-neutral-100 text-neutral-800'
+                      ? 'border-[#258653] bg-[#258653]/15 text-emerald-400'
+                      : 'border-[#31343E] bg-[#22242B] hover:bg-[#2d3039] text-[#9497A1]'
                   }`}
                 >
                   <span className="text-xs font-bold uppercase">{sport.name}</span>
-                  {isSelected && <Check className="h-4 w-4 text-brand-sport" strokeWidth={2.5} />}
+                  {isSelected && <Check className="h-4 w-4 text-emerald-400" strokeWidth={2.5} />}
                 </button>
               )
             })}
@@ -587,18 +587,18 @@ export const EditCourtPage: React.FC = () => {
           {/* Opción de precios diferenciados por deporte */}
           {formData.sportIds.length > 1 && (
             <div className="pt-2">
-              <label className="flex items-center gap-3 p-3.5 border border-neutral-300 bg-[#FAF8F5] cursor-pointer select-none">
+              <label className="flex items-center gap-3 p-3.5 border border-[#31343E] bg-[#22242B] rounded-xl cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={customizePricesBySport}
                   onChange={(e) => setCustomizePricesBySport(e.target.checked)}
-                  className="h-4 w-4 rounded-none border-neutral-400 text-brand-sport focus:ring-brand-sport cursor-pointer"
+                  className="h-4 w-4 rounded border-[#31343E] bg-[#16181D] text-[#258653] focus:ring-0 cursor-pointer"
                 />
                 <div>
-                  <span className="text-xs font-bold text-neutral-950 block">
+                  <span className="text-xs font-bold text-[#F2F3F5] block">
                     Personalizar precios y duraciones base según el deporte
                   </span>
-                  <span className="text-xs font-medium text-neutral-700">
+                  <span className="text-xs font-medium text-[#9497A1]">
                     Permite fijar tarifas y duraciones específicas para cada disciplina
                   </span>
                 </div>
@@ -608,9 +608,9 @@ export const EditCourtPage: React.FC = () => {
         </section>
 
         {/* 3. TARIFAS Y DURACIONES BASE */}
-        <section className="bg-white border border-neutral-300 p-6 space-y-6">
-          <div className="border-b border-neutral-200 pb-3">
-            <h2 className="text-base font-black uppercase tracking-tight text-neutral-950">
+        <section className="bg-[#16181D] border border-[#31343E] rounded-2xl p-6 space-y-6">
+          <div className="border-b border-[#31343E] pb-3">
+            <h2 className="text-base font-black uppercase tracking-tight text-[#F2F3F5] font-headline">
               Tarifa y Duración Base
             </h2>
           </div>
@@ -618,11 +618,11 @@ export const EditCourtPage: React.FC = () => {
           {!customizePricesBySport ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="basePrice" className="block text-xs font-mono font-bold uppercase tracking-wider text-neutral-800 mb-1.5">
+                <label htmlFor="basePrice" className="block text-xs font-mono font-bold uppercase tracking-wider text-[#9497A1] mb-1.5">
                   Precio Base ($) *
                 </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-neutral-600" strokeWidth={2} />
+                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-[#327357]" strokeWidth={2} />
                   <input
                     id="basePrice"
                     type="number"
@@ -630,28 +630,28 @@ export const EditCourtPage: React.FC = () => {
                     step="500"
                     value={formData.basePrice}
                     onChange={(e) => setFormData({ ...formData, basePrice: Number(e.target.value) })}
-                    className="w-full pl-9 pr-3.5 py-2.5 text-base border border-neutral-300 bg-white focus:outline-none focus:border-brand-sport font-mono font-bold text-neutral-950"
+                    className="w-full pl-9 pr-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-[#31343E] bg-[#22242B] focus:outline-hidden focus:border-[#258653] font-mono font-bold text-[#F2F3F5]"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="durationMinutes" className="block text-xs font-mono font-bold uppercase tracking-wider text-neutral-800 mb-1.5">
+                <label htmlFor="durationMinutes" className="block text-xs font-mono font-bold uppercase tracking-wider text-[#9497A1] mb-1.5">
                   Duración del Turno *
                 </label>
                 <div className="relative">
-                  <Clock className="absolute left-3 top-3 h-4 w-4 text-neutral-600" strokeWidth={2} />
+                  <Clock className="absolute left-3 top-3 h-4 w-4 text-[#327357]" strokeWidth={2} />
                   <select
                     id="durationMinutes"
                     value={formData.durationMinutes}
                     onChange={(e) => setFormData({ ...formData, durationMinutes: Number(e.target.value) })}
-                    className="w-full pl-9 pr-3.5 py-2.5 text-base border border-neutral-300 bg-white focus:outline-none focus:border-brand-sport font-medium text-neutral-950 cursor-pointer"
+                    className="w-full pl-9 pr-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-[#31343E] bg-[#22242B] focus:outline-hidden focus:border-[#258653] font-medium text-[#F2F3F5] cursor-pointer"
                   >
-                    <option value={30}>30 minutos</option>
-                    <option value={45}>45 minutos</option>
-                    <option value={60}>60 minutos (1 hora)</option>
-                    <option value={90}>90 minutos (1 hora y media)</option>
-                    <option value={120}>120 minutos (2 horas)</option>
+                    <option value={30} className="bg-[#22242B]">30 minutos</option>
+                    <option value={45} className="bg-[#22242B]">45 minutos</option>
+                    <option value={60} className="bg-[#22242B]">60 minutos (1 hora)</option>
+                    <option value={90} className="bg-[#22242B]">90 minutos (1 hora y media)</option>
+                    <option value={120} className="bg-[#22242B]">120 minutos (2 horas)</option>
                   </select>
                 </div>
               </div>
@@ -665,10 +665,10 @@ export const EditCourtPage: React.FC = () => {
                   durationMinutes: formData.durationMinutes,
                 }
                 return (
-                  <div key={sportId} className="p-4 bg-neutral-50 border border-neutral-300 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                    <span className="text-xs font-bold uppercase text-neutral-950">{sport?.name || sportId}</span>
+                  <div key={sportId} className="p-4 bg-[#22242B] border border-[#31343E] rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                    <span className="text-xs font-bold uppercase text-[#F2F3F5]">{sport?.name || sportId}</span>
                     <div>
-                      <span className="text-xs font-mono uppercase font-bold text-neutral-700 block mb-1">Precio Base ($)</span>
+                      <span className="text-[11px] font-mono uppercase font-bold text-[#9497A1] block mb-1">Precio Base ($)</span>
                       <input
                         type="number"
                         min="1"
@@ -681,11 +681,11 @@ export const EditCourtPage: React.FC = () => {
                             [sportId]: { ...config, basePrice: val },
                           }))
                         }}
-                        className="w-full px-3 py-2 text-base border border-neutral-300 bg-white font-mono font-bold text-neutral-950"
+                        className="w-full px-3 py-2 text-base sm:text-sm rounded-lg border border-[#31343E] bg-[#16181D] font-mono font-bold text-[#F2F3F5]"
                       />
                     </div>
                     <div>
-                      <span className="text-xs font-mono uppercase font-bold text-neutral-700 block mb-1">Duración</span>
+                      <span className="text-[11px] font-mono uppercase font-bold text-[#9497A1] block mb-1">Duración</span>
                       <select
                         value={config.durationMinutes}
                         onChange={(e) => {
@@ -695,13 +695,13 @@ export const EditCourtPage: React.FC = () => {
                             [sportId]: { ...config, durationMinutes: val },
                           }))
                         }}
-                        className="w-full px-3 py-2 text-base border border-neutral-300 bg-white font-medium text-neutral-950 cursor-pointer"
+                        className="w-full px-3 py-2 text-base sm:text-sm rounded-lg border border-[#31343E] bg-[#16181D] font-medium text-[#F2F3F5] cursor-pointer"
                       >
-                        <option value={30}>30 minutos</option>
-                        <option value={45}>45 minutos</option>
-                        <option value={60}>60 minutos</option>
-                        <option value={90}>90 minutos</option>
-                        <option value={120}>120 minutos</option>
+                        <option value={30} className="bg-[#16181D]">30 minutos</option>
+                        <option value={45} className="bg-[#16181D]">45 minutos</option>
+                        <option value={60} className="bg-[#16181D]">60 minutos</option>
+                        <option value={90} className="bg-[#16181D]">90 minutos</option>
+                        <option value={120} className="bg-[#16181D]">120 minutos</option>
                       </select>
                     </div>
                   </div>
@@ -712,30 +712,30 @@ export const EditCourtPage: React.FC = () => {
         </section>
 
         {/* 4. DÍAS Y FRANJAS HORARIAS DINÁMICAS */}
-        <section className="bg-white border border-neutral-300 p-6 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-neutral-200 pb-3">
-            <h2 className="text-base font-black uppercase tracking-tight text-neutral-950">
+        <section className="bg-[#16181D] border border-[#31343E] rounded-2xl p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#31343E] pb-3">
+            <h2 className="text-base font-black uppercase tracking-tight text-[#F2F3F5] font-headline">
               Días Operativos y Franjas Horarias
             </h2>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleSelectAllDays}
-                className="min-h-[36px] text-xs font-mono font-bold uppercase px-3 py-1.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-950 border border-neutral-300 transition-colors cursor-pointer"
+                className="min-h-[36px] text-xs font-mono font-bold uppercase px-3 py-1.5 bg-[#22242B] hover:bg-[#2d3039] text-[#F2F3F5] border border-[#31343E] rounded-lg transition-colors cursor-pointer"
               >
                 Todos
               </button>
               <button
                 type="button"
                 onClick={handleSelectWeekdays}
-                className="min-h-[36px] text-xs font-mono font-bold uppercase px-3 py-1.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-950 border border-neutral-300 transition-colors cursor-pointer"
+                className="min-h-[36px] text-xs font-mono font-bold uppercase px-3 py-1.5 bg-[#22242B] hover:bg-[#2d3039] text-[#F2F3F5] border border-[#31343E] rounded-lg transition-colors cursor-pointer"
               >
                 Lun-Vie
               </button>
               <button
                 type="button"
                 onClick={handleSelectWeekends}
-                className="min-h-[36px] text-xs font-mono font-bold uppercase px-3 py-1.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-950 border border-neutral-300 transition-colors cursor-pointer"
+                className="min-h-[36px] text-xs font-mono font-bold uppercase px-3 py-1.5 bg-[#22242B] hover:bg-[#2d3039] text-[#F2F3F5] border border-[#31343E] rounded-lg transition-colors cursor-pointer"
               >
                 Sáb-Dom
               </button>
@@ -751,10 +751,10 @@ export const EditCourtPage: React.FC = () => {
                   key={day.id}
                   type="button"
                   onClick={() => handleToggleDay(day.id)}
-                  className={`min-h-[44px] py-2 text-center text-xs font-mono font-bold uppercase transition-colors cursor-pointer border ${
+                  className={`min-h-[44px] py-2 text-center text-xs font-mono font-bold uppercase transition-colors cursor-pointer border rounded-xl ${
                     isSelected
-                      ? 'bg-neutral-950 border-neutral-950 text-white'
-                      : 'bg-white border-neutral-300 text-neutral-900 hover:bg-neutral-100'
+                      ? 'bg-[#258653] border-[#258653] text-white shadow-xs'
+                      : 'bg-[#22242B] border-[#31343E] text-[#9497A1] hover:text-[#F2F3F5] hover:bg-[#2d3039]'
                   }`}
                 >
                   {day.short}
@@ -776,12 +776,12 @@ export const EditCourtPage: React.FC = () => {
         </section>
 
         {/* Barra de Acciones Fija Inferior */}
-        <div className="flex items-center justify-end gap-4 pt-6 border-t border-neutral-200">
+        <div className="flex items-center justify-end gap-4 pt-6 border-t border-[#31343E]">
           <button
             type="button"
             onClick={handleAttemptClose}
             disabled={updateCourtMutation.isPending}
-            className="min-h-[44px] px-6 py-2.5 text-sm font-bold uppercase tracking-wider text-neutral-950 border border-neutral-300 hover:bg-neutral-100 transition-colors cursor-pointer"
+            className="min-h-[44px] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-[#9497A1] hover:text-[#F2F3F5] bg-[#22242B] border border-[#31343E] hover:bg-[#2d3039] rounded-xl transition-colors cursor-pointer"
           >
             Cancelar
           </button>
@@ -789,7 +789,7 @@ export const EditCourtPage: React.FC = () => {
           <button
             type="submit"
             disabled={updateCourtMutation.isPending}
-            className="min-h-[44px] px-8 py-2.5 text-sm font-bold uppercase tracking-wider text-white bg-brand-sport hover:bg-brand-sport-hover transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="min-h-[44px] px-8 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[#258653] hover:bg-[#1E6E44] rounded-xl shadow-md transition-colors inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <Save className="h-4 w-4" strokeWidth={2} />
             <span>{updateCourtMutation.isPending ? 'Guardando...' : 'Guardar Modificaciones'}</span>
@@ -797,35 +797,35 @@ export const EditCourtPage: React.FC = () => {
         </div>
       </form>
 
-      {/* Diálogo de Confirmación para Descartar Cambios (AlertDialog Compacto) */}
+      {/* Diálogo de Confirmación para Descartar Cambios */}
       {showDiscardConfirm && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-150"
         >
-          <div className="bg-white border border-neutral-300 max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-2 text-amber-600 border-b border-neutral-200 pb-3">
-              <AlertTriangle className="h-5 w-5 flex-shrink-0" strokeWidth={2} />
-              <h3 className="text-base font-black uppercase text-neutral-950">
+          <div className="bg-[#1E2027] border border-[#31343E] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-[#F2F3F5]">
+            <div className="flex items-center gap-2 text-amber-500 border-b border-[#31343E] pb-3">
+              <AlertTriangle className="h-5 w-5 shrink-0" strokeWidth={2} />
+              <h3 className="text-base font-black uppercase text-[#F2F3F5] font-headline">
                 ¿Descartar modificaciones?
               </h3>
             </div>
-            <p className="text-xs text-neutral-600 leading-relaxed font-mono">
+            <p className="text-xs text-[#9497A1] leading-relaxed font-mono">
               Tenés cambios no guardados en la configuración de la cancha. Si salís ahora, se perderán todas las modificaciones realizadas.
             </p>
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-200">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#31343E]">
               <button
                 type="button"
                 onClick={() => setShowDiscardConfirm(false)}
-                className="min-h-[40px] px-4 py-2 text-xs font-bold uppercase tracking-wider text-neutral-700 border border-neutral-300 hover:bg-neutral-50 cursor-pointer"
+                className="min-h-[40px] px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#9497A1] hover:text-[#F2F3F5] bg-[#22242B] border border-[#31343E] rounded-xl cursor-pointer"
               >
                 Continuar Editando
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDiscard}
-                className="min-h-[40px] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white bg-red-600 hover:bg-red-700 cursor-pointer"
+                className="min-h-[40px] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white bg-red-600 hover:bg-red-700 rounded-xl cursor-pointer shadow-md"
               >
                 Descartar y Salir
               </button>
