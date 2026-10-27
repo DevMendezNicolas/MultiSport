@@ -9,6 +9,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout'
 import { DashboardOverview } from '@/features/admin'
 import { CourtsManagementPage, EditCourtPage } from '@/features/courts'
 import { BookingsManagementPage } from '@/features/bookings'
+import { ComplexSettingsPage } from '@/features/complex'
 
 function App() {
   return (
@@ -32,7 +33,7 @@ function App() {
                 <Route path="courts/:id/edit" element={<EditCourtPage />} />
                 <Route path="tournaments" element={<DashboardOverview />} />
                 <Route path="finances" element={<DashboardOverview />} />
-                <Route path="settings" element={<DashboardOverview />} />
+                <Route path="settings" element={<ComplexSettingsPage />} />
               </Route>
             </Route>
 
