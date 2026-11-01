@@ -1,18 +1,22 @@
 import React from 'react'
+import { Lock } from 'lucide-react'
 import {
   TIMELINE_CONFIG,
   computeDayTimelineGaps,
   getMinSportDuration,
   slotIndexToTime,
   type DraggedBookingData,
+  type DynamicTimelineBounds,
   type WeeklyDayData,
 } from '../../types/timeline.types'
-import type { GridSportItem } from '../../types'
+import type { GridOperatingWindowItem, GridSportItem } from '../../types'
 import { TimelineBookingCard } from './TimelineBookingCard'
 
 interface TimelineDayRowProps {
   dayData: WeeklyDayData
   dayIndex: number
+  timelineBounds?: DynamicTimelineBounds
+  operatingWindows?: GridOperatingWindowItem[]
   isHoveredRow: boolean
   hoverSlotIndex: number | null
   hoverTimeFormatted: string | null
@@ -30,6 +34,8 @@ interface TimelineDayRowProps {
 export const TimelineDayRow: React.FC<TimelineDayRowProps> = ({
   dayData,
   dayIndex,
+  timelineBounds,
+  operatingWindows,
   isHoveredRow,
   hoverSlotIndex,
   hoverTimeFormatted,
@@ -43,17 +49,47 @@ export const TimelineDayRow: React.FC<TimelineDayRowProps> = ({
   onDragOver,
   onDrop,
 }) => {
+  const startHour = timelineBounds?.startHour ?? TIMELINE_CONFIG.startHour
+  const endHour = timelineBounds?.endHour ?? TIMELINE_CONFIG.endHour
+  const totalSlots = timelineBounds?.totalSlots ?? TIMELINE_CONFIG.totalSlots
+
   const ghostSlotsCount = Math.ceil(draggedDurationMinutes / 15)
   const ghostWidthPx = ghostSlotsCount * TIMELINE_CONFIG.slotWidthPx
 
-  // Calcular duración mínima de deportes y mapa de huecos
+  // Calcular duración mínima de deportes y mapa de huecos / cierres
   const minSportDuration = React.useMemo(() => {
     return getMinSportDuration(sports)
   }, [sports])
 
-  const { occupiedSlots, gaps, insufficientGaps } = React.useMemo(() => {
-    return computeDayTimelineGaps(dayData.bookings, minSportDuration)
-  }, [dayData.bookings, minSportDuration])
+  const effectiveOperatingWindows = operatingWindows ?? dayData.courtData?.operatingWindows
+
+  const { occupiedSlots, closedSlots, closedWindows, gaps, insufficientGaps } = React.useMemo(() => {
+    return computeDayTimelineGaps(
+      dayData.bookings,
+      minSportDuration,
+      dayData.dateStr,
+      startHour,
+      endHour,
+      effectiveOperatingWindows,
+      dayData.dayOfWeek
+    )
+  }, [
+    dayData.bookings,
+    minSportDuration,
+    dayData.dateStr,
+    startHour,
+    endHour,
+    effectiveOperatingWindows,
+    dayData.dayOfWeek,
+  ])
+
+  const isHoverOverClosedOrInvalid = React.useMemo(() => {
+    if (hoverSlotIndex === null) return false
+    for (let s = hoverSlotIndex; s < hoverSlotIndex + ghostSlotsCount; s++) {
+      if (s >= totalSlots || closedSlots[s]) return true
+    }
+    return false
+  }, [hoverSlotIndex, ghostSlotsCount, totalSlots, closedSlots])
 
   return (
     <div
@@ -95,21 +131,47 @@ export const TimelineDayRow: React.FC<TimelineDayRowProps> = ({
         </div>
       </div>
 
-      {/* Área Interactiva de 64 Slots de 15 Minutos */}
+      {/* Área Interactiva de Slots de 15 Minutos */}
       <div
         className="relative flex-1 h-full"
         onDragOver={(e) => onDragOver(e, dayIndex, dayData.dateStr)}
         onDrop={onDrop}
       >
-        {/* Guías de fondo para las 64 columnas */}
-        <div className="absolute inset-0 grid grid-cols-[repeat(64,36px)] pointer-events-none divide-x divide-[#31343E]/20">
-          {Array.from({ length: TIMELINE_CONFIG.totalSlots }, (_, i) => (
+        {/* Guías de fondo para las columnas */}
+        <div
+          style={{ gridTemplateColumns: `repeat(${totalSlots}, 36px)` }}
+          className="absolute inset-0 grid pointer-events-none divide-x divide-[#31343E]/20"
+        >
+          {Array.from({ length: totalSlots }, (_, i) => (
             <div
               key={i}
               className={`h-full ${i % 4 === 0 ? 'bg-[#31343E]/10' : ''}`}
             />
           ))}
         </div>
+
+        {/* Bloques de Horario Cerrado / Sin Actividad (antes de apertura, cierres intermedios o tras el cierre del día) */}
+        {closedWindows.map((cw, idx) => (
+          <div
+            key={`closed-window-${cw.startSlot}-${idx}`}
+            style={{
+              left: `${cw.leftPx}px`,
+              width: `${cw.widthPx}px`,
+              backgroundImage:
+                'repeating-linear-gradient(135deg, #111215, #111215 6px, #191B20 6px, #191B20 12px)',
+            }}
+            className="absolute top-1 bottom-1 z-10 rounded-lg border border-[#31343E]/70 flex items-center justify-center cursor-not-allowed select-none text-[10px] font-bold text-[#6C707E] overflow-hidden"
+            title={`Sin actividad operativa (${cw.label})`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {cw.widthPx >= 72 && (
+              <span className="truncate px-2 py-0.5 rounded bg-[#111215]/90 border border-[#31343E]/60 text-[10px] text-[#9497A1] font-mono inline-flex items-center gap-1">
+                <Lock className="h-3 w-3 text-[#6C707E] shrink-0" strokeWidth={2} />
+                <span className="truncate">{cw.label}</span>
+              </span>
+            )}
+          </div>
+        ))}
 
         {/* Franjas Insuficientes Bloqueadas (Menores a cualquier duración mínima de deporte) */}
         {!isDragging &&
@@ -134,11 +196,15 @@ export const TimelineDayRow: React.FC<TimelineDayRowProps> = ({
             </div>
           ))}
 
-        {/* Grilla Interactiva de 64 Slots (Hover y Click para Nuevo Turno) */}
+        {/* Grilla Interactiva de Slots (Hover y Click para Nuevo Turno) */}
         {!isDragging && (
-          <div className="absolute inset-0 grid grid-cols-[repeat(64,36px)] z-0">
-            {Array.from({ length: TIMELINE_CONFIG.totalSlots }, (_, s) => {
+          <div
+            style={{ gridTemplateColumns: `repeat(${totalSlots}, 36px)` }}
+            className="absolute inset-0 grid z-0"
+          >
+            {Array.from({ length: totalSlots }, (_, s) => {
               const isOccupied = occupiedSlots[s]
+              const isClosed = closedSlots[s]
               const parentGap = gaps.find(
                 (g) => s >= g.startSlot && s < g.startSlot + g.slotsCount
               )
@@ -146,10 +212,14 @@ export const TimelineDayRow: React.FC<TimelineDayRowProps> = ({
                 ? (parentGap.startSlot + parentGap.slotsCount - s) * 15
                 : 0
               const isInsufficientGap = parentGap?.isInsufficient || false
-              const canBook = !isOccupied && !isInsufficientGap && availableMinutesFromS >= minSportDuration
-              const timeStr = slotIndexToTime(s)
+              const canBook =
+                !isOccupied &&
+                !isClosed &&
+                !isInsufficientGap &&
+                availableMinutesFromS >= minSportDuration
+              const timeStr = slotIndexToTime(s, startHour, totalSlots)
 
-              if (isOccupied || isInsufficientGap) {
+              if (isOccupied || isClosed || isInsufficientGap) {
                 return (
                   <div
                     key={`slot-${s}`}
@@ -196,18 +266,26 @@ export const TimelineDayRow: React.FC<TimelineDayRowProps> = ({
               left: `${hoverSlotIndex * TIMELINE_CONFIG.slotWidthPx}px`,
               width: `${ghostWidthPx}px`,
             }}
-            className="absolute top-2 bottom-2 z-20 rounded-lg border-2 border-dashed border-[#D46211] bg-[#D46211]/20 pointer-events-none flex items-center justify-center text-xs font-mono font-bold text-white shadow-lg animate-pulse"
+            className={`absolute top-2 bottom-2 z-20 rounded-lg border-2 border-dashed pointer-events-none flex items-center justify-center text-xs font-mono font-bold text-white shadow-lg animate-pulse ${
+              isHoverOverClosedOrInvalid
+                ? 'border-red-500 bg-red-500/25'
+                : 'border-[#D46211] bg-[#D46211]/20'
+            }`}
           >
-            <span>{hoverTimeFormatted}</span>
+            <span>
+              {isHoverOverClosedOrInvalid ? `${hoverTimeFormatted} (Cerrado)` : hoverTimeFormatted}
+            </span>
           </div>
         )}
 
-        {/* Tarjetas de Turnos */}
+        {/* Tarjetas de Turnos y Bloqueos */}
         {dayData.bookings.map((booking) => (
           <TimelineBookingCard
             key={booking.id}
             booking={booking}
             dateStr={dayData.dateStr}
+            startHour={startHour}
+            endHour={endHour}
             onSelectBooking={onSelectBooking}
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}

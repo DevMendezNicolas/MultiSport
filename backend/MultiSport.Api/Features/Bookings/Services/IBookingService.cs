@@ -28,6 +28,13 @@ public interface IBookingService
         CreateBlockRequest request,
         CancellationToken ct);
 
+    Task<Results<Ok<BookingResponse>, NotFound, Conflict<ProblemDetails>, BadRequest<ProblemDetails>, UnauthorizedHttpResult>> UpdateBlockAsync(
+        Guid bookingId,
+        Guid complexId,
+        Guid userId,
+        UpdateBlockRequest request,
+        CancellationToken ct);
+
     Task<Results<Ok<PaymentResponse>, NotFound, BadRequest<ProblemDetails>, UnauthorizedHttpResult>> RecordPaymentAsync(
         Guid bookingId,
         Guid complexId,

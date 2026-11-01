@@ -56,6 +56,13 @@ export interface CreateBlockRequest {
   reason: string
 }
 
+export interface UpdateBlockRequest {
+  courtId: string
+  startTimeUtc: string
+  endTimeUtc: string
+  reason: string
+}
+
 export interface RecordPaymentRequest {
   amount: number
   paymentMethod: 'cash' | 'transfer' | 'card' | 'mercadopago'
@@ -96,6 +103,15 @@ export interface GridSportItem {
   basePrice: number
 }
 
+export interface GridOperatingWindowItem {
+  sportId: string
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  price: number
+  durationMinutes: number
+}
+
 export interface GridBookingItem {
   id: string
   courtId: string
@@ -119,6 +135,7 @@ export interface DailyGridCourtItem {
   isIndoor: boolean
   sports: GridSportItem[]
   bookings: GridBookingItem[]
+  operatingWindows?: GridOperatingWindowItem[]
 }
 
 export interface DailyGridResponse {

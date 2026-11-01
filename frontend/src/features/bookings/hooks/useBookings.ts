@@ -5,6 +5,7 @@ import { bookingsApi } from '../api/bookingsApi'
 import type {
   CreateBookingRequest,
   CreateBlockRequest,
+  UpdateBlockRequest,
   RecordPaymentRequest,
   CancelBookingRequest,
   RescheduleBookingRequest,
@@ -84,6 +85,24 @@ export const useCreateBlock = () => {
   })
 }
 
+export const useUpdateBlock = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateBlockRequest }) =>
+      bookingsApi.updateBlock(id, payload),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEYS.all })
+      queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEYS.detail(data.id) })
+      toast.success('Bloqueo operativo actualizado correctamente.')
+    },
+    onError: (error) => {
+      const msg = extractErrorMessage(error, 'No se pudo actualizar el bloqueo.')
+      toast.error(msg)
+    },
+  })
+}
+
 export const useRecordPayment = () => {
   const queryClient = useQueryClient()
 
@@ -111,10 +130,10 @@ export const useCancelBooking = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEYS.all })
       queryClient.invalidateQueries({ queryKey: BOOKINGS_QUERY_KEYS.detail(variables.id) })
-      toast.success('Reserva cancelada correctamente.')
+      toast.success('Operación realizada correctamente.')
     },
     onError: (error) => {
-      const msg = extractErrorMessage(error, 'Error al cancelar la reserva.')
+      const msg = extractErrorMessage(error, 'Error al procesar la cancelación.')
       toast.error(msg)
     },
   })

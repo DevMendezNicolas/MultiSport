@@ -13,13 +13,16 @@ export interface HoverSlotState {
   timeFormatted: string
 }
 
-export const useBookingDragAndDrop = () => {
+export const useBookingDragAndDrop = (
+  startHour: number = TIMELINE_CONFIG.startHour,
+  totalSlots: number = TIMELINE_CONFIG.totalSlots
+) => {
   const [isDragging, setIsDragging] = useState(false)
   const [draggedBooking, setDraggedBooking] = useState<DraggedBookingData | null>(null)
   const [isOverTrash, setIsOverTrash] = useState(false)
   const [hoverSlot, setHoverSlot] = useState<HoverSlotState | null>(null)
 
-  // Iniciar arrastre de un turno
+  // Iniciar arrastre de un turno o bloqueo
   const handleDragStart = useCallback(
     (e: React.DragEvent, bookingData: DraggedBookingData) => {
       setIsDragging(true)
@@ -50,8 +53,8 @@ export const useBookingDragAndDrop = () => {
 
       // Snap a bloques de 36px (15 minutos)
       const rawSlotIndex = Math.floor(relativeX / TIMELINE_CONFIG.slotWidthPx)
-      const slotIndex = Math.max(0, Math.min(TIMELINE_CONFIG.totalSlots - 1, rawSlotIndex))
-      const timeFormatted = slotIndexToTime(slotIndex)
+      const slotIndex = Math.max(0, Math.min(totalSlots - 1, rawSlotIndex))
+      const timeFormatted = slotIndexToTime(slotIndex, startHour, totalSlots)
 
       setHoverSlot({
         dayIndex,
@@ -60,15 +63,15 @@ export const useBookingDragAndDrop = () => {
         timeFormatted,
       })
     },
-    []
+    [startHour, totalSlots]
   )
 
-  // Soltar en la grilla para reprogramar
+  // Soltar en la grilla para reprogramar turno o bloqueo
   const handleTimelineDrop = useCallback(
     (
       e: React.DragEvent,
       onReschedule: (
-        bookingId: string,
+        dragged: DraggedBookingData,
         newStartTimeUtc: string,
         newEndTimeUtc: string
       ) => void
@@ -86,7 +89,7 @@ export const useBookingDragAndDrop = () => {
         new Date(startIso).getTime() + draggedBooking.durationMinutes * 60 * 1000
       ).toISOString()
 
-      onReschedule(draggedBooking.bookingId, startIso, endIso)
+      onReschedule(draggedBooking, startIso, endIso)
       handleDragEnd()
     },
     [draggedBooking, hoverSlot, handleDragEnd]

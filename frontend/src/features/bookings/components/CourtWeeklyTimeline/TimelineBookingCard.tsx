@@ -1,6 +1,7 @@
 import React from 'react'
 import { AlertCircle, Banknote, CheckCircle2, Phone, Repeat, Wrench } from 'lucide-react'
 import {
+  TIMELINE_CONFIG,
   calculateSlotLayout,
   type DraggedBookingData,
 } from '../../types/timeline.types'
@@ -9,6 +10,8 @@ import type { GridBookingItem } from '../../types'
 interface TimelineBookingCardProps {
   booking: GridBookingItem
   dateStr: string
+  startHour?: number
+  endHour?: number
   onSelectBooking: (bookingId: string) => void
   onDragStart: (e: React.DragEvent, data: DraggedBookingData) => void
   onDragEnd: () => void
@@ -17,16 +20,23 @@ interface TimelineBookingCardProps {
 export const TimelineBookingCard: React.FC<TimelineBookingCardProps> = ({
   booking,
   dateStr,
+  startHour = TIMELINE_CONFIG.startHour,
+  endHour = TIMELINE_CONFIG.endHour,
   onSelectBooking,
   onDragStart,
   onDragEnd,
 }) => {
-  const { leftPx, widthPx, durationMinutes, timeRange } = calculateSlotLayout(
-    booking.startTimeUtc,
-    booking.endTimeUtc
-  )
+  const { leftPx, widthPx, durationMinutes, timeRange, clippedStart, clippedEnd } =
+    calculateSlotLayout(
+      booking.startTimeUtc,
+      booking.endTimeUtc,
+      dateStr,
+      startHour,
+      endHour
+    )
 
   const isBlocked = booking.status === 'blocked'
+  const isDraggable = !clippedStart && !clippedEnd
   const totalPrice = booking.totalPrice || 0
   const deposit = booking.depositAmount || 0
   const balance = Math.max(0, totalPrice - deposit)
@@ -38,18 +48,27 @@ export const TimelineBookingCard: React.FC<TimelineBookingCardProps> = ({
   const adjustedLeft = leftPx + gutterPx
   const adjustedWidth = Math.max(28, widthPx - gutterPx * 2)
 
-  // Datos para el payload de arrastre
+  // Datos para el payload de arrastre (tanto turnos como bloqueos operativos)
   const handleDragStartInternal = (e: React.DragEvent) => {
-    if (isBlocked) return
+    if (!isDraggable) return
+    const fullDurationMinutes = Math.max(
+      15,
+      Math.round(
+        (new Date(booking.endTimeUtc).getTime() - new Date(booking.startTimeUtc).getTime()) /
+          60000
+      )
+    )
     const dragData: DraggedBookingData = {
       bookingId: booking.id,
       courtId: booking.courtId,
-      customerName: booking.customerName,
+      customerName: isBlocked ? booking.notes || 'Bloqueo Operativo' : booking.customerName,
       customerPhone: booking.customerPhone,
       originalDateStr: dateStr,
       originalStartTime: booking.startTimeUtc,
-      durationMinutes,
-      slotsCount: Math.ceil(durationMinutes / 15),
+      durationMinutes: fullDurationMinutes || durationMinutes,
+      slotsCount: Math.ceil((fullDurationMinutes || durationMinutes) / 15),
+      isBlocked,
+      notes: booking.notes,
     }
     onDragStart(e, dragData)
   }
@@ -94,23 +113,21 @@ export const TimelineBookingCard: React.FC<TimelineBookingCardProps> = ({
             }
           : {}),
       }}
-      draggable={!isBlocked}
+      draggable={isDraggable}
       onDragStart={handleDragStartInternal}
       onDragEnd={onDragEnd}
       onClick={(e) => {
         e.stopPropagation()
-        if (!isBlocked) {
-          onSelectBooking(booking.id)
-        }
+        onSelectBooking(booking.id)
       }}
       className={`absolute top-1.5 bottom-1.5 z-10 rounded-xl p-2.5 flex flex-col justify-between transition-all select-none overflow-hidden ${
-        isBlocked
-          ? 'cursor-not-allowed'
-          : 'cursor-grab active:cursor-grabbing hover:scale-[1.01] hover:shadow-lg'
+        isDraggable
+          ? 'cursor-grab active:cursor-grabbing hover:scale-[1.01] hover:shadow-lg'
+          : 'cursor-pointer hover:border-[#D46211]/80 hover:shadow-md'
       } ${cardClasses}`}
       title={
         isBlocked
-          ? `Bloqueo: ${booking.notes || 'Mantenimiento'} (${timeRange})`
+          ? `Bloqueo: ${booking.notes || 'Mantenimiento'} (${timeRange}) — Arrastrar para mover o click para gestionar`
           : `${booking.customerName} (${timeRange}) - ${statusTooltip}`
       }
     >
@@ -143,7 +160,7 @@ export const TimelineBookingCard: React.FC<TimelineBookingCardProps> = ({
       {/* Línea Inferior: Disciplina Deportiva y Saldo financiero */}
       <div className="flex items-center justify-between text-xs pt-1 border-t border-black/15 text-white shrink-0">
         <span className="truncate text-[11px] font-semibold opacity-90">
-          {booking.sportName || 'Turno'}
+          {isBlocked ? 'Bloqueo Operativo' : booking.sportName || 'Turno'}
         </span>
         {!isBlocked && (
           <div className="flex items-center gap-1 font-mono font-bold text-xs shrink-0 pl-1">

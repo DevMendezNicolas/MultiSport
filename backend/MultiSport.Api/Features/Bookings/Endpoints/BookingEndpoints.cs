@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using MultiSport.Api.Common;
 using MultiSport.Api.Features.Bookings.Models.Dtos;
 using MultiSport.Api.Features.Bookings.Services;
 
@@ -47,6 +48,15 @@ public static class BookingEndpoints
              .Produces(StatusCodes.Status401Unauthorized)
              .ProducesProblem(StatusCodes.Status409Conflict);
 
+        group.MapPut("/{id:guid}/block", UpdateBlock)
+             .WithName("UpdateBlock")
+             .WithSummary("Actualiza el rango horario, cancha o motivo de un bloqueo operativo existente")
+             .Produces<BookingResponse>(StatusCodes.Status200OK)
+             .ProducesValidationProblem()
+             .Produces(StatusCodes.Status401Unauthorized)
+             .Produces(StatusCodes.Status404NotFound)
+             .ProducesProblem(StatusCodes.Status409Conflict);
+
         group.MapPost("/{id:guid}/payments", RecordPayment)
              .WithName("RecordBookingPayment")
              .WithSummary("Registra un pago parcial, total o seña para una reserva")
@@ -58,7 +68,7 @@ public static class BookingEndpoints
 
         group.MapPost("/{id:guid}/cancel", CancelBooking)
              .WithName("CancelBooking")
-             .WithSummary("Cancela una reserva con opción de retención o reembolso negativo de seña")
+             .WithSummary("Cancela una reserva o bloqueo con opción de retención o reembolso negativo de seña")
              .Produces(StatusCodes.Status204NoContent)
              .ProducesValidationProblem()
              .Produces(StatusCodes.Status401Unauthorized)
@@ -101,7 +111,7 @@ public static class BookingEndpoints
             return TypedResults.Unauthorized();
         }
 
-        var targetDate = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var targetDate = date ?? ComplexTimeHelper.GetCurrentComplexLocalDate();
         return await service.GetDailyGridAsync(complexId, targetDate, ct);
     }
 
@@ -179,6 +189,41 @@ public static class BookingEndpoints
         return result.Result switch
         {
             Created<BookingResponse> created => created,
+            Conflict<ProblemDetails> conflict => conflict,
+            BadRequest<ProblemDetails> badRequest => badRequest,
+            UnauthorizedHttpResult unauthorized => unauthorized,
+            _ => throw new InvalidOperationException("Respuesta inesperada del servicio de reservas.")
+        };
+    }
+
+    private static async Task<Results<Ok<BookingResponse>, ValidationProblem, NotFound, Conflict<ProblemDetails>, BadRequest<ProblemDetails>, UnauthorizedHttpResult>> UpdateBlock(
+        Guid id,
+        [FromBody] UpdateBlockRequest request,
+        IValidator<UpdateBlockRequest> validator,
+        IBookingService service,
+        ClaimsPrincipal claimsPrincipal,
+        CancellationToken ct)
+    {
+        var validationResult = await validator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+        {
+            return TypedResults.ValidationProblem(validationResult.ToDictionary());
+        }
+
+        var complexIdClaim = claimsPrincipal.FindFirst("complex_id")?.Value;
+        var subClaim = claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                       ?? claimsPrincipal.FindFirst("sub")?.Value;
+
+        if (!Guid.TryParse(complexIdClaim, out var complexId) || !Guid.TryParse(subClaim, out var userId))
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var result = await service.UpdateBlockAsync(id, complexId, userId, request, ct);
+        return result.Result switch
+        {
+            Ok<BookingResponse> ok => ok,
+            NotFound notFound => notFound,
             Conflict<ProblemDetails> conflict => conflict,
             BadRequest<ProblemDetails> badRequest => badRequest,
             UnauthorizedHttpResult unauthorized => unauthorized,

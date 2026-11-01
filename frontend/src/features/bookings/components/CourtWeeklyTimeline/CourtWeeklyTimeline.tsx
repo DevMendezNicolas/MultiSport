@@ -1,7 +1,12 @@
 import React from 'react'
 import { ArrowLeftRight } from 'lucide-react'
-import { TIMELINE_CONFIG, type DraggedBookingData, type WeeklyDayData } from '../../types/timeline.types'
-import type { GridSportItem } from '../../types'
+import {
+  TIMELINE_CONFIG,
+  type DraggedBookingData,
+  type DynamicTimelineBounds,
+  type WeeklyDayData,
+} from '../../types/timeline.types'
+import type { GridOperatingWindowItem, GridSportItem } from '../../types'
 import { TimelineHeaderAxis } from './TimelineHeaderAxis'
 import { TimelineDayRow } from './TimelineDayRow'
 import { FloatingTrashZone } from './FloatingTrashZone'
@@ -12,10 +17,16 @@ interface CourtWeeklyTimelineProps {
   courtName: string
   surfaceName?: string
   sports?: GridSportItem[]
+  operatingWindows?: GridOperatingWindowItem[]
+  timelineBounds?: DynamicTimelineBounds
   dragHook: ReturnType<typeof useBookingDragAndDrop>
   onSelectBooking: (bookingId: string) => void
   onSlotClick?: (dateStr: string, timeStr: string, maxAvailableMinutes: number) => void
-  onReschedule: (bookingId: string, newStartTimeUtc: string, newEndTimeUtc: string) => void
+  onReschedule: (
+    dragged: DraggedBookingData,
+    newStartTimeUtc: string,
+    newEndTimeUtc: string
+  ) => void
   onTriggerCancel: (booking: DraggedBookingData) => void
 }
 
@@ -24,6 +35,8 @@ export const CourtWeeklyTimeline: React.FC<CourtWeeklyTimelineProps> = ({
   courtName,
   surfaceName,
   sports,
+  operatingWindows,
+  timelineBounds,
   dragHook,
   onSelectBooking,
   onSlotClick,
@@ -45,6 +58,10 @@ export const CourtWeeklyTimeline: React.FC<CourtWeeklyTimelineProps> = ({
     handleTrashDrop,
   } = dragHook
 
+  const startHour = timelineBounds?.startHour ?? TIMELINE_CONFIG.startHour
+  const endHour = timelineBounds?.endHour ?? TIMELINE_CONFIG.endHour
+  const minWidthPx = timelineBounds?.minWidthPx ?? TIMELINE_CONFIG.minWidthPx
+
   return (
     <div className="bg-[#22242B] rounded-2xl border border-[#31343E] shadow-xl overflow-hidden flex flex-col relative">
       {/* Tira Informativa y Guía Operativa Superior */}
@@ -52,7 +69,7 @@ export const CourtWeeklyTimeline: React.FC<CourtWeeklyTimelineProps> = ({
         <div className="flex items-center gap-2">
           <ArrowLeftRight className="h-4 w-4 text-[#D46211] shrink-0" strokeWidth={1.75} />
           <span>
-            Arrastre turnos horizontalmente (cambio de hora en 15m) o verticalmente (cambio de día). Haga click en cualquier turno para abrir operaciones de caja.
+            Arrastre turnos o bloqueos horizontalmente (cambio de hora en 15m) o verticalmente (cambio de día). Haga click en cualquier tarjeta para abrir el panel lateral.
           </span>
         </div>
         <div className="flex items-center gap-4 shrink-0">
@@ -72,11 +89,11 @@ export const CourtWeeklyTimeline: React.FC<CourtWeeklyTimelineProps> = ({
         className="overflow-x-auto no-scrollbar relative w-full"
       >
         <div
-          style={{ minWidth: `${TIMELINE_CONFIG.minWidthPx}px` }}
+          style={{ minWidth: `${minWidthPx}px` }}
           className="flex flex-col bg-[#17181C]"
         >
           {/* Eje Horario Superior Fijo */}
-          <TimelineHeaderAxis />
+          <TimelineHeaderAxis startHour={startHour} endHour={endHour} />
 
           {/* Cuerpo Matricial: 7 Filas de Días */}
           <div className="flex flex-col relative divide-y divide-[#31343E]/40">
@@ -85,6 +102,8 @@ export const CourtWeeklyTimeline: React.FC<CourtWeeklyTimelineProps> = ({
                 key={day.dateStr}
                 dayData={day}
                 dayIndex={idx}
+                timelineBounds={timelineBounds}
+                operatingWindows={operatingWindows}
                 isHoveredRow={hoverSlot?.dayIndex === idx}
                 hoverSlotIndex={hoverSlot?.dayIndex === idx ? hoverSlot.slotIndex : null}
                 hoverTimeFormatted={hoverSlot?.dayIndex === idx ? hoverSlot.timeFormatted : null}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
   Calendar,
@@ -20,6 +21,7 @@ import {
   SheetBody,
   SheetFooter,
 } from '@/components/ui/sheet'
+import { NumericInput } from '@/components/ui/numeric-input'
 import {
   useCreateBooking,
   useCreateBlock,
@@ -27,7 +29,15 @@ import {
   usePriceQuote,
 } from '../hooks/useBookings'
 import type { DailyGridCourtItem, CustomerLookupDto, GridSportItem } from '../types'
-import { localToUtcIso } from '../types/timeline.types'
+import {
+  getCourtDayOperatingIntervals,
+  isIntervalCoveredByOperatingWindows,
+  localToUtcIso,
+  parseEndTimeToMinutes,
+  parseTimeToMinutes,
+  QUARTER_HOUR_TIME_SLOTS,
+  QUARTER_HOUR_END_TIME_SLOTS,
+} from '../types/timeline.types'
 
 interface NewBookingSheetProps {
   isOpen: boolean
@@ -37,6 +47,19 @@ interface NewBookingSheetProps {
   defaultDate: string
   defaultTimeSlot?: string
   maxAvailableMinutes?: number
+}
+
+const computeDefaultBlockEnd = (dateStr: string, startTime: string): { endDate: string; endTime: string } => {
+  const [h, m] = startTime.split(':').map(Number)
+  const totalMin = (isNaN(h) ? 18 : h) * 60 + (isNaN(m) ? 0 : m) + 60
+  if (totalMin >= 1440) {
+    return { endDate: dateStr, endTime: '24:00' }
+  }
+  const endH = Math.floor(totalMin / 60)
+    .toString()
+    .padStart(2, '0')
+  const endM = (totalMin % 60).toString().padStart(2, '0')
+  return { endDate: dateStr, endTime: `${endH}:${endM}` }
 }
 
 export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
@@ -70,7 +93,11 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
   const [depositAmount, setDepositAmount] = useState<number>(0)
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'card' | 'mercadopago'>('cash')
 
-  // Bloqueo operativo
+  // Bloqueo operativo (fechas y horarios independientes de disciplinas)
+  const [blockStartDate, setBlockStartDate] = useState<string>(defaultDate)
+  const [blockStartTime, setBlockStartTime] = useState<string>(defaultTimeSlot)
+  const [blockEndDate, setBlockEndDate] = useState<string>(defaultDate)
+  const [blockEndTime, setBlockEndTime] = useState<string>('19:00')
   const [blockReason, setBlockReason] = useState('Mantenimiento')
 
   // Queries y Mutaciones
@@ -111,6 +138,11 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
       }
       setDepositType('100')
       setStartTime(defaultTimeSlot)
+      setBlockStartDate(defaultDate)
+      setBlockStartTime(defaultTimeSlot)
+      const defaultBlockEnd = computeDefaultBlockEnd(defaultDate, defaultTimeSlot)
+      setBlockEndDate(defaultBlockEnd.endDate)
+      setBlockEndTime(defaultBlockEnd.endTime)
       setCustomerSearchQuery('')
       setCustomerName('')
       setCustomerPhone('')
@@ -128,6 +160,11 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
     [courts, courtId]
   )
 
+  const selectedDayOfWeek = useMemo(() => {
+    const [y, m, d] = defaultDate.split('-').map(Number)
+    return new Date(y, m - 1, d).getDay()
+  }, [defaultDate])
+
   // Filtrar disciplinas según el tiempo libre disponible si existe
   const availableSports = useMemo(() => {
     if (!selectedCourt) return []
@@ -135,7 +172,251 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
     return selectedCourt.sports.filter((s) => s.durationMinutes <= maxAvailableMinutes)
   }, [selectedCourt, maxAvailableMinutes])
 
-  // Calcular hora fin a partir de startTime y duración
+  // Resolver duración aplicable según la franja horaria de inicio de la disciplina seleccionada
+  const getDurationForSportAndStartTime = (
+    targetCourt: DailyGridCourtItem | undefined,
+    targetSportId: string,
+    dayOfWeek: number,
+    slotTime: string,
+    fallbackDuration: number
+  ): number => {
+    if (!targetCourt?.operatingWindows || targetCourt.operatingWindows.length === 0) {
+      return fallbackDuration
+    }
+    const startMin = parseTimeToMinutes(slotTime)
+    const matchingRule = targetCourt.operatingWindows.find(
+      (w) =>
+        w.dayOfWeek === dayOfWeek &&
+        w.sportId === targetSportId &&
+        parseTimeToMinutes(w.startTime) <= startMin &&
+        parseEndTimeToMinutes(w.endTime) > startMin
+    )
+    return matchingRule?.durationMinutes || fallbackDuration
+  }
+
+  // Contexto Reserva Comercial: horarios de inicio válidos según ventanas operativas del deporte y disponibilidad
+  const availableBookingStartTimes = useMemo(() => {
+    if (!selectedCourt) return QUARTER_HOUR_TIME_SLOTS
+
+    const activeSport = selectedCourt.sports.find((s) => s.sportId === sportId)
+    const baseSportDuration = activeSport?.durationMinutes || customDurationMinutes || 60
+
+    const hasOperatingRules =
+      selectedCourt.operatingWindows && selectedCourt.operatingWindows.length > 0
+    const sportDayIntervals = getCourtDayOperatingIntervals(
+      selectedCourt.operatingWindows,
+      selectedDayOfWeek,
+      sportId || undefined
+    )
+    const nextDayIntervals = getCourtDayOperatingIntervals(
+      selectedCourt.operatingWindows,
+      (selectedDayOfWeek + 1) % 7,
+      sportId || undefined
+    )
+
+    const activeDayBookings = (selectedCourt.bookings || []).filter(
+      (b) => b.status !== 'cancelled' && b.status !== 'expired'
+    )
+
+    return QUARTER_HOUR_TIME_SLOTS.filter((t) => {
+      const slotDuration = getDurationForSportAndStartTime(
+        selectedCourt,
+        sportId,
+        selectedDayOfWeek,
+        t,
+        baseSportDuration
+      )
+      const startMin = parseTimeToMinutes(t)
+      const endMin = startMin + slotDuration
+
+      if (hasOperatingRules) {
+        if (endMin <= 1440) {
+          if (!isIntervalCoveredByOperatingWindows(startMin, endMin, sportDayIntervals)) {
+            return false
+          }
+        } else {
+          // Cruce de medianoche: exige continuidad en 24:00 del día actual y desde 00:00 del día siguiente
+          const coveredDay1 = isIntervalCoveredByOperatingWindows(startMin, 1440, sportDayIntervals)
+          const coveredDay2 = isIntervalCoveredByOperatingWindows(
+            0,
+            endMin - 1440,
+            nextDayIntervals
+          )
+          if (!coveredDay1 || !coveredDay2) {
+            return false
+          }
+        }
+      }
+
+      const candidateStartMs = new Date(localToUtcIso(defaultDate, t)).getTime()
+      const candidateEndMs = candidateStartMs + slotDuration * 60 * 1000
+
+      const hasConflict = activeDayBookings.some((b) => {
+        const bStart = new Date(b.startTimeUtc).getTime()
+        const bEnd = new Date(b.endTimeUtc).getTime()
+        return bStart < candidateEndMs && bEnd > candidateStartMs
+      })
+
+      return !hasConflict
+    })
+  }, [selectedCourt, sportId, selectedDayOfWeek, defaultDate, customDurationMinutes])
+
+  // Sincronizar startTime si el horario por defecto está fuera de las opciones disponibles
+  useEffect(() => {
+    if (!isOpen || mode !== 'booking') return
+    if (
+      availableBookingStartTimes.length > 0 &&
+      !availableBookingStartTimes.includes(startTime)
+    ) {
+      setStartTime(availableBookingStartTimes[0])
+    }
+  }, [isOpen, mode, availableBookingStartTimes, startTime])
+
+  // Sincronizar duración cuando cambia startTime o sportId según la franja tarifaria de inicio
+  useEffect(() => {
+    if (!selectedCourt || !sportId || !startTime) return
+    const activeSport = selectedCourt.sports.find((s) => s.sportId === sportId)
+    const fallbackDuration = activeSport?.durationMinutes || 60
+    const nextDuration = getDurationForSportAndStartTime(
+      selectedCourt,
+      sportId,
+      selectedDayOfWeek,
+      startTime,
+      fallbackDuration
+    )
+    if (nextDuration !== customDurationMinutes) {
+      setCustomDurationMinutes(nextDuration)
+    }
+  }, [selectedCourt, sportId, selectedDayOfWeek, startTime, customDurationMinutes])
+
+  // Contexto Bloqueo Operativo: horarios válidos según la unión de ventanas operativas de la cancha
+  const blockStartDayOfWeek = useMemo(() => {
+    const [y, m, d] = blockStartDate.split('-').map(Number)
+    return new Date(y, m - 1, d).getDay()
+  }, [blockStartDate])
+
+  const availableBlockStartTimes = useMemo(() => {
+    if (!selectedCourt) return QUARTER_HOUR_TIME_SLOTS
+    const hasOperatingRules =
+      selectedCourt.operatingWindows && selectedCourt.operatingWindows.length > 0
+    const courtIntervals = getCourtDayOperatingIntervals(
+      selectedCourt.operatingWindows,
+      blockStartDayOfWeek
+    )
+    const activeDayBookings =
+      blockStartDate === defaultDate
+        ? (selectedCourt.bookings || []).filter(
+            (b) => b.status !== 'cancelled' && b.status !== 'expired'
+          )
+        : []
+
+    return QUARTER_HOUR_TIME_SLOTS.filter((t) => {
+      const startMin = parseTimeToMinutes(t)
+      if (
+        hasOperatingRules &&
+        !isIntervalCoveredByOperatingWindows(startMin, startMin + 15, courtIntervals)
+      ) {
+        return false
+      }
+
+      if (activeDayBookings.length > 0) {
+        const candidateStartMs = new Date(localToUtcIso(blockStartDate, t)).getTime()
+        const candidateEndMs = candidateStartMs + 15 * 60 * 1000
+        const hasConflict = activeDayBookings.some((b) => {
+          const bStart = new Date(b.startTimeUtc).getTime()
+          const bEnd = new Date(b.endTimeUtc).getTime()
+          return bStart < candidateEndMs && bEnd > candidateStartMs
+        })
+        if (hasConflict) return false
+      }
+
+      return true
+    })
+  }, [selectedCourt, blockStartDayOfWeek, blockStartDate, defaultDate])
+
+  const availableBlockEndTimes = useMemo(() => {
+    if (!selectedCourt) return QUARTER_HOUR_END_TIME_SLOTS
+    const hasOperatingRules =
+      selectedCourt.operatingWindows && selectedCourt.operatingWindows.length > 0
+    const courtStartDayIntervals = getCourtDayOperatingIntervals(
+      selectedCourt.operatingWindows,
+      blockStartDayOfWeek
+    )
+    const startMin = parseTimeToMinutes(blockStartTime)
+
+    const activeDayBookings =
+      blockStartDate === defaultDate
+        ? (selectedCourt.bookings || []).filter(
+            (b) => b.status !== 'cancelled' && b.status !== 'expired'
+          )
+        : []
+
+    return QUARTER_HOUR_END_TIME_SLOTS.filter((t) => {
+      const endMin = parseEndTimeToMinutes(t)
+      if (blockEndDate === blockStartDate) {
+        if (endMin <= startMin) return false
+        if (
+          hasOperatingRules &&
+          !isIntervalCoveredByOperatingWindows(startMin, endMin, courtStartDayIntervals)
+        ) {
+          return false
+        }
+      } else {
+        // Bloqueo que cruza al día siguiente: requiere que el día de inicio cubra hasta 24:00 y el siguiente desde 00:00
+        const [ey, em, ed] = blockEndDate.split('-').map(Number)
+        const endDayOfWeek = new Date(ey, em - 1, ed).getDay()
+        const courtEndDayIntervals = getCourtDayOperatingIntervals(
+          selectedCourt.operatingWindows,
+          endDayOfWeek
+        )
+        if (hasOperatingRules) {
+          const coveredStartDay = isIntervalCoveredByOperatingWindows(
+            startMin,
+            1440,
+            courtStartDayIntervals
+          )
+          const coveredEndDay = isIntervalCoveredByOperatingWindows(
+            0,
+            endMin,
+            courtEndDayIntervals
+          )
+          if (!coveredStartDay || !coveredEndDay) return false
+        }
+      }
+
+      if (activeDayBookings.length > 0) {
+        const candidateStartMs = new Date(localToUtcIso(blockStartDate, blockStartTime)).getTime()
+        const candidateEndMs = new Date(localToUtcIso(blockEndDate, t)).getTime()
+        const hasConflict = activeDayBookings.some((b) => {
+          const bStart = new Date(b.startTimeUtc).getTime()
+          const bEnd = new Date(b.endTimeUtc).getTime()
+          return bStart < candidateEndMs && bEnd > candidateStartMs
+        })
+        if (hasConflict) return false
+      }
+
+      return true
+    })
+  }, [selectedCourt, blockStartDayOfWeek, blockStartDate, blockEndDate, blockStartTime, defaultDate])
+
+  useEffect(() => {
+    if (!isOpen || mode !== 'block') return
+    if (
+      availableBlockStartTimes.length > 0 &&
+      !availableBlockStartTimes.includes(blockStartTime)
+    ) {
+      setBlockStartTime(availableBlockStartTimes[0])
+    }
+  }, [isOpen, mode, availableBlockStartTimes, blockStartTime])
+
+  useEffect(() => {
+    if (!isOpen || mode !== 'block') return
+    if (availableBlockEndTimes.length > 0 && !availableBlockEndTimes.includes(blockEndTime)) {
+      setBlockEndTime(availableBlockEndTimes[0])
+    }
+  }, [isOpen, mode, availableBlockEndTimes, blockEndTime])
+
+  // Calcular hora fin a partir de startTime y duración (modo reserva comercial)
   const endTime = useMemo(() => {
     const [hours, minutes] = startTime.split(':').map(Number)
     const totalMinutes = hours * 60 + minutes + customDurationMinutes
@@ -144,9 +425,9 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
     return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`
   }, [startTime, customDurationMinutes])
 
-  // Obtener cotización de precio dinámica
+  // Obtener cotización de precio dinámica (solo en modo reserva comercial)
   useEffect(() => {
-    if (!courtId || !sportId || !defaultDate || !startTime || !endTime) return
+    if (mode !== 'booking' || !courtId || !sportId || !defaultDate || !startTime || !endTime) return
 
     const startDateTimeUtc = localToUtcIso(defaultDate, startTime)
     const endDateTimeUtc = new Date(
@@ -170,21 +451,19 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
         },
       }
     )
-  }, [courtId, sportId, defaultDate, startTime, endTime])
+  }, [mode, courtId, sportId, defaultDate, startTime, endTime, customDurationMinutes])
 
   const effectivePrice = overridePrice ? customPrice : quotedPrice
+  const isDepositExceedingTotal = mode === 'booking' && depositAmount > effectivePrice
 
-  // Selección de disciplina con inmediatez y desmarcado de tarifa manual (Q1, Q2, Q3)
+  // Selección de disciplina con inmediatez y desmarcado de tarifa manual
   const handleSelectSport = (sport: GridSportItem) => {
     setSportId(sport.sportId)
     setCustomDurationMinutes(sport.durationMinutes)
 
-    // 1. Inmediatamente actualizar precio base y desmarcar modificación manual
     setOverridePrice(false)
     setQuotedPrice(sport.basePrice)
     setCustomPrice(sport.basePrice)
-
-    // 2. Recalcular seña según la preferencia activa (100%, 50%, 0% o personalizada)
     setDepositAmount(calculateDepositForPrice(sport.basePrice, depositType, depositAmount))
   }
 
@@ -239,17 +518,25 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const startDateTimeUtc = localToUtcIso(defaultDate, startTime)
-    const endDateTimeUtc = new Date(
-      new Date(startDateTimeUtc).getTime() + customDurationMinutes * 60 * 1000
-    ).toISOString()
-
     if (mode === 'block') {
+      const blockStartUtc = localToUtcIso(blockStartDate, blockStartTime)
+      const blockEndUtc = localToUtcIso(blockEndDate, blockEndTime)
+
+      if (new Date(blockEndUtc).getTime() <= new Date(blockStartUtc).getTime()) {
+        toast.error('La fecha y hora de finalización del bloqueo deben ser posteriores al inicio.')
+        return
+      }
+
+      if (!blockReason.trim()) {
+        toast.error('Ingrese el motivo del bloqueo operativo.')
+        return
+      }
+
       await createBlockMutation.mutateAsync({
         courtId,
-        startTimeUtc: startDateTimeUtc,
-        endTimeUtc: endDateTimeUtc,
-        reason: blockReason,
+        startTimeUtc: blockStartUtc,
+        endTimeUtc: blockEndUtc,
+        reason: blockReason.trim(),
       })
       onClose()
       return
@@ -258,6 +545,21 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
     if (!customerName.trim() || !customerPhone.trim()) {
       return
     }
+
+    if (depositAmount > effectivePrice) {
+      toast.error('El monto de la seña o pago inicial no puede superar el valor total del turno.')
+      return
+    }
+
+    if (availableBookingStartTimes.length === 0) {
+      toast.error('No hay horarios disponibles para esta disciplina en la fecha seleccionada.')
+      return
+    }
+
+    const startDateTimeUtc = localToUtcIso(defaultDate, startTime)
+    const endDateTimeUtc = new Date(
+      new Date(startDateTimeUtc).getTime() + customDurationMinutes * 60 * 1000
+    ).toISOString()
 
     await createBookingMutation.mutateAsync({
       courtId,
@@ -292,7 +594,9 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                 {mode === 'booking' ? 'Nueva Reserva de Cancha' : 'Nuevo Bloqueo Operativo'}
               </h2>
               <p className="text-xs font-mono font-medium text-[#9497A1] mt-0.5">
-                {defaultDate} · {startTime} a {endTime} hs
+                {mode === 'booking'
+                  ? `${defaultDate} · ${startTime} a ${endTime} hs`
+                  : `${blockStartDate} ${blockStartTime} a ${blockEndDate} ${blockEndTime} hs`}
               </p>
             </div>
           </div>
@@ -393,34 +697,88 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
             )}
           </div>
 
-          {/* Horario de Inicio y Finalización */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-mono font-bold text-[#9497A1] uppercase tracking-wider mb-1.5">
-                Hora de Inicio
-              </label>
-              <div className="relative">
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full text-base sm:text-sm font-mono font-bold rounded-xl border border-[#31343E] bg-[#22242B] px-3 py-2 text-[#F2F3F5] focus:border-[#327357] focus:ring-1 focus:ring-[#327357] outline-hidden"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-mono font-bold text-[#9497A1] uppercase tracking-wider mb-1.5">
-                Hora de Finalización
-              </label>
-              <div className="flex items-center h-[42px] px-3.5 rounded-xl border border-[#31343E] bg-[#111215] text-[#9497A1] text-sm font-mono font-bold">
-                {endTime} hs
-              </div>
-            </div>
-          </div>
-
           {/* Si es Bloqueo Operativo */}
           {mode === 'block' ? (
-            <div className="space-y-4">
+            <div className="space-y-4 pt-2 border-t border-[#31343E]">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-mono font-bold text-[#9497A1] uppercase tracking-wider mb-1.5">
+                    Fecha de Inicio
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={blockStartDate}
+                    onChange={(e) => {
+                      const nextDate = e.target.value
+                      setBlockStartDate(nextDate)
+                      if (blockEndDate < nextDate) {
+                        setBlockEndDate(nextDate)
+                      }
+                    }}
+                    className="w-full text-base sm:text-sm font-mono font-bold rounded-xl border border-[#31343E] bg-[#22242B] px-3 py-2.5 text-[#F2F3F5] focus:border-[#D46211] focus:ring-1 focus:ring-[#D46211] outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono font-bold text-[#9497A1] uppercase tracking-wider mb-1.5">
+                    Hora de Inicio
+                  </label>
+                  <select
+                    value={blockStartTime}
+                    onChange={(e) => setBlockStartTime(e.target.value)}
+                    disabled={availableBlockStartTimes.length === 0}
+                    className="w-full text-base sm:text-sm font-mono font-bold rounded-xl border border-[#31343E] bg-[#22242B] px-3 py-2.5 text-[#F2F3F5] focus:border-[#D46211] focus:ring-1 focus:ring-[#D46211] outline-hidden cursor-pointer disabled:opacity-50"
+                  >
+                    {availableBlockStartTimes.length === 0 ? (
+                      <option value="">Sin horarios disponibles</option>
+                    ) : (
+                      availableBlockStartTimes.map((t) => (
+                        <option key={`block-start-${t}`} value={t} className="bg-[#22242B] text-[#F2F3F5]">
+                          {t} hs
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-mono font-bold text-[#9497A1] uppercase tracking-wider mb-1.5">
+                    Fecha de Finalización
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    min={blockStartDate}
+                    value={blockEndDate}
+                    onChange={(e) => setBlockEndDate(e.target.value)}
+                    className="w-full text-base sm:text-sm font-mono font-bold rounded-xl border border-[#31343E] bg-[#22242B] px-3 py-2.5 text-[#F2F3F5] focus:border-[#D46211] focus:ring-1 focus:ring-[#D46211] outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono font-bold text-[#9497A1] uppercase tracking-wider mb-1.5">
+                    Hora de Finalización
+                  </label>
+                  <select
+                    value={blockEndTime}
+                    onChange={(e) => setBlockEndTime(e.target.value)}
+                    disabled={availableBlockEndTimes.length === 0}
+                    className="w-full text-base sm:text-sm font-mono font-bold rounded-xl border border-[#31343E] bg-[#22242B] px-3 py-2.5 text-[#F2F3F5] focus:border-[#D46211] focus:ring-1 focus:ring-[#D46211] outline-hidden cursor-pointer disabled:opacity-50"
+                  >
+                    {availableBlockEndTimes.length === 0 ? (
+                      <option value="">Sin horarios continuos</option>
+                    ) : (
+                      availableBlockEndTimes.map((t) => (
+                        <option key={`block-end-${t}`} value={t} className="bg-[#22242B] text-[#F2F3F5]">
+                          {t === '24:00' ? '24:00 (Cierre medianoche)' : `${t} hs`}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-mono font-bold text-[#9497A1] uppercase tracking-wider mb-1.5">
                   Motivo del Bloqueo
@@ -438,6 +796,39 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
           ) : (
             /* Modo Reserva Regular */
             <>
+              {/* Horario de Inicio y Finalización */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-mono font-bold text-[#9497A1] uppercase tracking-wider mb-1.5">
+                    Hora de Inicio
+                  </label>
+                  <select
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    disabled={availableBookingStartTimes.length === 0}
+                    className="w-full text-base sm:text-sm font-mono font-bold rounded-xl border border-[#31343E] bg-[#22242B] px-3 py-2.5 text-[#F2F3F5] focus:border-[#327357] focus:ring-1 focus:ring-[#327357] outline-hidden cursor-pointer disabled:opacity-50"
+                  >
+                    {availableBookingStartTimes.length === 0 ? (
+                      <option value="">Sin horarios disponibles</option>
+                    ) : (
+                      availableBookingStartTimes.map((t) => (
+                        <option key={`booking-start-${t}`} value={t} className="bg-[#22242B] text-[#F2F3F5]">
+                          {t} hs
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-mono font-bold text-[#9497A1] uppercase tracking-wider mb-1.5">
+                    Hora de Finalización
+                  </label>
+                  <div className="flex items-center h-[42px] px-3.5 rounded-xl border border-[#31343E] bg-[#111215] text-[#9497A1] text-sm font-mono font-bold">
+                    {endTime} hs
+                  </div>
+                </div>
+              </div>
+
               {/* Autocompletado de Cliente */}
               <div className="space-y-3 pt-3 border-t border-[#31343E]">
                 <div className="relative">
@@ -565,12 +956,11 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
 
                 {overridePrice && (
                   <div className="animate-in fade-in duration-200">
-                    <input
-                      type="number"
+                    <NumericInput
                       min="0"
                       step="500"
                       value={customPrice}
-                      onChange={(e) => handleCustomPriceChange(Number(e.target.value))}
+                      onChange={(val) => handleCustomPriceChange(val)}
                       className="w-full text-base sm:text-sm font-mono font-bold rounded-xl border border-[#31343E] bg-[#22242B] px-3.5 py-2 text-[#F2F3F5] focus:border-[#327357] focus:ring-1 focus:ring-[#327357] outline-hidden"
                     />
                   </div>
@@ -642,23 +1032,31 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
                     <div className="mb-3 animate-in fade-in duration-200">
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-[#D46211]" />
-                        <input
-                          type="number"
+                        <NumericInput
                           min="0"
-                          max={effectivePrice}
                           step="500"
                           value={depositAmount}
-                          onChange={(e) => {
-                            const val = Math.max(0, Number(e.target.value))
-                            setDepositAmount(val)
+                          onChange={(val) => {
+                            setDepositAmount(Math.max(0, val))
                           }}
                           placeholder="Ingrese monto exacto de seña..."
-                          className="w-full text-base sm:text-sm font-mono font-bold pl-9 pr-3.5 py-2 rounded-xl border border-[#31343E] bg-[#22242B] text-[#F2F3F5] focus:border-[#D46211] focus:ring-1 focus:ring-[#D46211] outline-hidden placeholder:text-[#6C707E]"
+                          className={cn(
+                            'w-full text-base sm:text-sm font-mono font-bold pl-9 pr-3.5 py-2 rounded-xl border bg-[#22242B] text-[#F2F3F5] outline-hidden placeholder:text-[#6C707E]',
+                            isDepositExceedingTotal
+                              ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                              : 'border-[#31343E] focus:border-[#D46211] focus:ring-1 focus:ring-[#D46211]'
+                          )}
                         />
                       </div>
-                      <span className="text-[11px] font-mono text-[#9497A1] mt-1 block">
-                        Saldo a liquidar en cancha: ${(Math.max(0, effectivePrice - depositAmount)).toLocaleString('es-AR')}
-                      </span>
+                      {isDepositExceedingTotal ? (
+                        <span className="text-[11px] font-mono text-red-400 font-semibold mt-1 block">
+                          El valor de la seña (${depositAmount.toLocaleString('es-AR')}) no puede superar el valor total del turno (${effectivePrice.toLocaleString('es-AR')}).
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-mono text-[#9497A1] mt-1 block">
+                          Saldo a liquidar en cancha: ${(Math.max(0, effectivePrice - depositAmount)).toLocaleString('es-AR')}
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -741,7 +1139,13 @@ export const NewBookingSheet: React.FC<NewBookingSheetProps> = ({
           </button>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={
+              isSubmitting ||
+              (mode === 'booking' &&
+                (isDepositExceedingTotal || availableBookingStartTimes.length === 0)) ||
+              (mode === 'block' &&
+                (availableBlockStartTimes.length === 0 || availableBlockEndTimes.length === 0))
+            }
             className={cn(
               'w-full sm:w-auto min-h-[44px] px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white transition-colors shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2',
               mode === 'booking'

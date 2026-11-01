@@ -3,7 +3,7 @@ import { useQueries } from '@tanstack/react-query'
 import { bookingsApi } from '../api/bookingsApi'
 import { BOOKINGS_QUERY_KEYS } from './useBookings'
 import type { DailyGridCourtItem, WeeklyDayData } from '../types'
-import { getTodayLocalDateStr } from '../types/timeline.types'
+import { computeCourtDynamicHourBounds, getTodayLocalDateStr } from '../types/timeline.types'
 
 const DAY_NAMES_ES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const MONTH_NAMES_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -81,6 +81,7 @@ export const useCourtWeeklyGrid = (selectedCourtId: string | null, startDateStr:
       ) || null
 
       const bookings = (courtData?.bookings || []).filter((b) => b.status !== 'cancelled')
+      const customerBookingsCount = bookings.filter((b) => b.status !== 'blocked').length
 
       const totalIncome = bookings.reduce((sum, b) => {
         // Excluir bloqueos de mantenimiento del cómputo de ingresos
@@ -90,6 +91,7 @@ export const useCourtWeeklyGrid = (selectedCourtId: string | null, startDateStr:
 
       return {
         dateStr,
+        dayOfWeek: dateObj.getDay(),
         dayName,
         dayNumber,
         monthShort,
@@ -97,10 +99,15 @@ export const useCourtWeeklyGrid = (selectedCourtId: string | null, startDateStr:
         courtData,
         bookings,
         totalIncome,
-        bookingsCount: bookings.length,
+        bookingsCount: customerBookingsCount,
       }
     })
   }, [dates, queries, activeCourt, selectedCourtId])
+
+  const timelineBounds = useMemo(() => {
+    const allWeekBookings = daysData.flatMap((d) => d.bookings)
+    return computeCourtDynamicHourBounds(activeCourt?.operatingWindows, allWeekBookings)
+  }, [activeCourt?.operatingWindows, daysData])
 
   // Métricas acumuladas semanales
   const weeklyMetrics = useMemo(() => {
@@ -131,6 +138,7 @@ export const useCourtWeeklyGrid = (selectedCourtId: string | null, startDateStr:
     activeCourt,
     allCourts,
     weeklyMetrics,
+    timelineBounds,
     isLoading,
     isFetching,
     refetchAll,

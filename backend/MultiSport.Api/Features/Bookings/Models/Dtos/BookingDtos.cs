@@ -83,6 +83,13 @@ public record CreateBlockRequest(
     string Reason
 );
 
+public record UpdateBlockRequest(
+    Guid CourtId,
+    DateTimeOffset StartTimeUtc,
+    DateTimeOffset EndTimeUtc,
+    string Reason
+);
+
 public record RecordPaymentRequest(
     decimal Amount,
     string PaymentMethod,
@@ -127,7 +134,17 @@ public record DailyGridCourtItem(
     string Surface,
     bool IsIndoor,
     IReadOnlyList<GridSportItem> Sports,
-    IReadOnlyList<GridBookingItem> Bookings
+    IReadOnlyList<GridBookingItem> Bookings,
+    IReadOnlyList<GridOperatingWindowItem>? OperatingWindows = null
+);
+
+public record GridOperatingWindowItem(
+    Guid SportId,
+    int DayOfWeek,
+    string StartTime,
+    string EndTime,
+    decimal Price,
+    int DurationMinutes
 );
 
 public record GridSportItem(

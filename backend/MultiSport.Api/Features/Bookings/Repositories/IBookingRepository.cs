@@ -3,6 +3,22 @@ using MultiSport.Api.Features.Bookings.Models.Entities;
 
 namespace MultiSport.Api.Features.Bookings.Repositories;
 
+public enum BookingWriteStatus
+{
+    Success,
+    NotFound,
+    CourtNotFound,
+    SportNotAvailableOnCourt,
+    OutsideOperatingHours,
+    RecurringRuleConflict
+}
+
+public record BookingWriteResult(
+    BookingWriteStatus Status,
+    string? ErrorMessage = null,
+    Booking? Booking = null
+);
+
 public interface IBookingRepository
 {
     Task<IReadOnlyList<DailyGridCourtItem>> GetComplexCourtsWithSportsAsync(Guid complexId, CancellationToken ct);
@@ -11,10 +27,11 @@ public interface IBookingRepository
     Task<BookingResponse?> GetBookingDetailByIdAsync(Guid bookingId, Guid complexId, CancellationToken ct);
     Task<Booking?> GetBookingEntityByIdAsync(Guid bookingId, Guid complexId, CancellationToken ct);
     Task<IReadOnlyList<PaymentResponse>> GetPaymentsByBookingIdAsync(Guid bookingId, CancellationToken ct);
-    Task<Booking> CreateBookingWithOptionalPaymentAsync(
+    Task<BookingWriteResult> CreateBookingWithOptionalPaymentAsync(
         Booking booking,
         Payment? payment,
         Customer? customer,
+        RecurringBookingRule? recurringRule,
         CancellationToken ct);
     Task<Payment> RecordPaymentAsync(
         Payment payment,
@@ -31,12 +48,25 @@ public interface IBookingRepository
         Guid userId,
         DateTimeOffset now,
         CancellationToken ct);
-    Task<bool> RescheduleBookingAsync(
+    Task<BookingWriteResult> RescheduleBookingAsync(
         Guid bookingId,
         Guid complexId,
+        Guid sourceCourtId,
+        Guid newCourtId,
+        Guid sportId,
+        DateTimeOffset newStartUtc,
+        DateTimeOffset newEndUtc,
+        Guid userId,
+        DateTimeOffset now,
+        CancellationToken ct);
+    Task<BookingWriteResult> UpdateBlockAsync(
+        Guid bookingId,
+        Guid complexId,
+        Guid sourceCourtId,
         Guid newCourtId,
         DateTimeOffset newStartUtc,
         DateTimeOffset newEndUtc,
+        string reason,
         Guid userId,
         DateTimeOffset now,
         CancellationToken ct);
@@ -47,5 +77,4 @@ public interface IBookingRepository
         int dayOfWeek,
         TimeOnly startTime,
         CancellationToken ct);
-    Task<RecurringBookingRule> CreateRecurringBookingRuleAsync(RecurringBookingRule rule, CancellationToken ct);
 }
