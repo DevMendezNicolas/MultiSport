@@ -1,12 +1,12 @@
 import basketCementoImg from '@/assets/create-courts/Basket_Court_Cemento.jpg'
 import basketMaderaImg from '@/assets/create-courts/Basket_Court_Madera.jpg'
-import futbolCourtImg from '@/assets/create-courts/Futbol_Court.jpg'
-import futsalCourtImg from '@/assets/create-courts/Futsal_Court.png'
+import futbolCourtImg from '@/assets/create-courts/Futbol_Court_Cesped.jpg'
+import futsalCourtImg from '@/assets/create-courts/Futsal_Court_Cemento.jpg'
 import tenisCementoImg from '@/assets/create-courts/Tenis_Court_Cemento.jpg'
 import tenisPastoImg from '@/assets/create-courts/Tenis_Court_Pasto.jpg'
-import tenisPolvoImg from '@/assets/create-courts/Tenis_Court_PolvoLadrillo.jpg'
+import tenisPolvoImg from '@/assets/create-courts/Tenis_Court_PolvoLadrillo_Horizontal.jpg'
 import voleyCourtImg from '@/assets/create-courts/Voley_Court.jpg'
-import padelCourtImg from '@/assets/create-courts/Padel_Court.jpg'
+import padelCourtImg from '@/assets/create-courts/Padel_Court_Cristal.jpg'
 
 export interface CourtVisualResolution {
   imageUrl: string

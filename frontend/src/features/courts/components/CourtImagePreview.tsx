@@ -42,12 +42,12 @@ export const CourtImagePreview: React.FC<CourtImagePreviewProps> = ({
           </span>
         </div>
 
-        {/* Marco de Imagen Vertical Limpio */}
-        <div className="relative w-full aspect-[4/5] sm:aspect-[3/4] bg-[#16181D] overflow-hidden border border-[#31343E] rounded-xl">
+        {/* Marco de Fotografía Horizontal de Borde a Borde */}
+        <div className="relative w-full aspect-[16/10] bg-[#16181D] overflow-hidden border border-[#31343E] rounded-xl">
           <img
             src={resolution.imageUrl}
             alt={resolution.caption}
-            className="w-full h-full object-cover transition-all duration-500"
+            className="w-full h-full object-cover object-center transition-all duration-500"
           />
         </div>
       </div>
