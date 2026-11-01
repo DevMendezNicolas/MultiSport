@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { AlertDialog } from '@/components/ui/alert-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CourtSelectorBar } from '../components/CourtSelectorBar'
 import { TimelineCommandBar } from '../components/TimelineCommandBar'
@@ -9,7 +8,7 @@ import { BookingDetailSheet } from '../components/BookingDetailSheet'
 import { NewBookingSheet } from '../components/NewBookingSheet'
 import { useCourtWeeklyGrid } from '../hooks/useCourtWeeklyGrid'
 import { useBookingDragAndDrop } from '../hooks/useBookingDragAndDrop'
-import { useRescheduleBooking, useCancelBooking } from '../hooks/useBookings'
+import { useRescheduleBooking, useUpdateBlock } from '../hooks/useBookings'
 import {
   formatLocalDate,
   getTodayLocalDateStr,
@@ -66,21 +65,24 @@ export const BookingsManagementPage: React.FC = () => {
     activeCourt,
     allCourts,
     weeklyMetrics,
+    timelineBounds,
     isLoading,
   } = useCourtWeeklyGrid(selectedCourtId, startDateStr)
 
-  // Hook de Drag & Drop y Snapping
-  const dragHook = useBookingDragAndDrop()
+  // Hook de Drag & Drop y Snapping parametrizado al eje dinámico de la cancha
+  const dragHook = useBookingDragAndDrop(timelineBounds.startHour, timelineBounds.totalSlots)
 
-  // Mutaciones de Turnos
+  // Mutaciones de Turnos y Bloqueos
   const rescheduleBookingMutation = useRescheduleBooking()
-  const cancelBookingMutation = useCancelBooking()
+  const updateBlockMutation = useUpdateBlock()
 
-  // Estado para el Slide-Over Sheet de detalle
+  // Estado para el Slide-Over Sheet de detalle (y apertura en modo confirmación inline al arrastrar a papelera)
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [initialConfirmCancel, setInitialConfirmCancel] = useState(false)
 
   const handleSelectBooking = (bookingId: string) => {
+    setInitialConfirmCancel(false)
     setSelectedBookingId(bookingId)
     setIsDetailOpen(true)
   }
@@ -111,22 +113,29 @@ export const BookingsManagementPage: React.FC = () => {
     setIsNewBookingOpen(true)
   }
 
-  // Estado para el modal de confirmación al soltar en el tacho de basura
-  const [bookingToCancel, setBookingToCancel] = useState<DraggedBookingData | null>(null)
-  const [showTrashCancelDialog, setShowTrashCancelDialog] = useState(false)
-  const [trashCancelReason, setTrashCancelReason] = useState('')
-  const [trashRefundDeposit, setTrashRefundDeposit] = useState(false)
-  const [trashRefundMethod, setTrashRefundMethod] = useState<'cash' | 'transfer' | 'cash'>('cash')
-
-  // Reprogramación por arrastre en la grilla
+  // Reprogramación por arrastre en la grilla (soporta tanto turnos como bloqueos operativos)
   const handleReschedule = (
-    bookingId: string,
+    dragged: DraggedBookingData,
     newStartTimeUtc: string,
     newEndTimeUtc: string
   ) => {
     if (!activeCourt) return
+
+    if (dragged.isBlocked) {
+      updateBlockMutation.mutate({
+        id: dragged.bookingId,
+        payload: {
+          courtId: activeCourt.courtId,
+          startTimeUtc: newStartTimeUtc,
+          endTimeUtc: newEndTimeUtc,
+          reason: (dragged.notes && dragged.notes.trim()) || 'Bloqueo Operativo',
+        },
+      })
+      return
+    }
+
     rescheduleBookingMutation.mutate({
-      id: bookingId,
+      id: dragged.bookingId,
       payload: {
         courtId: activeCourt.courtId,
         newStartTimeUtc,
@@ -135,28 +144,11 @@ export const BookingsManagementPage: React.FC = () => {
     })
   }
 
-  // Disparar anulación tras soltar en la papelera flotante
+  // Disparar confirmación inline en el panel lateral tras soltar en la papelera flotante (Zero-Popup Policy)
   const handleTriggerCancel = (dragged: DraggedBookingData) => {
-    setBookingToCancel(dragged)
-    setTrashCancelReason('Cancelado por arrastre a papelera')
-    setTrashRefundDeposit(false)
-    setShowTrashCancelDialog(true)
-  }
-
-  const handleConfirmTrashCancel = async () => {
-    if (!bookingToCancel) return
-
-    await cancelBookingMutation.mutateAsync({
-      id: bookingToCancel.bookingId,
-      payload: {
-        reason: trashCancelReason.trim() || 'Cancelado desde la papelera de turnos',
-        refundDeposit: trashRefundDeposit,
-        refundMethod: trashRefundDeposit ? trashRefundMethod : null,
-      },
-    })
-
-    setShowTrashCancelDialog(false)
-    setBookingToCancel(null)
+    setInitialConfirmCancel(true)
+    setSelectedBookingId(dragged.bookingId)
+    setIsDetailOpen(true)
   }
 
   return (
@@ -193,6 +185,8 @@ export const BookingsManagementPage: React.FC = () => {
           courtName={activeCourt?.courtName || 'Cancha'}
           surfaceName={activeCourt?.surface}
           sports={activeCourt?.sports}
+          operatingWindows={activeCourt?.operatingWindows}
+          timelineBounds={timelineBounds}
           dragHook={dragHook}
           onSelectBooking={handleSelectBooking}
           onSlotClick={handleOpenNewBookingFromSlot}
@@ -201,14 +195,17 @@ export const BookingsManagementPage: React.FC = () => {
         />
       )}
 
-      {/* 4. Slide-over Sheet Lateral de Operaciones y Caja */}
+      {/* 4. Slide-over Sheet Lateral de Operaciones y Caja (con Confirmación Inline de Baja) */}
       <BookingDetailSheet
         bookingId={selectedBookingId}
         isOpen={isDetailOpen}
         onClose={() => {
           setIsDetailOpen(false)
           setSelectedBookingId(null)
+          setInitialConfirmCancel(false)
         }}
+        courts={allCourts}
+        initialConfirmCancel={initialConfirmCancel}
       />
 
       {/* 5. Sheet para Alta de Nuevo Turno */}
@@ -223,83 +220,6 @@ export const BookingsManagementPage: React.FC = () => {
         defaultDate={newBookingParams?.date || startDateStr}
         defaultTimeSlot={newBookingParams?.timeSlot || '18:00'}
         maxAvailableMinutes={newBookingParams?.maxAvailableMinutes}
-      />
-
-      {/* 6. Diálogo Centrado para Confirmar Cancelación por Papelera */}
-      <AlertDialog
-        isOpen={showTrashCancelDialog}
-        onClose={() => {
-          setShowTrashCancelDialog(false)
-          setBookingToCancel(null)
-        }}
-        onConfirm={handleConfirmTrashCancel}
-        isLoading={cancelBookingMutation.isPending}
-        title="Cancelar Reserva (Papelera)"
-        confirmText="Confirmar Anulación"
-        isDestructive={true}
-        description={
-          <div className="space-y-3">
-            <p className="text-sm text-[#F2F3F5]">
-              Ha arrastrado a la papelera el turno de{' '}
-              <strong className="text-white">
-                {bookingToCancel?.customerName}
-              </strong>
-              . ¿Desea liberar y anular este horario?
-            </p>
-
-            <div className="p-3 rounded-xl bg-[#22242B] border border-[#31343E] text-xs text-[#F2F3F5] space-y-2">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="trashRefundDeposit"
-                  checked={trashRefundDeposit}
-                  onChange={(e) => setTrashRefundDeposit(e.target.checked)}
-                  className="h-4 w-4 text-[#D46211] rounded border-[#31343E] cursor-pointer"
-                />
-                <label htmlFor="trashRefundDeposit" className="font-semibold cursor-pointer">
-                  Devolver / Registrar reembolso de seña
-                </label>
-              </div>
-
-              {trashRefundDeposit && (
-                <div className="flex items-center gap-3 pt-1">
-                  <span className="text-[11px] text-[#9497A1]">Método de devolución:</span>
-                  <label className="flex items-center gap-1 text-[11px] cursor-pointer text-[#F2F3F5]">
-                    <input
-                      type="radio"
-                      name="trashRefundMethod"
-                      checked={trashRefundMethod === 'cash'}
-                      onChange={() => setTrashRefundMethod('cash')}
-                    />
-                    Efectivo
-                  </label>
-                  <label className="flex items-center gap-1 text-[11px] cursor-pointer text-[#F2F3F5]">
-                    <input
-                      type="radio"
-                      name="trashRefundMethod"
-                      checked={trashRefundMethod === 'transfer'}
-                      onChange={() => setTrashRefundMethod('transfer')}
-                    />
-                    Transferencia
-                  </label>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[#9497A1] mb-1">
-                Motivo de la cancelación:
-              </label>
-              <input
-                type="text"
-                value={trashCancelReason}
-                onChange={(e) => setTrashCancelReason(e.target.value)}
-                placeholder="Ej: Desistimiento del cliente, lluvia, etc."
-                className="w-full text-base sm:text-sm rounded-lg border border-[#31343E] bg-[#17181C] px-3 py-2 text-[#F2F3F5] focus:border-red-600 outline-none"
-              />
-            </div>
-          </div>
-        }
       />
     </div>
   )

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import {
   Calendar,
   Clock,
@@ -14,6 +15,7 @@ import {
   Repeat,
   DoorOpen,
   Send,
+  Wrench,
 } from 'lucide-react'
 import {
   Sheet,
@@ -21,26 +23,37 @@ import {
   SheetBody,
   SheetFooter,
 } from '@/components/ui/sheet'
-import { AlertDialog } from '@/components/ui/alert-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { NumericInput } from '@/components/ui/numeric-input'
 import {
   useBookingDetail,
   useRecordPayment,
   useCancelBooking,
   useRescheduleBooking,
+  useUpdateBlock,
 } from '../hooks/useBookings'
-import { localToUtcIso, utcToLocalParts } from '../types/timeline.types'
+import type { DailyGridCourtItem } from '../types'
+import {
+  localToUtcIso,
+  utcToLocalParts,
+  QUARTER_HOUR_TIME_SLOTS,
+  QUARTER_HOUR_END_TIME_SLOTS,
+} from '../types/timeline.types'
 
 interface BookingDetailSheetProps {
   bookingId: string | null
   isOpen: boolean
   onClose: () => void
+  courts?: DailyGridCourtItem[]
+  initialConfirmCancel?: boolean
 }
 
 export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
   bookingId,
   isOpen,
   onClose,
+  courts = [],
+  initialConfirmCancel = false,
 }) => {
   const { data: booking, isLoading } = useBookingDetail(bookingId)
 
@@ -59,24 +72,36 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
   const [refundDeposit, setRefundDeposit] = useState(false)
   const [refundMethod, setRefundMethod] = useState<'cash' | 'transfer'>('cash')
 
-  // Estados de reprogramación de horario
+  // Estados de reprogramación de horario (reservas comerciales)
   const [showRescheduleForm, setShowRescheduleForm] = useState(false)
+  const [rescheduleCourtId, setRescheduleCourtId] = useState('')
   const [rescheduleDate, setRescheduleDate] = useState('')
   const [rescheduleTime, setRescheduleTime] = useState('18:00')
   const [rescheduleDurationMinutes, setRescheduleDurationMinutes] = useState(60)
 
+  // Estados de edición de bloqueo operativo
+  const [showEditBlockForm, setShowEditBlockForm] = useState(false)
+  const [editBlockCourtId, setEditBlockCourtId] = useState('')
+  const [editBlockStartDate, setEditBlockStartDate] = useState('')
+  const [editBlockStartTime, setEditBlockStartTime] = useState('18:00')
+  const [editBlockEndDate, setEditBlockEndDate] = useState('')
+  const [editBlockEndTime, setEditBlockEndTime] = useState('19:00')
+  const [editBlockReason, setEditBlockReason] = useState('')
+
   const recordPaymentMutation = useRecordPayment()
   const cancelBookingMutation = useCancelBooking()
   const rescheduleBookingMutation = useRescheduleBooking()
+  const updateBlockMutation = useUpdateBlock()
 
-  // Sincronizar estado inicial al recibir reserva
+  // Sincronizar estado inicial al recibir reserva o bloqueo
   useEffect(() => {
     if (booking) {
       setPaymentAmount(booking.balance > 0 ? booking.balance : 0)
       setCashReceived(booking.balance > 0 ? booking.balance : 0)
       setShowPaymentForm(false)
-      setShowCancelDialog(false)
+      setShowCancelDialog(Boolean(initialConfirmCancel))
       setShowRescheduleForm(false)
+      setShowEditBlockForm(false)
       setCancelReason('')
       setRefundDeposit(false)
 
@@ -84,11 +109,28 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
       const end = new Date(booking.endTimeUtc)
       const dur = Math.round((end.getTime() - start.getTime()) / 60000)
       setRescheduleDurationMinutes(dur > 0 ? dur : 60)
+
       const startParts = utcToLocalParts(booking.startTimeUtc)
+      const endParts = utcToLocalParts(booking.endTimeUtc)
+
+      setRescheduleCourtId(booking.courtId)
       setRescheduleDate(startParts.dateStr)
       setRescheduleTime(startParts.timeStr)
+
+      setEditBlockCourtId(booking.courtId)
+      setEditBlockStartDate(startParts.dateStr)
+      setEditBlockStartTime(startParts.timeStr)
+      setEditBlockEndDate(endParts.dateStr)
+      setEditBlockEndTime(endParts.timeStr)
+      setEditBlockReason(booking.notes || 'Mantenimiento')
     }
-  }, [booking])
+  }, [booking, initialConfirmCancel])
+
+  useEffect(() => {
+    if (isOpen && initialConfirmCancel) {
+      setShowCancelDialog(true)
+    }
+  }, [isOpen, initialConfirmCancel])
 
   if (!isOpen) return null
 
@@ -123,7 +165,7 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
     await rescheduleBookingMutation.mutateAsync({
       id: booking.id,
       payload: {
-        courtId: booking.courtId,
+        courtId: rescheduleCourtId || booking.courtId,
         newStartTimeUtc: newStartIso,
         newEndTimeUtc: newEndIso,
       },
@@ -132,15 +174,51 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
     setShowRescheduleForm(false)
   }
 
+  const handleConfirmUpdateBlock = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!booking || !editBlockStartDate || !editBlockStartTime || !editBlockEndDate || !editBlockEndTime) {
+      return
+    }
+
+    const startTimeUtc = localToUtcIso(editBlockStartDate, editBlockStartTime)
+    const endTimeUtc = localToUtcIso(editBlockEndDate, editBlockEndTime)
+
+    if (new Date(endTimeUtc).getTime() <= new Date(startTimeUtc).getTime()) {
+      toast.error('La fecha y hora de finalización del bloqueo deben ser posteriores al inicio.')
+      return
+    }
+
+    if (!editBlockReason.trim()) {
+      toast.error('Ingrese el motivo del bloqueo operativo.')
+      return
+    }
+
+    await updateBlockMutation.mutateAsync({
+      id: booking.id,
+      payload: {
+        courtId: editBlockCourtId || booking.courtId,
+        startTimeUtc,
+        endTimeUtc,
+        reason: editBlockReason.trim(),
+      },
+    })
+
+    setShowEditBlockForm(false)
+  }
+
   const handleConfirmCancel = async () => {
     if (!booking) return
+
+    const isBlocked = booking.status === 'blocked'
 
     await cancelBookingMutation.mutateAsync({
       id: booking.id,
       payload: {
-        reason: cancelReason.trim() || 'Cancelado por el administrador',
-        refundDeposit,
-        refundMethod: refundDeposit ? refundMethod : null,
+        reason:
+          cancelReason.trim() ||
+          (isBlocked ? 'Bloqueo levantado por el administrador' : 'Cancelado por el administrador'),
+        refundDeposit: isBlocked ? false : refundDeposit,
+        refundMethod: !isBlocked && refundDeposit ? refundMethod : null,
       },
     })
 
@@ -149,10 +227,16 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
   }
 
   const formatDateTime = (isoString: string) => {
-    const d = new Date(isoString)
-    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-    const date = d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })
-    return { time, date }
+    const parts = utcToLocalParts(isoString)
+    const [y, m, d] = parts.dateStr.split('-').map(Number)
+    const localDateObj = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+    const date = localDateObj.toLocaleDateString('es-AR', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    })
+    return { time: parts.timeStr, date, dateStr: parts.dateStr }
   }
 
   // Generar URL preformateada de WhatsApp
@@ -173,21 +257,27 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
         .toUpperCase()
     : 'TK'
 
+  const isBlocked = booking?.status === 'blocked'
+
   return (
     <>
       <Sheet isOpen={isOpen} onClose={onClose} side="right">
         <SheetHeader onClose={onClose}>
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-[#22242B] border border-[#31343E] flex items-center justify-center text-[#D46211]">
-              <Calendar className="h-5 w-5" strokeWidth={1.75} />
+              {isBlocked ? (
+                <Wrench className="h-5 w-5" strokeWidth={1.75} />
+              ) : (
+                <Calendar className="h-5 w-5" strokeWidth={1.75} />
+              )}
             </div>
             <div>
               <h2 className="text-lg font-headline font-bold text-[#F2F3F5] leading-tight">
-                Detalle y Operaciones del Turno
+                {isBlocked ? 'Gestión de Bloqueo Operativo' : 'Detalle y Operaciones del Turno'}
               </h2>
               {booking && (
                 <p className="text-xs font-medium text-[#9497A1] mt-0.5">
-                  {booking.courtName} · {booking.sportName}
+                  {booking.courtName} {isBlocked ? '· Bloqueo Técnico' : `· ${booking.sportName}`}
                 </p>
               )}
             </div>
@@ -220,7 +310,7 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
                       </span>
                     )}
                     {booking.status === 'blocked' && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-[#17181C] text-[#9497A1] border border-[#31343E]">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-[#17181C] text-[#D46211] border border-[#D46211]/40">
                         <ShieldAlert className="h-3.5 w-3.5" strokeWidth={2} />
                         Bloqueo Operativo
                       </span>
@@ -239,17 +329,195 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm font-semibold text-[#F2F3F5]">
+                <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[#F2F3F5]">
                   <Clock className="h-4 w-4 text-[#D46211] shrink-0" strokeWidth={1.75} />
-                  <span>
-                    {formatDateTime(booking.startTimeUtc).time} a {formatDateTime(booking.endTimeUtc).time} hs
-                  </span>
-                  <span className="text-[#9497A1]">·</span>
-                  <span className="capitalize text-[#9497A1]">{formatDateTime(booking.startTimeUtc).date}</span>
+                  {formatDateTime(booking.startTimeUtc).dateStr ===
+                  formatDateTime(booking.endTimeUtc).dateStr ? (
+                    <>
+                      <span>
+                        {formatDateTime(booking.startTimeUtc).time} a{' '}
+                        {formatDateTime(booking.endTimeUtc).time} hs
+                      </span>
+                      <span className="text-[#9497A1]">·</span>
+                      <span className="capitalize text-[#9497A1]">
+                        {formatDateTime(booking.startTimeUtc).date}
+                      </span>
+                    </>
+                  ) : (
+                    <span>
+                      {formatDateTime(booking.startTimeUtc).date}{' '}
+                      {formatDateTime(booking.startTimeUtc).time} hs a{' '}
+                      {formatDateTime(booking.endTimeUtc).date}{' '}
+                      {formatDateTime(booking.endTimeUtc).time} hs
+                    </span>
+                  )}
                 </div>
 
-                {/* Formulario de Reprogramación Rápida */}
-                {booking.status !== 'cancelled' && (
+                {isBlocked && (
+                  <div className="pt-2 border-t border-[#31343E] text-xs text-[#F2F3F5]">
+                    <span className="text-[#9497A1] font-semibold">Motivo registrado: </span>
+                    <span className="font-bold">{booking.notes || 'Mantenimiento'}</span>
+                  </div>
+                )}
+
+                {/* Formulario de Edición de Bloqueo Operativo */}
+                {booking.status === 'blocked' && (
+                  <div className="pt-2 border-t border-[#31343E]">
+                    {!showEditBlockForm ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowEditBlockForm(true)}
+                        className="px-3 py-1.5 rounded-lg border border-[#31343E] bg-[#17181C] hover:bg-[#292A2E] text-xs font-bold text-[#F2F3F5] inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Wrench className="h-3.5 w-3.5 text-[#D46211]" strokeWidth={1.75} />
+                        <span>Editar Bloqueo Operativo</span>
+                      </button>
+                    ) : (
+                      <form
+                        onSubmit={handleConfirmUpdateBlock}
+                        className="p-3 bg-[#17181C] border border-[#31343E] rounded-xl space-y-3"
+                      >
+                        <span className="text-xs font-mono font-bold text-[#D46211] uppercase block">
+                          Modificar Rango y Motivo del Bloqueo
+                        </span>
+
+                        {courts.length > 0 && (
+                          <div>
+                            <label className="text-[11px] font-bold text-[#9497A1] block mb-1">
+                              Cancha
+                            </label>
+                            <select
+                              value={editBlockCourtId}
+                              onChange={(e) => setEditBlockCourtId(e.target.value)}
+                              className="w-full text-base sm:text-xs font-semibold p-2 bg-[#22242B] border border-[#31343E] text-[#F2F3F5] rounded-lg outline-none focus:border-[#D46211] cursor-pointer"
+                            >
+                              {courts.map((c) => (
+                                <option
+                                  key={c.courtId}
+                                  value={c.courtId}
+                                  className="bg-[#22242B] text-[#F2F3F5]"
+                                >
+                                  {c.courtName}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[11px] font-bold text-[#9497A1] block mb-1">
+                              Fecha Inicio
+                            </label>
+                            <input
+                              type="date"
+                              required
+                              value={editBlockStartDate}
+                              onChange={(e) => {
+                                const nextDate = e.target.value
+                                setEditBlockStartDate(nextDate)
+                                if (editBlockEndDate < nextDate) {
+                                  setEditBlockEndDate(nextDate)
+                                }
+                              }}
+                              className="w-full text-base sm:text-xs font-semibold p-2 bg-[#22242B] border border-[#31343E] text-[#F2F3F5] rounded-lg outline-none focus:border-[#D46211]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-bold text-[#9497A1] block mb-1">
+                              Hora Inicio
+                            </label>
+                            <select
+                              value={editBlockStartTime}
+                              onChange={(e) => setEditBlockStartTime(e.target.value)}
+                              className="w-full text-base sm:text-xs font-semibold p-2 bg-[#22242B] border border-[#31343E] text-[#F2F3F5] rounded-lg outline-none focus:border-[#D46211] cursor-pointer"
+                            >
+                              {QUARTER_HOUR_TIME_SLOTS.map((t) => (
+                                <option
+                                  key={`edit-block-start-${t}`}
+                                  value={t}
+                                  className="bg-[#22242B] text-[#F2F3F5]"
+                                >
+                                  {t} hs
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[11px] font-bold text-[#9497A1] block mb-1">
+                              Fecha Fin
+                            </label>
+                            <input
+                              type="date"
+                              required
+                              min={editBlockStartDate}
+                              value={editBlockEndDate}
+                              onChange={(e) => setEditBlockEndDate(e.target.value)}
+                              className="w-full text-base sm:text-xs font-semibold p-2 bg-[#22242B] border border-[#31343E] text-[#F2F3F5] rounded-lg outline-none focus:border-[#D46211]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-bold text-[#9497A1] block mb-1">
+                              Hora Fin
+                            </label>
+                            <select
+                              value={editBlockEndTime}
+                              onChange={(e) => setEditBlockEndTime(e.target.value)}
+                              className="w-full text-base sm:text-xs font-semibold p-2 bg-[#22242B] border border-[#31343E] text-[#F2F3F5] rounded-lg outline-none focus:border-[#D46211] cursor-pointer"
+                            >
+                              {QUARTER_HOUR_END_TIME_SLOTS.map((t) => (
+                                <option
+                                  key={`edit-block-end-${t}`}
+                                  value={t}
+                                  className="bg-[#22242B] text-[#F2F3F5]"
+                                >
+                                  {t === '24:00' ? '24:00 (Medianoche)' : `${t} hs`}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-[#9497A1] block mb-1">
+                            Motivo del Bloqueo
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={editBlockReason}
+                            onChange={(e) => setEditBlockReason(e.target.value)}
+                            placeholder="Ej: Mantenimiento de red, Iluminación"
+                            className="w-full text-base sm:text-xs font-semibold p-2 bg-[#22242B] border border-[#31343E] text-[#F2F3F5] rounded-lg outline-none focus:border-[#D46211]"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowEditBlockForm(false)}
+                            className="px-3 py-1.5 text-xs text-[#9497A1] hover:text-white transition-colors cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={updateBlockMutation.isPending}
+                            className="px-3.5 py-1.5 rounded-lg bg-[#D46211] hover:bg-[#E37A24] text-white text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                          >
+                            {updateBlockMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                )}
+
+                {/* Formulario de Reprogramación Rápida (solo reservas comerciales) */}
+                {booking.status !== 'cancelled' && booking.status !== 'blocked' && (
                   <div className="pt-2 border-t border-[#31343E]">
                     {!showRescheduleForm ? (
                       <button
@@ -268,6 +536,28 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
                         <span className="text-xs font-mono font-bold text-[#D46211] uppercase block">
                           Nueva Fecha y Horario
                         </span>
+                        {courts.length > 0 && (
+                          <div>
+                            <label className="text-[11px] font-bold text-[#9497A1] block mb-1">
+                              Cancha
+                            </label>
+                            <select
+                              value={rescheduleCourtId}
+                              onChange={(e) => setRescheduleCourtId(e.target.value)}
+                              className="w-full text-base sm:text-xs font-semibold p-2 bg-[#22242B] border border-[#31343E] text-[#F2F3F5] rounded-lg outline-none focus:border-[#D46211] cursor-pointer"
+                            >
+                              {courts.map((c) => (
+                                <option
+                                  key={c.courtId}
+                                  value={c.courtId}
+                                  className="bg-[#22242B] text-[#F2F3F5]"
+                                >
+                                  {c.courtName}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-[11px] font-bold text-[#9497A1] block mb-1">Fecha</label>
@@ -281,13 +571,21 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
                           </div>
                           <div>
                             <label className="text-[11px] font-bold text-[#9497A1] block mb-1">Hora Inicio</label>
-                            <input
-                              type="time"
-                              required
+                            <select
                               value={rescheduleTime}
                               onChange={(e) => setRescheduleTime(e.target.value)}
-                              className="w-full text-base sm:text-xs font-semibold p-2 bg-[#22242B] border border-[#31343E] text-[#F2F3F5] rounded-lg outline-none focus:border-[#D46211]"
-                            />
+                              className="w-full text-base sm:text-xs font-semibold p-2 bg-[#22242B] border border-[#31343E] text-[#F2F3F5] rounded-lg outline-none focus:border-[#D46211] cursor-pointer"
+                            >
+                              {QUARTER_HOUR_TIME_SLOTS.map((t) => (
+                                <option
+                                  key={`resched-${t}`}
+                                  value={t}
+                                  className="bg-[#22242B] text-[#F2F3F5]"
+                                >
+                                  {t} hs
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                         <div className="flex items-center justify-end gap-2 pt-1">
@@ -465,11 +763,10 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
                                 <label className="text-[10px] text-[#9497A1]">Efectivo entregado:</label>
                                 <div className="relative mt-0.5">
                                   <span className="absolute left-2.5 top-1.5 font-bold text-[#9497A1] text-xs">$</span>
-                                  <input
-                                    type="number"
+                                  <NumericInput
                                     min={paymentAmount}
-                                    value={cashReceived || ''}
-                                    onChange={(e) => setCashReceived(Number(e.target.value))}
+                                    value={cashReceived}
+                                    onChange={(val) => setCashReceived(val)}
                                     className="w-full bg-[#17181C] text-[#F2F3F5] pl-6 pr-2 py-1 text-sm font-bold rounded border border-[#31343E] focus:border-[#D46211] outline-none"
                                   />
                                 </div>
@@ -490,7 +787,7 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
                           >
                             {recordPaymentMutation.isPending
                               ? 'Registrando...'
-                              : `Confirmar Pago (${paymentAmount.toLocaleString('es-AR')})`}
+                              : `Confirmar Pago ($${paymentAmount.toLocaleString('es-AR')})`}
                           </button>
                         </form>
                       )}
@@ -520,12 +817,124 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
                   </label>
                 </div>
               )}
+
+              {/* Sección de Confirmación Destructiva Inline (Zero-Popup Policy: SCRUM-35 & SCRUM-48) */}
+              {booking.status !== 'cancelled' && showCancelDialog && (
+                <div className="p-4 rounded-xl bg-red-950/25 border border-red-500/40 space-y-3.5 animate-in fade-in duration-200">
+                  <div className="flex items-start gap-2.5">
+                    <Trash2 className="h-4 w-4 text-red-400 shrink-0 mt-0.5" strokeWidth={2} />
+                    <div className="space-y-1">
+                      <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-red-300">
+                        {booking.status === 'blocked'
+                          ? 'Confirmar Eliminación de Bloqueo Operativo'
+                          : 'Confirmar Cancelación de Reserva'}
+                      </h3>
+                      <p className="text-xs text-[#F2F3F5] leading-relaxed">
+                        {booking.status === 'blocked' ? (
+                          <>
+                            Se levantará el bloqueo operativo en{' '}
+                            <strong className="text-white">{booking.courtName}</strong> y la franja horaria quedará disponible inmediatamente.
+                          </>
+                        ) : (
+                          <>
+                            Se anulará la reserva de{' '}
+                            <strong className="text-white">{booking.customerName}</strong> en{' '}
+                            <strong className="text-white">{booking.courtName}</strong> y se liberará el turno.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {booking.status !== 'blocked' && booking.depositAmount > 0 && (
+                    <div className="p-3 rounded-xl bg-[#17181C] border border-[#31343E] text-xs text-[#F2F3F5] space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="refundDepositInline"
+                          checked={refundDeposit}
+                          onChange={(e) => setRefundDeposit(e.target.checked)}
+                          className="h-4 w-4 text-[#D46211] rounded border-[#31343E] cursor-pointer"
+                        />
+                        <label htmlFor="refundDepositInline" className="font-semibold cursor-pointer">
+                          Reembolsar seña (${booking.depositAmount.toLocaleString('es-AR')})
+                        </label>
+                      </div>
+                      {refundDeposit && (
+                        <div className="flex items-center gap-3 pt-1">
+                          <span className="text-[11px] text-[#9497A1]">Método de devolución:</span>
+                          <label className="flex items-center gap-1 text-[11px] cursor-pointer text-[#F2F3F5]">
+                            <input
+                              type="radio"
+                              name="refundMethodInline"
+                              checked={refundMethod === 'cash'}
+                              onChange={() => setRefundMethod('cash')}
+                            />
+                            Efectivo
+                          </label>
+                          <label className="flex items-center gap-1 text-[11px] cursor-pointer text-[#F2F3F5]">
+                            <input
+                              type="radio"
+                              name="refundMethodInline"
+                              checked={refundMethod === 'transfer'}
+                              onChange={() => setRefundMethod('transfer')}
+                            />
+                            Transferencia
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-medium text-[#9497A1] mb-1">
+                      {booking.status === 'blocked'
+                        ? 'Observación de liberación (opcional):'
+                        : 'Motivo de cancelación:'}
+                    </label>
+                    <input
+                      type="text"
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      placeholder={
+                        booking.status === 'blocked'
+                          ? 'Ej: Mantenimiento finalizado'
+                          : 'Ej: Solicitud del cliente, lluvia, etc.'
+                      }
+                      className="w-full text-base sm:text-xs rounded-lg border border-[#31343E] bg-[#17181C] px-3 py-2 text-[#F2F3F5] focus:border-red-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      disabled={cancelBookingMutation.isPending}
+                      onClick={() => setShowCancelDialog(false)}
+                      className="min-h-[40px] px-3.5 py-1.5 rounded-lg border border-[#31343E] bg-[#22242B] hover:bg-[#292A2E] text-xs font-semibold text-[#F2F3F5] transition-colors cursor-pointer"
+                    >
+                      Volver
+                    </button>
+                    <button
+                      type="button"
+                      disabled={cancelBookingMutation.isPending}
+                      onClick={handleConfirmCancel}
+                      className="min-h-[40px] px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                    >
+                      {cancelBookingMutation.isPending
+                        ? 'Procesando...'
+                        : booking.status === 'blocked'
+                        ? 'Confirmar Liberación'
+                        : 'Confirmar Cancelación'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </SheetBody>
 
         <SheetFooter className="justify-between bg-[#17181C] border-t border-[#31343E]">
-          {booking && booking.status !== 'cancelled' ? (
+          {booking && booking.status !== 'cancelled' && !showCancelDialog ? (
             <button
               type="button"
               onClick={() => setShowCancelDialog(true)}
@@ -547,78 +956,6 @@ export const BookingDetailSheet: React.FC<BookingDetailSheetProps> = ({
           </button>
         </SheetFooter>
       </Sheet>
-
-      {/* Diálogo Centrado de Confirmación Destructiva (Regla 13 de AGENTS.md) */}
-      <AlertDialog
-        isOpen={showCancelDialog}
-        onClose={() => setShowCancelDialog(false)}
-        onConfirm={handleConfirmCancel}
-        isLoading={cancelBookingMutation.isPending}
-        title={booking?.status === 'blocked' ? 'Levantar Bloqueo' : 'Cancelar Reserva'}
-        confirmText="Confirmar Cancelación"
-        isDestructive={true}
-        description={
-          <div className="space-y-3">
-            <p className="text-sm text-[#F2F3F5]">
-              ¿Está seguro de que desea cancelar esta reserva en{' '}
-              <strong className="text-white">{booking?.courtName}</strong>?
-            </p>
-
-            {booking && booking.depositAmount > 0 && (
-              <div className="p-3 rounded-xl bg-[#22242B] border border-[#31343E] text-xs text-[#F2F3F5] space-y-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="refundDeposit"
-                    checked={refundDeposit}
-                    onChange={(e) => setRefundDeposit(e.target.checked)}
-                    className="h-4 w-4 text-[#D46211] rounded border-[#31343E] cursor-pointer"
-                  />
-                  <label htmlFor="refundDeposit" className="font-semibold cursor-pointer">
-                    Reembolsar seña (${booking.depositAmount.toLocaleString('es-AR')})
-                  </label>
-                </div>
-                {refundDeposit && (
-                  <div className="flex items-center gap-3 pt-1">
-                    <span className="text-[11px] text-[#9497A1]">Método de reembolso:</span>
-                    <label className="flex items-center gap-1 text-[11px] cursor-pointer text-[#F2F3F5]">
-                      <input
-                        type="radio"
-                        name="refundMethod"
-                        checked={refundMethod === 'cash'}
-                        onChange={() => setRefundMethod('cash')}
-                      />
-                      Efectivo
-                    </label>
-                    <label className="flex items-center gap-1 text-[11px] cursor-pointer text-[#F2F3F5]">
-                      <input
-                        type="radio"
-                        name="refundMethod"
-                        checked={refundMethod === 'transfer'}
-                        onChange={() => setRefundMethod('transfer')}
-                      />
-                      Transferencia
-                    </label>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-medium text-[#9497A1] mb-1">
-                Motivo de cancelación:
-              </label>
-              <input
-                type="text"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Ej: Solicitud del cliente, lluvia, etc."
-                className="w-full text-base sm:text-sm rounded-lg border border-[#31343E] bg-[#17181C] px-3 py-2 text-[#F2F3F5] focus:border-red-600 outline-none"
-              />
-            </div>
-          </div>
-        }
-      />
     </>
   )
 }
