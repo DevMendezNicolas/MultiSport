@@ -11,14 +11,16 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import axios from 'axios'
+import { NumericInput } from '@/components/ui/numeric-input'
 import { useCreateCourt, useSports } from '../hooks/useCourts'
-import type {
-  CreateCourtPayload,
-  CourtPricingTierPayload,
-  CourtSportConfigPayload,
+import {
+  saveCourtCustomTierIntentions,
+  type CreateCourtPayload,
+  type CourtPricingTierPayload,
+  type CourtSportConfigPayload,
 } from '../types'
 import { CourtImagePreview } from './CourtImagePreview'
-import { PricingTiersEditor } from './PricingTiersEditor'
+import { PricingTiersEditor, QUARTER_HOUR_TIME_OPTIONS } from './PricingTiersEditor'
 
 const SURFACE_OPTIONS = [
   'Césped Sintético',
@@ -75,11 +77,9 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
   const { data: sports = [], isLoading: isLoadingSports } = useSports()
   const createCourtMutation = useCreateCourt()
 
-  // Control de progresión por pasos
   const [currentStep, setCurrentStep] = useState<CourtCreationStep>('infrastructure')
   const [completedSteps, setCompletedSteps] = useState<Set<CourtCreationStep>>(new Set())
 
-  // 1. Datos físicos generales
   const [formData, setFormData] = useState<{
     name: string
     surfaceType: string
@@ -98,51 +98,265 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
     sportIds: [],
   })
 
-  // 2. Esquema de precios por deporte
   const [customizePricesBySport, setCustomizePricesBySport] = useState<boolean>(false)
   const [customSportConfigs, setCustomSportConfigs] = useState<
     Record<string, { basePrice: number; durationMinutes: number }>
   >({})
 
-  // 3. Disponibilidad y Horarios Operativos
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0])
   const [openingTime, setOpeningTime] = useState<string>('08:00')
   const [closingTime, setClosingTime] = useState<string>('23:00')
 
-  // 4. Modo Avanzado de Franjas Horarias
   const [isAdvancedPricingMode, setIsAdvancedPricingMode] = useState<boolean>(false)
   const [customPricingTiers, setCustomPricingTiers] = useState<CourtPricingTierPayload[]>([])
 
-  // 5. Estado de validación
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Selección/Deselección de disciplinas deportivas
-  const toggleSport = (sportId: string) => {
-    setFormData((prev) => {
-      const exists = prev.sportIds.includes(sportId)
-      const nextSportIds = exists
-        ? prev.sportIds.filter((id) => id !== sportId)
-        : [...prev.sportIds, sportId]
+  const normalizeTiersForModality = (
+    tiersToNormalize: CourtPricingTierPayload[],
+    targetCustomizeBySport: boolean,
+    activeSportIds: string[],
+    sportConfigsMap: Record<string, { basePrice: number; durationMinutes: number }>,
+    fallbackPrice: number,
+    fallbackDuration: number
+  ): CourtPricingTierPayload[] => {
+    if (tiersToNormalize.length === 0) return []
 
-      if (!exists && !customSportConfigs[sportId]) {
-        setCustomSportConfigs((configs) => ({
-          ...configs,
-          [sportId]: {
-            basePrice: prev.basePrice,
-            durationMinutes: prev.durationMinutes,
-          },
-        }))
+    if (targetCustomizeBySport) {
+      // Convertir cualquier franja general en franjas específicas por cada deporte activo
+      const result: CourtPricingTierPayload[] = []
+      const hasOnlyGeneral = tiersToNormalize.every((t) => !t.sportId)
+
+      if (hasOnlyGeneral) {
+        for (const tier of tiersToNormalize) {
+          for (const sportId of activeSportIds) {
+            const cfg = sportConfigsMap[sportId]
+            result.push({
+              dayOfWeek: tier.dayOfWeek,
+              startTime: tier.startTime,
+              endTime: tier.endTime,
+              price: tier.isPriceCustom
+                ? tier.price
+                : (cfg?.basePrice ?? fallbackPrice),
+              durationMinutes: tier.isDurationCustom
+                ? tier.durationMinutes
+                : (cfg?.durationMinutes ?? fallbackDuration),
+              sportId,
+              isPriceCustom: tier.isPriceCustom,
+              isDurationCustom: tier.isDurationCustom,
+            })
+          }
+        }
+        return result
       }
 
-      return { ...prev, sportIds: nextSportIds }
-    })
+      const filtered = tiersToNormalize
+        .filter((t) => t.sportId && activeSportIds.includes(t.sportId))
+        .map((t) => {
+          const targetSport = t.sportId || activeSportIds[0]
+          const cfg = sportConfigsMap[targetSport]
+          return {
+            ...t,
+            sportId: targetSport,
+            price: t.isPriceCustom ? t.price : (cfg?.basePrice ?? fallbackPrice),
+            durationMinutes: t.isDurationCustom
+              ? t.durationMinutes
+              : (cfg?.durationMinutes ?? fallbackDuration),
+          }
+        })
+
+      // Asegurar que todo deporte activo tenga al menos una franja
+      for (const sportId of activeSportIds) {
+        if (!filtered.some((t) => t.sportId === sportId)) {
+          const cfg = sportConfigsMap[sportId]
+          for (const dayId of selectedDays) {
+            filtered.push({
+              dayOfWeek: dayId,
+              startTime: openingTime,
+              endTime: closingTime,
+              price: cfg?.basePrice ?? fallbackPrice,
+              durationMinutes: cfg?.durationMinutes ?? fallbackDuration,
+              sportId,
+              isPriceCustom: false,
+              isDurationCustom: false,
+            })
+          }
+        }
+      }
+
+      return filtered
+    } else {
+      // Colapsar a modalidad Precio Base: todas las franjas con sportId = undefined sin duplicados horarios
+      const seenSlots = new Set<string>()
+      const collapsed: CourtPricingTierPayload[] = []
+
+      for (const tier of tiersToNormalize) {
+        const key = `${tier.dayOfWeek}_${tier.startTime}_${tier.endTime}`
+        if (seenSlots.has(key)) continue
+        seenSlots.add(key)
+        collapsed.push({
+          dayOfWeek: tier.dayOfWeek,
+          startTime: tier.startTime,
+          endTime: tier.endTime,
+          price: tier.isPriceCustom
+            ? tier.price
+            : (fallbackPrice > 0 ? fallbackPrice : tier.price),
+          durationMinutes: tier.isDurationCustom
+            ? tier.durationMinutes
+            : (fallbackDuration > 0 ? fallbackDuration : tier.durationMinutes),
+          sportId: undefined,
+          isPriceCustom: tier.isPriceCustom,
+          isDurationCustom: tier.isDurationCustom,
+        })
+      }
+
+      return collapsed
+    }
+  }
+
+  const handleBasePriceChange = (nextBasePrice: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      basePrice: nextBasePrice,
+    }))
+    // SCRUM-50: Propagar el nuevo precio base en tiempo real a todas las franjas que no tengan precio personalizado
+    setCustomPricingTiers((prev) =>
+      prev.map((tier) => (tier.isPriceCustom ? tier : { ...tier, price: nextBasePrice }))
+    )
+    if (errors.basePrice) setErrors((prev) => ({ ...prev, basePrice: '' }))
+  }
+
+  const handleBaseDurationChange = (nextDuration: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      durationMinutes: nextDuration,
+    }))
+    // SCRUM-50: Propagar la nueva duración base en tiempo real a todas las franjas que no tengan duración personalizada
+    setCustomPricingTiers((prev) =>
+      prev.map((tier) =>
+        tier.isDurationCustom ? tier : { ...tier, durationMinutes: nextDuration }
+      )
+    )
+    if (nextDuration >= 30 && nextDuration % 15 === 0 && errors.durationMinutes) {
+      setErrors((prev) => ({ ...prev, durationMinutes: '' }))
+    }
+  }
+
+  const handleSportBasePriceChange = (sportId: string, nextSportPrice: number) => {
+    const currentConfig = customSportConfigs[sportId] || {
+      basePrice: formData.basePrice,
+      durationMinutes: formData.durationMinutes,
+    }
+    setCustomSportConfigs((prev) => ({
+      ...prev,
+      [sportId]: { ...currentConfig, basePrice: nextSportPrice },
+    }))
+    // SCRUM-50: Propagar a las franjas de ese deporte que no tengan precio personalizado
+    setCustomPricingTiers((prev) =>
+      prev.map((tier) =>
+        tier.sportId === sportId && !tier.isPriceCustom
+          ? { ...tier, price: nextSportPrice }
+          : tier
+      )
+    )
+    if (errors.customSports) {
+      setErrors((prev) => ({ ...prev, customSports: '' }))
+    }
+  }
+
+  const handleSportDurationChange = (sportId: string, nextSportDuration: number) => {
+    const currentConfig = customSportConfigs[sportId] || {
+      basePrice: formData.basePrice,
+      durationMinutes: formData.durationMinutes,
+    }
+    setCustomSportConfigs((prev) => ({
+      ...prev,
+      [sportId]: { ...currentConfig, durationMinutes: nextSportDuration },
+    }))
+    // SCRUM-50: Propagar a las franjas de ese deporte que no tengan duración personalizada
+    setCustomPricingTiers((prev) =>
+      prev.map((tier) =>
+        tier.sportId === sportId && !tier.isDurationCustom
+          ? { ...tier, durationMinutes: nextSportDuration }
+          : tier
+      )
+    )
+    if (errors.customSports) {
+      setErrors((prev) => ({ ...prev, customSports: '' }))
+    }
+  }
+
+  const handleToggleCustomizePricesBySport = (nextChecked: boolean) => {
+    const nextConfigs = { ...customSportConfigs }
+    if (nextChecked) {
+      for (const sportId of formData.sportIds) {
+        if (!nextConfigs[sportId]) {
+          nextConfigs[sportId] = {
+            basePrice: formData.basePrice > 0 ? formData.basePrice : 20000,
+            durationMinutes: formData.durationMinutes >= 30 ? formData.durationMinutes : 60,
+          }
+        }
+      }
+      setCustomSportConfigs(nextConfigs)
+    }
+
+    setCustomizePricesBySport(nextChecked)
+    setCustomPricingTiers((prev) =>
+      normalizeTiersForModality(
+        prev,
+        nextChecked,
+        formData.sportIds,
+        nextConfigs,
+        formData.basePrice,
+        formData.durationMinutes
+      )
+    )
+    setErrors((prev) => ({
+      ...prev,
+      basePrice: '',
+      durationMinutes: '',
+      customSports: '',
+      pricingTiers: '',
+    }))
+  }
+
+  const toggleSport = (sportId: string) => {
+    const exists = formData.sportIds.includes(sportId)
+    const nextSportIds = exists
+      ? formData.sportIds.filter((id) => id !== sportId)
+      : [...formData.sportIds, sportId]
+
+    const nextConfigs = { ...customSportConfigs }
+    if (!exists && !nextConfigs[sportId]) {
+      nextConfigs[sportId] = {
+        basePrice: formData.basePrice > 0 ? formData.basePrice : 20000,
+        durationMinutes: formData.durationMinutes >= 30 ? formData.durationMinutes : 60,
+      }
+      setCustomSportConfigs(nextConfigs)
+    }
+
+    const effectiveCustomize = nextSportIds.length > 1 ? customizePricesBySport : false
+    if (nextSportIds.length <= 1 && customizePricesBySport) {
+      setCustomizePricesBySport(false)
+    }
+
+    setFormData((prev) => ({ ...prev, sportIds: nextSportIds }))
+    setCustomPricingTiers((prev) =>
+      normalizeTiersForModality(
+        prev,
+        effectiveCustomize,
+        nextSportIds,
+        nextConfigs,
+        formData.basePrice,
+        formData.durationMinutes
+      )
+    )
 
     if (errors.sportIds) {
       setErrors((prev) => ({ ...prev, sportIds: '' }))
     }
   }
 
-  // Selección/Deselección de días habilitados
   const toggleDay = (dayId: number) => {
     setSelectedDays((prev) =>
       prev.includes(dayId) ? prev.filter((d) => d !== dayId) : [...prev, dayId].sort()
@@ -165,7 +379,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
     }
   }
 
-  // Generador de franjas simples automáticas respetando tarifas individuales si están configuradas
   const generateSimpleTiers = (): CourtPricingTierPayload[] => {
     if (customizePricesBySport && formData.sportIds.length > 0) {
       return selectedDays.flatMap((dayId) =>
@@ -176,6 +389,8 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
           price: customSportConfigs[sportId]?.basePrice ?? formData.basePrice,
           durationMinutes: customSportConfigs[sportId]?.durationMinutes ?? formData.durationMinutes,
           sportId,
+          isPriceCustom: false,
+          isDurationCustom: false,
         }))
       )
     }
@@ -186,20 +401,34 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
       endTime: closingTime,
       price: formData.basePrice,
       durationMinutes: formData.durationMinutes,
+      sportId: undefined,
+      isPriceCustom: false,
+      isDurationCustom: false,
     }))
   }
 
-  // Activar modo avanzado inicializando con las franjas simples vigentes si está vacío
   const handleToggleAdvancedMode = () => {
     const nextState = !isAdvancedPricingMode
     setIsAdvancedPricingMode(nextState)
 
-    if (nextState && customPricingTiers.length === 0) {
-      setCustomPricingTiers(generateSimpleTiers())
+    if (nextState) {
+      if (customPricingTiers.length === 0) {
+        setCustomPricingTiers(generateSimpleTiers())
+      } else {
+        setCustomPricingTiers((prev) =>
+          normalizeTiersForModality(
+            prev,
+            customizePricesBySport,
+            formData.sportIds,
+            customSportConfigs,
+            formData.basePrice,
+            formData.durationMinutes
+          )
+        )
+      }
     }
   }
 
-  // Resumen visual del horario operativo y detección de trasnoche
   const scheduleSummary = useMemo(() => {
     const parseMins = (timeStr: string) => {
       const [h, m] = (timeStr || '00:00').split(':').map(Number)
@@ -235,7 +464,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
     }
   }, [openingTime, closingTime, formData.durationMinutes])
 
-  // Validación aislada por etapa
   const validateStep = (step: CourtCreationStep): boolean => {
     const newErrors: Record<string, string> = { ...errors }
 
@@ -258,20 +486,41 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
       delete newErrors.sportIds
       delete newErrors.basePrice
       delete newErrors.durationMinutes
+      delete newErrors.customSports
 
       if (formData.sportIds.length === 0) {
         newErrors.sportIds = 'Debe seleccionar al menos una disciplina deportiva para esta cancha.'
       }
 
-      if (formData.basePrice < 0) {
-        newErrors.basePrice = 'El precio base no puede ser negativo.'
-      }
+      if (!customizePricesBySport) {
+        if (!formData.basePrice || formData.basePrice <= 0) {
+          newErrors.basePrice = 'El precio base debe ser mayor a $0.'
+        }
 
-      if (formData.durationMinutes <= 0) {
-        newErrors.durationMinutes = 'La duración debe ser mayor a 0 minutos.'
-      } else if (formData.durationMinutes % 15 !== 0) {
-        newErrors.durationMinutes =
-          'La duración debe ser múltiplo de 15 minutos (ej: 30, 45, 60, 90 min).'
+        if (!formData.durationMinutes || formData.durationMinutes < 30 || formData.durationMinutes > 480) {
+          newErrors.durationMinutes = 'La duración debe estar entre 30 y 480 minutos.'
+        } else if (formData.durationMinutes % 15 !== 0) {
+          newErrors.durationMinutes =
+            'La duración debe ser múltiplo de 15 minutos (ej: 30, 45, 60, 90 min).'
+        }
+      } else {
+        for (const sportId of formData.sportIds) {
+          const cfg = customSportConfigs[sportId]
+          const sportName = sports.find((s) => s.id === sportId)?.name || 'Deporte'
+          if (!cfg || !cfg.basePrice || cfg.basePrice <= 0) {
+            newErrors.customSports = `El precio de ${sportName} debe ser mayor a $0.`
+            break
+          }
+          if (
+            !cfg.durationMinutes ||
+            cfg.durationMinutes < 30 ||
+            cfg.durationMinutes > 480 ||
+            cfg.durationMinutes % 15 !== 0
+          ) {
+            newErrors.customSports = `La duración de ${sportName} debe estar entre 30 y 480 min (múltiplo de 15).`
+            break
+          }
+        }
       }
     }
 
@@ -292,10 +541,28 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
       if (isAdvancedPricingMode) {
         if (customPricingTiers.length === 0) {
           newErrors.pricingTiers = 'Debe configurar al menos una franja horaria en modo avanzado.'
-        }
-        const hasIdenticalHours = customPricingTiers.some((t) => t.startTime === t.endTime)
-        if (hasIdenticalHours) {
+        } else if (customPricingTiers.some((t) => t.startTime === t.endTime)) {
           newErrors.pricingTiers = 'Existen franjas horarias con horario de inicio y fin idénticos.'
+        } else if (customPricingTiers.some((t) => !t.price || t.price <= 0)) {
+          newErrors.pricingTiers = 'Todas las franjas horarias deben tener un precio mayor a $0.'
+        } else if (
+          customPricingTiers.some((t) => {
+            const dur = t.durationMinutes ?? formData.durationMinutes
+            return !dur || dur < 30 || dur > 480 || dur % 15 !== 0
+          })
+        ) {
+          newErrors.pricingTiers =
+            'Todas las franjas deben tener una duración entre 30 y 480 min en múltiplos de 15.'
+        } else if (customizePricesBySport) {
+          if (customPricingTiers.some((t) => !t.sportId)) {
+            newErrors.pricingTiers =
+              'En modalidad de tarifas personalizadas, cada franja debe tener un deporte asignado.'
+          } else if (
+            !formData.sportIds.every((sId) => customPricingTiers.some((t) => t.sportId === sId))
+          ) {
+            newErrors.pricingTiers =
+              'Cada deporte seleccionado debe contar con al menos una franja horaria configurada.'
+          }
         }
       }
     }
@@ -303,7 +570,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
     setErrors(newErrors)
     const stepFields: Record<CourtCreationStep, string[]> = {
       infrastructure: ['name', 'surfaceType'],
-      sports_pricing: ['sportIds', 'basePrice', 'durationMinutes'],
+      sports_pricing: ['sportIds', 'basePrice', 'durationMinutes', 'customSports'],
       schedule: ['schedules', 'closingTime', 'pricingTiers'],
     }
 
@@ -311,7 +578,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
     return !currentStepHasErrors
   }
 
-  // Validación completa previa al guardado
   const validateAll = (): { isValid: boolean; targetStep?: CourtCreationStep } => {
     for (const stepConfig of STEPS) {
       if (!validateStep(stepConfig.id)) {
@@ -381,9 +647,14 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
       return
     }
 
-    const effectiveTiers: CourtPricingTierPayload[] = isAdvancedPricingMode
+    const rawTiers: CourtPricingTierPayload[] = isAdvancedPricingMode
       ? customPricingTiers
       : generateSimpleTiers()
+
+    const effectiveTiers: CourtPricingTierPayload[] = rawTiers.map((t) => ({
+      ...t,
+      sportId: customizePricesBySport ? t.sportId || formData.sportIds[0] : undefined,
+    }))
 
     const customSportPricesPayload: CourtSportConfigPayload[] | undefined = customizePricesBySport
       ? formData.sportIds.map((sportId) => ({
@@ -393,25 +664,37 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
         }))
       : undefined
 
+    const effectiveRootBasePrice: number =
+      customizePricesBySport && customSportPricesPayload && customSportPricesPayload.length > 0
+        ? (customSportPricesPayload[0].basePrice ?? formData.basePrice)
+        : formData.basePrice
+
+    const effectiveRootDuration: number =
+      customizePricesBySport && customSportPricesPayload && customSportPricesPayload.length > 0
+        ? (customSportPricesPayload[0].durationMinutes ?? formData.durationMinutes)
+        : formData.durationMinutes
+
     const payload: CreateCourtPayload = {
       name: formData.name.trim(),
       surfaceType: formData.surfaceType,
       isCovered: formData.isCovered,
       hasLighting: formData.hasLighting,
-      basePrice: formData.basePrice,
-      durationMinutes: formData.durationMinutes,
+      basePrice: effectiveRootBasePrice,
+      durationMinutes: effectiveRootDuration,
       sportIds: formData.sportIds,
       pricingTiers: effectiveTiers,
       customSportPrices: customSportPricesPayload,
     }
 
     try {
-      await createCourtMutation.mutateAsync(payload)
+      const createdCourt = await createCourtMutation.mutateAsync(payload)
+      if (createdCourt?.id) {
+        saveCourtCustomTierIntentions(createdCourt.id, effectiveTiers)
+      }
       toast.success('Cancha creada exitosamente', {
         description: `Se registró "${formData.name.trim()}" con ${formData.sportIds.length} disciplina(s) y ${effectiveTiers.length} franja(s) de disponibilidad configurada(s).`,
       })
 
-      // Reset de estado
       setFormData({
         name: '',
         surfaceType: SURFACE_OPTIONS[0],
@@ -458,17 +741,28 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
     }
   }
 
-  // Deporte primario para la imagen de previsualización
   const firstSport = useMemo(() => {
     if (formData.sportIds.length === 0) return undefined
     return sports.find((s) => s.id === formData.sportIds[0])
   }, [sports, formData.sportIds])
 
+  const previewBasePrice = useMemo(() => {
+    if (customizePricesBySport && formData.sportIds.length > 0) {
+      return customSportConfigs[formData.sportIds[0]]?.basePrice ?? formData.basePrice
+    }
+    return formData.basePrice
+  }, [customizePricesBySport, formData.sportIds, customSportConfigs, formData.basePrice])
+
+  const previewDuration = useMemo(() => {
+    if (customizePricesBySport && formData.sportIds.length > 0) {
+      return customSportConfigs[formData.sportIds[0]]?.durationMinutes ?? formData.durationMinutes
+    }
+    return formData.durationMinutes
+  }, [customizePricesBySport, formData.sportIds, customSportConfigs, formData.durationMinutes])
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      {/* Columna Izquierda: Formulario Estructurado en 3 Pasos */}
       <div className="lg:col-span-7 bg-[#16181D] border border-[#31343E] rounded-2xl p-6 sm:p-8 shadow-sm space-y-6 text-[#F2F3F5]">
-        {/* Cabecera del Módulo */}
         <div className="border-b border-[#31343E] pb-4">
           <h2 className="text-xl sm:text-2xl font-black text-[#F2F3F5] uppercase tracking-tight font-headline">
             Registrar Nueva Cancha
@@ -478,7 +772,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
           </p>
         </div>
 
-        {/* Stepper de Progresión Sobrio */}
         <nav aria-label="Progreso de alta de cancha" className="border-b border-[#31343E] pb-4">
           <div className="grid grid-cols-3 gap-2">
             {STEPS.map((step) => {
@@ -543,7 +836,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                 </p>
               </div>
 
-              {/* Nombre de la Cancha */}
               <div className="space-y-1.5">
                 <label
                   htmlFor="court-name"
@@ -569,7 +861,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                 {errors.name && <p className="text-xs text-red-400 font-mono mt-1">{errors.name}</p>}
               </div>
 
-              {/* Tipo de Superficie */}
               <div className="space-y-1.5">
                 <label
                   htmlFor="surface-type"
@@ -601,7 +892,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                 )}
               </div>
 
-              {/* Características Físicas */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div className="flex items-center gap-3 p-3.5 border border-[#31343E] bg-[#22242B] rounded-xl min-h-[44px]">
                   <input
@@ -646,11 +936,10 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                   Deportes Admitidos y Tarifas
                 </h3>
                 <p className="text-xs font-medium text-[#9497A1] mt-0.5">
-                  Definí las disciplinas que se juegan en este espacio y las condiciones base.
+                  Definí las disciplinas que se juegan en este espacio y la modalidad tarifaria.
                 </p>
               </div>
 
-              {/* Deportes Permitidos (Multiselección) */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-mono uppercase font-bold text-[#9497A1] tracking-wider">
@@ -701,200 +990,160 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                 )}
               </div>
 
-              {/* Tarifas y Duración Base */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                {/* Precio Base */}
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="base-price"
-                    className="text-xs font-mono uppercase font-bold text-[#9497A1] tracking-wider block"
-                  >
-                    Precio Base Estándar ($) *
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-3.5 text-xs text-[#327357] font-mono font-bold">
-                      $
-                    </span>
-                    <input
-                      id="base-price"
-                      type="number"
-                      min="0"
-                      step="500"
-                      value={formData.basePrice}
-                      onChange={(e) => {
-                        setFormData({
-                          ...formData,
-                          basePrice: Math.max(0, Number(e.target.value)),
-                        })
-                        if (errors.basePrice) setErrors((prev) => ({ ...prev, basePrice: '' }))
-                      }}
-                      className={`w-full bg-[#22242B] border rounded-xl pl-8 pr-4 py-3 text-base sm:text-sm text-[#F2F3F5] focus:outline-hidden transition-colors font-mono ${
-                        errors.basePrice
-                          ? 'border-red-500 focus:border-red-500'
-                          : 'border-[#31343E] focus:border-[#258653]'
-                      }`}
-                    />
-                  </div>
-                  {errors.basePrice ? (
-                    <p className="text-xs text-red-400 font-mono mt-1">{errors.basePrice}</p>
-                  ) : (
-                    <span className="text-xs font-mono text-[#9497A1] block">
-                      Tarifa de referencia estándar por turno
-                    </span>
-                  )}
-                </div>
-
-                {/* Duración Estándar */}
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="duration-minutes"
-                    className="text-xs font-mono uppercase font-bold text-[#9497A1] tracking-wider block"
-                  >
-                    Duración Estándar (minutos) *
-                  </label>
-
-                  {/* Botones Presets Rápidos */}
-                  <div className="flex flex-wrap items-center gap-1.5 pb-1">
-                    {DURATION_PRESETS.map((preset) => {
-                      const isPresetActive = formData.durationMinutes === preset
-                      return (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => {
-                            setFormData({ ...formData, durationMinutes: preset })
-                            if (errors.durationMinutes) {
-                              setErrors((prev) => ({ ...prev, durationMinutes: '' }))
-                            }
-                          }}
-                          className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer border ${
-                            isPresetActive
-                              ? 'border-[#258653] bg-[#258653] text-white shadow-xs'
-                              : 'border-[#31343E] bg-[#22242B] text-[#9497A1] hover:border-[#327357]/60 hover:text-[#F2F3F5]'
-                          }`}
-                        >
-                          {preset}m
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  <input
-                    id="duration-minutes"
-                    type="number"
-                    min="15"
-                    max="240"
-                    step="15"
-                    value={formData.durationMinutes}
-                    onChange={(e) => {
-                      const val = Number(e.target.value)
-                      setFormData({ ...formData, durationMinutes: Math.max(15, val) })
-                      if (val % 15 === 0 && errors.durationMinutes) {
-                        setErrors((prev) => ({ ...prev, durationMinutes: '' }))
-                      }
-                    }}
-                    className={`w-full bg-[#22242B] border rounded-xl px-4 py-2.5 text-base sm:text-sm text-[#F2F3F5] focus:outline-hidden transition-colors font-mono ${
-                      errors.durationMinutes
-                        ? 'border-red-500 focus:border-red-500'
-                        : 'border-[#31343E] focus:border-[#258653]'
-                    }`}
-                  />
-                  {errors.durationMinutes ? (
-                    <p className="text-xs text-red-400 font-mono mt-1">{errors.durationMinutes}</p>
-                  ) : (
-                    <span className="text-xs font-mono text-[#9497A1] block">
-                      Intervalos múltiplos de 15 min (ej: 30, 45, 60, 90, 120)
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Toggle Personalización por Deporte */}
+              {/* Selector de Modalidad (Precio Base vs Tarifas Personalizadas por Deporte) */}
               {formData.sportIds.length > 1 && (
-                <div className="space-y-3 pt-2">
-                  <div className="flex items-center justify-between p-3.5 border border-[#31343E] bg-[#22242B] rounded-xl">
+                <div className="pt-1">
+                  <label className="flex items-center justify-between p-3.5 border border-[#31343E] bg-[#22242B] rounded-xl cursor-pointer select-none">
                     <div className="space-y-0.5">
                       <span className="text-xs font-bold uppercase tracking-wider text-[#F2F3F5] flex items-center gap-1.5">
                         <SlidersHorizontal className="h-3.5 w-3.5 text-[#327357]" strokeWidth={2} />
-                        <span>Precios y duraciones diferenciales por deporte</span>
+                        <span>Tarifas y duraciones personalizadas por deporte</span>
                       </span>
                       <span className="text-xs font-mono text-[#9497A1] block">
-                        Permite fijar tarifas o tiempos específicos (ej: Pádel $15.000 / Tenis $10.000)
+                        Cada disciplina tendrá su propio precio, duración y franjas horarias específicas
                       </span>
                     </div>
                     <input
                       type="checkbox"
                       checked={customizePricesBySport}
-                      onChange={(e) => setCustomizePricesBySport(e.target.checked)}
+                      onChange={(e) => handleToggleCustomizePricesBySport(e.target.checked)}
                       className="h-4 w-4 rounded border-[#31343E] bg-[#16181D] text-[#258653] focus:ring-0 cursor-pointer"
                     />
+                  </label>
+                </div>
+              )}
+
+              {/* MODALIDAD A: PRECIO BASE GENERAL */}
+              {!customizePricesBySport ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="base-price"
+                      className="text-xs font-mono uppercase font-bold text-[#9497A1] tracking-wider block"
+                    >
+                      Precio Base Estándar ($) *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-3.5 text-xs text-[#327357] font-mono font-bold">
+                        $
+                      </span>
+                      <NumericInput
+                        id="base-price"
+                        value={formData.basePrice}
+                        onChange={handleBasePriceChange}
+                        placeholder="Ej: 20000"
+                        className={`w-full bg-[#22242B] border rounded-xl pl-8 pr-4 py-3 text-base sm:text-sm text-[#F2F3F5] focus:outline-hidden transition-colors font-mono ${
+                          errors.basePrice
+                            ? 'border-red-500 focus:border-red-500'
+                            : 'border-[#31343E] focus:border-[#258653]'
+                        }`}
+                      />
+                    </div>
+                    {errors.basePrice ? (
+                      <p className="text-xs text-red-400 font-mono mt-1">{errors.basePrice}</p>
+                    ) : (
+                      <span className="text-xs font-mono text-[#9497A1] block">
+                        Se propaga automáticamente a las franjas generales
+                      </span>
+                    )}
                   </div>
 
-                  {customizePricesBySport && (
-                    <div className="space-y-2 border border-[#31343E] rounded-xl p-4 bg-[#1E2027]">
-                      <span className="text-xs font-mono uppercase font-bold text-[#F2F3F5] block mb-2">
-                        Configuración por disciplina deportiva:
-                      </span>
-                      {formData.sportIds.map((sportId) => {
-                        const sport = sports.find((s) => s.id === sportId)
-                        const currentConfig = customSportConfigs[sportId] || {
-                          basePrice: formData.basePrice,
-                          durationMinutes: formData.durationMinutes,
-                        }
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="duration-minutes"
+                      className="text-xs font-mono uppercase font-bold text-[#9497A1] tracking-wider block"
+                    >
+                      Duración Estándar (minutos) *
+                    </label>
 
+                    <div className="flex flex-wrap items-center gap-1.5 pb-1">
+                      {DURATION_PRESETS.map((preset) => {
+                        const isPresetActive = formData.durationMinutes === preset
                         return (
-                          <div
-                            key={sportId}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-[#16181D] border border-[#31343E] rounded-xl"
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => handleBaseDurationChange(preset)}
+                            className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer border ${
+                              isPresetActive
+                                ? 'border-[#258653] bg-[#258653] text-white shadow-xs'
+                                : 'border-[#31343E] bg-[#22242B] text-[#9497A1] hover:border-[#327357]/60 hover:text-[#F2F3F5]'
+                            }`}
                           >
-                            <span className="text-xs font-bold uppercase text-[#F2F3F5] sm:w-32">
-                              {sport?.name ?? 'Deporte'}:
-                            </span>
-
-                            <div className="flex items-center gap-3 flex-1">
-                              <div className="flex items-center gap-1 flex-1">
-                                <span className="text-xs font-mono font-bold text-[#327357]">$</span>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="500"
-                                  value={currentConfig.basePrice}
-                                  onChange={(e) => {
-                                    const val = Math.max(0, Number(e.target.value))
-                                    setCustomSportConfigs((prev) => ({
-                                      ...prev,
-                                      [sportId]: { ...currentConfig, basePrice: val },
-                                    }))
-                                  }}
-                                  className="w-full bg-[#22242B] border border-[#31343E] rounded-lg px-3 py-1.5 text-sm font-mono text-[#F2F3F5] focus:outline-hidden focus:border-[#258653]"
-                                  placeholder="Precio"
-                                />
-                              </div>
-
-                              <div className="flex items-center gap-1 flex-1">
-                                <span className="text-xs font-mono font-bold text-[#9497A1]">Min:</span>
-                                <input
-                                  type="number"
-                                  min="15"
-                                  max="240"
-                                  step="15"
-                                  value={currentConfig.durationMinutes}
-                                  onChange={(e) => {
-                                    const val = Math.max(15, Number(e.target.value))
-                                    setCustomSportConfigs((prev) => ({
-                                      ...prev,
-                                      [sportId]: { ...currentConfig, durationMinutes: val },
-                                    }))
-                                  }}
-                                  className="w-full bg-[#22242B] border border-[#31343E] rounded-lg px-3 py-1.5 text-sm font-mono text-[#F2F3F5] focus:outline-hidden focus:border-[#258653]"
-                                  placeholder="Minutos"
-                                />
-                              </div>
-                            </div>
-                          </div>
+                            {preset}m
+                          </button>
                         )
                       })}
                     </div>
+
+                    <NumericInput
+                      id="duration-minutes"
+                      value={formData.durationMinutes}
+                      onChange={handleBaseDurationChange}
+                      placeholder="Ej: 60"
+                      className={`w-full bg-[#22242B] border rounded-xl px-4 py-2.5 text-base sm:text-sm text-[#F2F3F5] focus:outline-hidden transition-colors font-mono ${
+                        errors.durationMinutes
+                          ? 'border-red-500 focus:border-red-500'
+                          : 'border-[#31343E] focus:border-[#258653]'
+                      }`}
+                    />
+                    {errors.durationMinutes ? (
+                      <p className="text-xs text-red-400 font-mono mt-1">{errors.durationMinutes}</p>
+                    ) : (
+                      <span className="text-xs font-mono text-[#9497A1] block">
+                        Intervalos múltiplos de 15 min (ej: 30, 45, 60, 90, 120)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* MODALIDAD B: TARIFAS PERSONALIZADAS POR DEPORTE */
+                <div className="space-y-3 border border-[#31343E] rounded-xl p-4 bg-[#1E2027]">
+                  <span className="text-xs font-mono uppercase font-bold text-[#F2F3F5] block">
+                    Configuración individual por disciplina deportiva:
+                  </span>
+                  {formData.sportIds.map((sportId) => {
+                    const sport = sports.find((s) => s.id === sportId)
+                    const currentConfig = customSportConfigs[sportId] || {
+                      basePrice: formData.basePrice,
+                      durationMinutes: formData.durationMinutes,
+                    }
+
+                    return (
+                      <div
+                        key={sportId}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-[#16181D] border border-[#31343E] rounded-xl"
+                      >
+                        <span className="text-xs font-bold uppercase text-[#F2F3F5] sm:w-32">
+                          {sport?.name ?? 'Deporte'}:
+                        </span>
+
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="flex items-center gap-1.5 flex-1">
+                            <span className="text-xs font-mono font-bold text-[#327357]">$</span>
+                            <NumericInput
+                              value={currentConfig.basePrice}
+                              onChange={(val) => handleSportBasePriceChange(sportId, val)}
+                              className="w-full bg-[#22242B] border border-[#31343E] rounded-lg px-3 py-1.5 text-base sm:text-sm font-mono text-[#F2F3F5] focus:outline-hidden focus:border-[#258653]"
+                              placeholder="Precio ($)"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-1">
+                            <span className="text-xs font-mono font-bold text-[#9497A1]">Min:</span>
+                            <NumericInput
+                              value={currentConfig.durationMinutes}
+                              onChange={(val) => handleSportDurationChange(sportId, val)}
+                              className="w-full bg-[#22242B] border border-[#31343E] rounded-lg px-3 py-1.5 text-base sm:text-sm font-mono text-[#F2F3F5] focus:outline-hidden focus:border-[#258653]"
+                              placeholder="Ej: 60"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {errors.customSports && (
+                    <p className="text-xs text-red-400 font-mono mt-1">{errors.customSports}</p>
                   )}
                 </div>
               )}
@@ -938,7 +1187,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                 </div>
               </div>
 
-              {/* Selector de Días */}
               <div className="space-y-2">
                 <label className="text-xs font-mono uppercase font-bold text-[#9497A1] tracking-wider block">
                   Días Habilitados * ({selectedDays.length} activos)
@@ -970,7 +1218,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                 )}
               </div>
 
-              {/* Configuración Simple de Apertura y Cierre */}
               {!isAdvancedPricingMode && (
                 <div className="p-4 sm:p-5 border border-[#31343E] bg-[#1E2027] rounded-xl space-y-4">
                   <div className="flex items-center justify-between border-b border-[#31343E] pb-2">
@@ -991,9 +1238,8 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                         <Clock className="h-3.5 w-3.5 text-[#327357]" strokeWidth={2} />
                         <span>Horario de Apertura *</span>
                       </label>
-                      <input
+                      <select
                         id="opening-time"
-                        type="time"
                         value={openingTime}
                         onChange={(e) => {
                           setOpeningTime(e.target.value)
@@ -1001,8 +1247,14 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                             setErrors((prev) => ({ ...prev, closingTime: '' }))
                           }
                         }}
-                        className="w-full bg-[#16181D] border border-[#31343E] rounded-xl px-4 py-2.5 text-base sm:text-sm text-[#F2F3F5] font-mono focus:outline-hidden focus:border-[#258653]"
-                      />
+                        className="w-full bg-[#16181D] border border-[#31343E] rounded-xl px-4 py-2.5 text-base sm:text-sm text-[#F2F3F5] font-mono focus:outline-hidden focus:border-[#258653] cursor-pointer"
+                      >
+                        {QUARTER_HOUR_TIME_OPTIONS.map((t) => (
+                          <option key={t} value={t} className="bg-[#16181D]">
+                            {t} hs
+                          </option>
+                        ))}
+                      </select>
                       <span className="text-[11px] font-mono text-[#9497A1] block">
                         Comienzo de las actividades diarias
                       </span>
@@ -1016,9 +1268,8 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                         <Clock className="h-3.5 w-3.5 text-[#327357]" strokeWidth={2} />
                         <span>Horario de Cierre *</span>
                       </label>
-                      <input
+                      <select
                         id="closing-time"
-                        type="time"
                         value={closingTime}
                         onChange={(e) => {
                           setClosingTime(e.target.value)
@@ -1026,12 +1277,18 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                             setErrors((prev) => ({ ...prev, closingTime: '' }))
                           }
                         }}
-                        className={`w-full bg-[#16181D] border rounded-xl px-4 py-2.5 text-base sm:text-sm text-[#F2F3F5] font-mono focus:outline-hidden ${
+                        className={`w-full bg-[#16181D] border rounded-xl px-4 py-2.5 text-base sm:text-sm text-[#F2F3F5] font-mono focus:outline-hidden cursor-pointer ${
                           errors.closingTime
                             ? 'border-red-500 focus:border-red-500'
                             : 'border-[#31343E] focus:border-[#258653]'
                         }`}
-                      />
+                      >
+                        {QUARTER_HOUR_TIME_OPTIONS.map((t) => (
+                          <option key={t} value={t} className="bg-[#16181D]">
+                            {t} hs
+                          </option>
+                        ))}
+                      </select>
                       {errors.closingTime ? (
                         <p className="text-xs text-red-400 font-mono mt-1">{errors.closingTime}</p>
                       ) : (
@@ -1042,7 +1299,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                     </div>
                   </div>
 
-                  {/* Panel de Cálculo Operativo */}
                   <div
                     className={`border rounded-xl p-3 space-y-1 text-xs transition-colors ${
                       scheduleSummary.crossesMidnight
@@ -1078,7 +1334,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                           <strong className="text-emerald-400 font-black">
                             {scheduleSummary.shiftCount} turnos diarios
                           </strong>{' '}
-                          de {formData.durationMinutes} min.
+                          de {previewDuration} min.
                         </>
                       ) : (
                         <>
@@ -1090,7 +1346,7 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                           <strong className="text-emerald-400 font-black">
                             {scheduleSummary.shiftCount} turnos diarios
                           </strong>{' '}
-                          de {formData.durationMinutes} min.
+                          de {previewDuration} min.
                         </>
                       )}
                     </p>
@@ -1098,7 +1354,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                 </div>
               )}
 
-              {/* SECCIÓN COLAPSABLE: CONFIGURACIONES AVANZADAS */}
               <div className="border border-[#31343E] rounded-xl bg-[#1E2027] overflow-hidden">
                 <button
                   type="button"
@@ -1112,8 +1367,8 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                     </span>
                     <span className="text-xs font-mono text-[#9497A1] block">
                       {isAdvancedPricingMode
-                        ? 'Modo avanzado activo: podés configurar múltiples turnos, tarifas nocturnas y precios por deporte.'
-                        : 'Hacé clic para configurar múltiples franjas por día (diurno/nocturno) o precios por deporte.'}
+                        ? 'Modo avanzado activo: podés configurar múltiples franjas horarias y tarifas diferenciadas.'
+                        : 'Hacé clic para configurar múltiples franjas por día (diurno/nocturno).'}
                     </span>
                   </div>
                   {isAdvancedPricingMode ? (
@@ -1136,8 +1391,10 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
                       selectedDays={selectedDays}
                       sportIds={formData.sportIds}
                       sports={sports.filter((s) => formData.sportIds.includes(s.id))}
-                      defaultPrice={formData.basePrice}
-                      defaultDuration={formData.durationMinutes}
+                      defaultPrice={previewBasePrice}
+                      defaultDuration={previewDuration}
+                      customizePricesBySport={customizePricesBySport}
+                      customSportConfigs={customSportConfigs}
                     />
                     {errors.pricingTiers && (
                       <p className="text-xs text-red-400 font-mono mt-1">{errors.pricingTiers}</p>
@@ -1148,7 +1405,6 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
             </div>
           )}
 
-          {/* Barra de Navegación del Stepper y Guardado */}
           <div className="pt-4 border-t border-[#31343E] flex items-center justify-between gap-3">
             {currentStep !== 'infrastructure' ? (
               <button
@@ -1190,15 +1446,14 @@ export const CreateCourtForm: React.FC<CreateCourtFormProps> = ({ onSuccess }) =
         </form>
       </div>
 
-      {/* Columna Derecha: Previsualización Dinámica */}
       <div className="lg:col-span-5 sticky top-6">
         <CourtImagePreview
           firstSportName={firstSport?.name}
           surfaceType={formData.surfaceType}
           isCovered={formData.isCovered}
           hasLighting={formData.hasLighting}
-          durationMinutes={formData.durationMinutes}
-          basePrice={formData.basePrice}
+          durationMinutes={previewDuration}
+          basePrice={previewBasePrice}
         />
       </div>
     </div>

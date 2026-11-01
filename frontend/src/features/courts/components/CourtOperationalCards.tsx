@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useCourts } from '../hooks/useCourts'
 import { useDailyGrid } from '@/features/bookings/hooks/useBookings'
+import { getTodayLocalDateStr, utcToLocalParts } from '@/features/bookings/types/timeline.types'
 import { resolveCourtImage } from './CourtVisualSystem'
 import type { CourtResponse } from '../types'
 import type { DailyGridCourtItem } from '@/features/bookings/types'
@@ -27,21 +28,15 @@ interface CourtLiveState {
 export const CourtOperationalCards: React.FC = () => {
   const navigate = useNavigate()
 
-  // Fecha de hoy en formato local YYYY-MM-DD
-  const todayStr = useMemo(() => {
-    const today = new Date()
-    return today.toISOString().split('T')[0]
-  }, [])
+  // Fecha de hoy en la zona horaria del complejo (UTC-3)
+  const todayStr = useMemo(() => getTodayLocalDateStr(), [])
 
-  // Carga de datos de canchas y grilla del día
   const { data: courts = [], isLoading: isLoadingCourts } = useCourts()
   const { data: gridData, isLoading: isLoadingGrid } = useDailyGrid(todayStr)
 
-  // Filtros de visualización
   const [selectedSport, setSelectedSport] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>('all')
 
-  // Mapeo rápido de turnos por cancha
   const gridCourtsMap = useMemo(() => {
     const map = new Map<string, DailyGridCourtItem>()
     if (gridData?.courts) {
@@ -52,7 +47,6 @@ export const CourtOperationalCards: React.FC = () => {
     return map
   }, [gridData])
 
-  // Obtener lista única de deportes presentes
   const availableSports = useMemo(() => {
     const sportSet = new Set<string>()
     courts.forEach((c) => {
@@ -63,7 +57,6 @@ export const CourtOperationalCards: React.FC = () => {
     return Array.from(sportSet).sort()
   }, [courts])
 
-  // Cálculo del estado en tiempo real para una cancha
   const getCourtLiveState = (court: CourtResponse): CourtLiveState => {
     if (!court.isActive) {
       return {
@@ -75,24 +68,20 @@ export const CourtOperationalCards: React.FC = () => {
     }
 
     const gridCourt = gridCourtsMap.get(court.id)
-    const bookings = (gridCourt?.bookings || []).filter((b) => b.status !== 'cancelled')
-    const bookingsCount = bookings.length
+    const activeSlots = (gridCourt?.bookings || []).filter((b) => b.status !== 'cancelled')
+    // Contabilizar únicamente reservas comerciales de clientes (excluir bloqueos operativos)
+    const bookingsCount = activeSlots.filter((b) => b.status !== 'blocked').length
 
     const nowMs = Date.now()
 
-    // Comprobar si hay un turno o bloqueo en el horario actual
-    const currentBooking = bookings.find((b) => {
+    const currentBooking = activeSlots.find((b) => {
       const startMs = new Date(b.startTimeUtc).getTime()
       const endMs = new Date(b.endTimeUtc).getTime()
       return nowMs >= startMs && nowMs < endMs
     })
 
     if (currentBooking) {
-      const endLocal = new Date(currentBooking.endTimeUtc).toLocaleTimeString('es-AR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      })
+      const endLocal = utcToLocalParts(currentBooking.endTimeUtc).timeStr
 
       if (currentBooking.status === 'blocked') {
         return {
@@ -111,18 +100,13 @@ export const CourtOperationalCards: React.FC = () => {
       }
     }
 
-    // Si está libre, buscar el próximo turno del día
-    const upcoming = bookings
-      .filter((b) => new Date(b.startTimeUtc).getTime() > nowMs)
+    const upcoming = activeSlots
+      .filter((b) => b.status !== 'blocked' && new Date(b.startTimeUtc).getTime() > nowMs)
       .sort((a, b) => new Date(a.startTimeUtc).getTime() - new Date(b.startTimeUtc).getTime())
 
     if (upcoming.length > 0) {
       const next = upcoming[0]
-      const nextStart = new Date(next.startTimeUtc).toLocaleTimeString('es-AR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      })
+      const nextStart = utcToLocalParts(next.startTimeUtc).timeStr
       return {
         state: 'free',
         badgeLabel: 'Libre ahora',
@@ -139,7 +123,6 @@ export const CourtOperationalCards: React.FC = () => {
     }
   }
 
-  // Filtrado de canchas
   const filteredCourts = useMemo(() => {
     return courts.filter((court) => {
       const matchesSport =
@@ -167,9 +150,7 @@ export const CourtOperationalCards: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Barra de Filtros y Resumen Operativo */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#22242B] border border-[#31343E] p-4 rounded-xl shadow-sm">
-        {/* Filtros por Deporte */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-mono font-bold text-[#9497A1] uppercase tracking-wider mr-1">
             Deporte:
@@ -201,7 +182,6 @@ export const CourtOperationalCards: React.FC = () => {
           ))}
         </div>
 
-        {/* Filtros por Estado en Vivo */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-mono font-bold text-[#9497A1] uppercase tracking-wider mr-1">
             Estado:
@@ -242,7 +222,6 @@ export const CourtOperationalCards: React.FC = () => {
         </div>
       </div>
 
-      {/* Estados de Carga Skeleton */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((n) => (
@@ -264,7 +243,6 @@ export const CourtOperationalCards: React.FC = () => {
           ))}
         </div>
       ) : courts.length === 0 ? (
-        /* Estado Vacío: Sin Canchas en el Predio */
         <div className="text-center py-12 border border-dashed border-[#31343E] bg-[#22242B] p-8 rounded-xl space-y-4">
           <p className="text-lg font-bold text-[#F2F3F5]">No hay canchas registradas en el establecimiento.</p>
           <p className="text-sm font-medium text-[#9497A1] max-w-md mx-auto">
@@ -279,7 +257,6 @@ export const CourtOperationalCards: React.FC = () => {
           </button>
         </div>
       ) : filteredCourts.length === 0 ? (
-        /* Estado Vacío de Filtro */
         <div className="text-center py-10 border border-dashed border-[#31343E] bg-[#22242B] p-6 rounded-xl space-y-3">
           <p className="text-base font-bold text-[#F2F3F5]">
             No hay canchas que coincidan con los filtros seleccionados.
@@ -300,7 +277,6 @@ export const CourtOperationalCards: React.FC = () => {
           </button>
         </div>
       ) : (
-        /* Grilla de Cards Descriptivas */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourts.map((court) => {
             const live = getCourtLiveState(court)
@@ -313,7 +289,6 @@ export const CourtOperationalCards: React.FC = () => {
                 onClick={() => handleCardClick(court.id)}
                 className="group bg-[#22242B] border border-[#31343E] rounded-xl shadow-md hover:border-[#D46211] transition-all flex flex-col overflow-hidden cursor-pointer"
               >
-                {/* Fotografía de Cabecera Limpia */}
                 <div className="relative h-48 w-full overflow-hidden border-b border-[#31343E] bg-[#17181C]">
                   <img
                     src={visual.imageUrl}
@@ -323,16 +298,13 @@ export const CourtOperationalCards: React.FC = () => {
                   />
                 </div>
 
-                {/* Contenido Operativo de la Card */}
                 <div className="p-5 flex flex-col justify-between flex-1 space-y-5">
-                  {/* Nombre y Estado en Vivo */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="text-lg sm:text-xl font-headline font-black text-[#F2F3F5] uppercase tracking-tight group-hover:text-[#D46211] transition-colors truncate">
                         {court.name}
                       </h3>
 
-                      {/* Badge de Estado en Vivo */}
                       {live.state === 'free' && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-[#327357]/20 text-[#92D4B3] border border-[#327357]/40 flex-shrink-0">
                           <span className="h-2 w-2 rounded-full bg-[#327357] animate-pulse" />
@@ -361,13 +333,11 @@ export const CourtOperationalCards: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Detalle Operativo en Vivo / Próximo Turno */}
                     <p className="text-xs font-medium text-[#9497A1] leading-relaxed">
                       {live.detailLabel}
                     </p>
                   </div>
 
-                  {/* Resumen de Ocupación Diaria y Atributos Físicos */}
                   <div className="pt-3 border-t border-[#31343E] space-y-3">
                     <div className="flex items-center justify-between text-xs font-mono font-bold text-[#9497A1]">
                       <div className="flex items-center gap-1.5">
@@ -394,7 +364,6 @@ export const CourtOperationalCards: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Disciplinas y Tarifas Disponibles */}
                   <div className="pt-3 border-t border-[#31343E] space-y-2">
                     <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#9497A1] uppercase">
                       <Clock className="h-3.5 w-3.5 text-[#D46211]" strokeWidth={1.75} />
@@ -415,7 +384,6 @@ export const CourtOperationalCards: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Botón de Acción a la Planilla de Turnos */}
                   <div className="pt-2">
                     <button
                       type="button"
