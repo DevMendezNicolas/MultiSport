@@ -16,30 +16,26 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useDailyGrid } from '../hooks/useBookings'
 import { BookingDetailSheet } from './BookingDetailSheet'
 import { NewBookingSheet } from './NewBookingSheet'
-import type { GridBookingItem } from '../types'
+import type { GridBookingItem, DailyGridCourtItem } from '../types'
+import {
+  computeCourtDynamicHourBounds,
+  formatLocalDate,
+  getCourtDayOperatingIntervals,
+  getTodayLocalDateStr,
+  isIntervalCoveredByOperatingWindows,
+  localToUtcIso,
+  parseTimeToMinutes,
+} from '../types/timeline.types'
 
-// Generar slots de 30 minutos desde las 08:00 hasta las 23:30
-const GENERATE_30_MIN_SLOTS = () => {
-  const slots: string[] = []
-  for (let hour = 8; hour <= 23; hour++) {
-    const h = hour.toString().padStart(2, '0')
-    slots.push(`${h}:00`)
-    slots.push(`${h}:30`)
-  }
-  return slots
-}
-
-const TIME_SLOTS_30 = GENERATE_30_MIN_SLOTS()
 const SLOT_HEIGHT_PX = 48 // Altura en píxeles de cada bloque de 30 minutos
 
 export const DailyOperationalCalendar: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // Manejo de fecha seleccionada (formato YYYY-MM-DD en hora local)
+  // Manejo de fecha seleccionada (formato YYYY-MM-DD en hora local del complejo)
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    const today = new Date()
-    return today.toISOString().split('T')[0]
+    return getTodayLocalDateStr()
   })
 
   // Cancha focalizada desde parámetro URL (?courtId=...)
@@ -93,6 +89,34 @@ export const DailyOperationalCalendar: React.FC = () => {
     )
   }, [focusedCourt, displayedCourts, selectedMobileCourtId])
 
+  const selectedDayOfWeek = useMemo(() => {
+    const [y, m, d] = selectedDate.split('-').map(Number)
+    return new Date(y, m - 1, d).getDay()
+  }, [selectedDate])
+
+  const dynamicBounds = useMemo(() => {
+    const allWindows = displayedCourts.flatMap((c) => c.operatingWindows || [])
+    const allBookings = displayedCourts.flatMap((c) => c.bookings || [])
+    return computeCourtDynamicHourBounds(allWindows, allBookings)
+  }, [displayedCourts])
+
+  const timeSlots30 = useMemo(() => {
+    const slots: string[] = []
+    for (let hour = dynamicBounds.startHour; hour < dynamicBounds.endHour; hour++) {
+      const h = hour.toString().padStart(2, '0')
+      slots.push(`${h}:00`)
+      slots.push(`${h}:30`)
+    }
+    return slots
+  }, [dynamicBounds.startHour, dynamicBounds.endHour])
+
+  const isCourtSlotOpen = (court: DailyGridCourtItem, slotTime: string): boolean => {
+    if (!court.operatingWindows || court.operatingWindows.length === 0) return true
+    const intervals = getCourtDayOperatingIntervals(court.operatingWindows, selectedDayOfWeek)
+    const startMin = parseTimeToMinutes(slotTime)
+    return isIntervalCoveredByOperatingWindows(startMin, startMin + 30, intervals)
+  }
+
   // Acciones de Selección de Cancha en Pestañas
   const handleSelectCourt = (courtId: string | null) => {
     if (!courtId) {
@@ -109,14 +133,14 @@ export const DailyOperationalCalendar: React.FC = () => {
 
   // Navegación de Fechas
   const handleDateChange = (daysDelta: number) => {
-    const current = new Date(`${selectedDate}T12:00:00Z`)
+    const [y, m, d] = selectedDate.split('-').map(Number)
+    const current = new Date(y, m - 1, d)
     current.setDate(current.getDate() + daysDelta)
-    setSelectedDate(current.toISOString().split('T')[0])
+    setSelectedDate(formatLocalDate(current))
   }
 
   const handleToday = () => {
-    const today = new Date()
-    setSelectedDate(today.toISOString().split('T')[0])
+    setSelectedDate(getTodayLocalDateStr())
   }
 
   const formattedDateTitle = useMemo(() => {
@@ -139,20 +163,31 @@ export const DailyOperationalCalendar: React.FC = () => {
     setIsDetailOpen(true)
   }
 
-  // Función auxiliar para calcular el posicionamiento vertical de un turno
+  // Función auxiliar para calcular el posicionamiento vertical de un turno recortado al día local del complejo (UTC-3)
   const computeBookingStyle = (booking: GridBookingItem) => {
-    const start = new Date(booking.startTimeUtc)
-    const end = new Date(booking.endTimeUtc)
+    const dayStartMs = new Date(localToUtcIso(selectedDate, '00:00')).getTime()
+    const dayEndMs = new Date(localToUtcIso(selectedDate, '24:00')).getTime()
 
-    const startMinutes = start.getUTCHours() * 60 + start.getUTCMinutes()
-    const endMinutes = end.getUTCHours() * 60 + end.getUTCMinutes()
+    const rawStartMs = new Date(booking.startTimeUtc).getTime()
+    const rawEndMs = new Date(booking.endTimeUtc).getTime()
 
-    const timelineStartMinutes = 8 * 60 // 08:00
-    const offsetMinutes = Math.max(0, startMinutes - timelineStartMinutes)
-    const durationMinutes = Math.max(30, endMinutes - startMinutes)
+    const clampedStartMs = Math.max(dayStartMs, Math.min(dayEndMs, rawStartMs))
+    const clampedEndMs = Math.max(clampedStartMs, Math.min(dayEndMs, rawEndMs))
+
+    const startMinutes = Math.round((clampedStartMs - dayStartMs) / 60000)
+    const endMinutes = Math.round((clampedEndMs - dayStartMs) / 60000)
+
+    const timelineStartMinutes = dynamicBounds.startHour * 60
+    const timelineEndMinutes = dynamicBounds.endHour * 60
+
+    const visibleStartMin = Math.max(timelineStartMinutes, Math.min(timelineEndMinutes, startMinutes))
+    const visibleEndMin = Math.max(visibleStartMin, Math.min(timelineEndMinutes, endMinutes))
+
+    const offsetMinutes = Math.max(0, visibleStartMin - timelineStartMinutes)
+    const durationMinutes = Math.max(15, visibleEndMin - visibleStartMin)
 
     const top = (offsetMinutes / 30) * SLOT_HEIGHT_PX
-    const height = (durationMinutes / 30) * SLOT_HEIGHT_PX - 4 // -4px para margen visual
+    const height = Math.max(24, (durationMinutes / 30) * SLOT_HEIGHT_PX - 4)
 
     return { top: `${top}px`, height: `${height}px` }
   }
@@ -292,7 +327,7 @@ export const DailyOperationalCalendar: React.FC = () => {
               </div>
             </div>
             <div className="font-mono font-bold text-neutral-900">
-              {focusedCourt.bookings.filter((b) => b.status !== 'cancelled').length} turnos programados hoy
+              {focusedCourt.bookings.filter((b) => b.status !== 'cancelled' && b.status !== 'blocked').length} turnos programados hoy
             </div>
           </div>
         )}
@@ -354,7 +389,7 @@ export const DailyOperationalCalendar: React.FC = () => {
                 <div className="contents">
                   {/* Columna Izquierda de Horas */}
                   <div className="relative border-r border-neutral-300 bg-neutral-50 sticky left-0 z-10">
-                    {TIME_SLOTS_30.map((slot) => {
+                    {timeSlots30.map((slot) => {
                       const isFullHour = slot.endsWith(':00')
                       return (
                         <div
@@ -375,21 +410,36 @@ export const DailyOperationalCalendar: React.FC = () => {
                     <div
                       key={court.courtId}
                       className="relative border-r border-neutral-200 bg-white"
-                      style={{ height: `${TIME_SLOTS_30.length * SLOT_HEIGHT_PX}px` }}
+                      style={{ height: `${timeSlots30.length * SLOT_HEIGHT_PX}px` }}
                     >
                       {/* Fondo de Celdas Interactivas (Slots de 30 min) */}
-                      {TIME_SLOTS_30.map((slot) => (
-                        <div
-                          key={slot}
-                          onClick={() => openNewBooking(court.courtId, slot)}
-                          style={{ height: `${SLOT_HEIGHT_PX}px` }}
-                          className="border-b border-neutral-100 hover:bg-brand-sport/10 transition-colors cursor-pointer group flex items-center justify-end px-2.5"
-                        >
-                          <span className="text-xs text-brand-british font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                            + Reservar
-                          </span>
-                        </div>
-                      ))}
+                      {timeSlots30.map((slot) => {
+                        const slotOpen = isCourtSlotOpen(court, slot)
+                        if (!slotOpen) {
+                          return (
+                            <div
+                              key={slot}
+                              style={{ height: `${SLOT_HEIGHT_PX}px` }}
+                              className="border-b border-neutral-200 bg-neutral-100/90 text-neutral-400 cursor-not-allowed select-none flex items-center justify-center px-2.5 text-[11px] font-mono"
+                              title="Cancha sin actividad operativa en este horario"
+                            >
+                              <span>Cerrado</span>
+                            </div>
+                          )
+                        }
+                        return (
+                          <div
+                            key={slot}
+                            onClick={() => openNewBooking(court.courtId, slot)}
+                            style={{ height: `${SLOT_HEIGHT_PX}px` }}
+                            className="border-b border-neutral-100 hover:bg-brand-sport/10 transition-colors cursor-pointer group flex items-center justify-end px-2.5"
+                          >
+                            <span className="text-xs text-brand-british font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                              + Reservar
+                            </span>
+                          </div>
+                        )
+                      })}
 
                       {/* Tarjetas de Turnos Superpuestas */}
                       {court.bookings.map((booking) => {
@@ -410,7 +460,7 @@ export const DailyOperationalCalendar: React.FC = () => {
                               isConfirmed
                                 ? 'bg-emerald-50/95 border-emerald-400 text-neutral-950 hover:border-emerald-600'
                                 : isBlocked
-                                ? 'bg-neutral-900 text-white border-neutral-800'
+                                ? 'bg-neutral-900 text-white border-neutral-700 hover:border-neutral-500'
                                 : isPending
                                 ? 'bg-amber-50 border-amber-300 text-neutral-950'
                                 : 'bg-neutral-100 border-neutral-300 text-neutral-800'
@@ -420,12 +470,16 @@ export const DailyOperationalCalendar: React.FC = () => {
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   {isBlocked ? (
-                                    <ShieldAlert className="h-4 w-4 shrink-0 text-neutral-300" />
+                                    <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400" />
                                   ) : (
                                     <User className="h-4 w-4 shrink-0 text-brand-british" />
                                   )}
-                                  <span className="font-bold truncate text-sm text-neutral-950">
-                                    {booking.customerName}
+                                  <span
+                                    className={`font-bold truncate text-sm ${
+                                      isBlocked ? 'text-white' : 'text-neutral-950'
+                                    }`}
+                                  >
+                                    {isBlocked ? booking.notes || 'Bloqueo Operativo' : booking.customerName}
                                   </span>
                                 </div>
                                 {!isBlocked && (
@@ -440,16 +494,18 @@ export const DailyOperationalCalendar: React.FC = () => {
                               )}
                             </div>
 
-                            <div className="flex items-center justify-between text-xs pt-1">
-                              <span className="font-mono font-black text-xs sm:text-sm text-neutral-950">
-                                ${booking.totalPrice.toLocaleString('es-AR')}
-                              </span>
-                              {isPending && (
-                                <span className="text-xs px-2 py-0.5 rounded-md bg-amber-200 text-amber-950 font-bold border border-amber-300">
-                                  Seña Pendiente
+                            {!isBlocked && (
+                              <div className="flex items-center justify-between text-xs pt-1">
+                                <span className="font-mono font-black text-xs sm:text-sm text-neutral-950">
+                                  ${booking.totalPrice.toLocaleString('es-AR')}
                                 </span>
-                              )}
-                            </div>
+                                {isPending && (
+                                  <span className="text-xs px-2 py-0.5 rounded-md bg-amber-200 text-amber-950 font-bold border border-amber-300">
+                                    Seña Pendiente
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )
                       })}
@@ -478,7 +534,7 @@ export const DailyOperationalCalendar: React.FC = () => {
                   >
                     {/* Horarios */}
                     <div className="relative border-r border-neutral-300 bg-neutral-50">
-                      {TIME_SLOTS_30.map((slot) => (
+                      {timeSlots30.map((slot) => (
                         <div
                           key={slot}
                           style={{ height: `${SLOT_HEIGHT_PX}px` }}
@@ -492,20 +548,34 @@ export const DailyOperationalCalendar: React.FC = () => {
                     {/* Contenido Cancha */}
                     <div
                       className="relative bg-white"
-                      style={{ height: `${TIME_SLOTS_30.length * SLOT_HEIGHT_PX}px` }}
+                      style={{ height: `${timeSlots30.length * SLOT_HEIGHT_PX}px` }}
                     >
-                      {TIME_SLOTS_30.map((slot) => (
-                        <div
-                          key={slot}
-                          onClick={() => openNewBooking(activeMobileCourt.courtId, slot)}
-                          style={{ height: `${SLOT_HEIGHT_PX}px` }}
-                          className="border-b border-neutral-100 hover:bg-brand-sport/10 transition-colors cursor-pointer flex items-center justify-end px-3"
-                        >
-                          <span className="text-xs text-brand-british font-bold">
-                            + Reservar
-                          </span>
-                        </div>
-                      ))}
+                      {timeSlots30.map((slot) => {
+                        const slotOpen = isCourtSlotOpen(activeMobileCourt, slot)
+                        if (!slotOpen) {
+                          return (
+                            <div
+                              key={slot}
+                              style={{ height: `${SLOT_HEIGHT_PX}px` }}
+                              className="border-b border-neutral-200 bg-neutral-100/90 text-neutral-400 cursor-not-allowed select-none flex items-center justify-center px-3 text-[11px] font-mono"
+                            >
+                              <span>Cerrado</span>
+                            </div>
+                          )
+                        }
+                        return (
+                          <div
+                            key={slot}
+                            onClick={() => openNewBooking(activeMobileCourt.courtId, slot)}
+                            style={{ height: `${SLOT_HEIGHT_PX}px` }}
+                            className="border-b border-neutral-100 hover:bg-brand-sport/10 transition-colors cursor-pointer flex items-center justify-end px-3"
+                          >
+                            <span className="text-xs text-brand-british font-bold">
+                              + Reservar
+                            </span>
+                          </div>
+                        )
+                      })}
 
                       {activeMobileCourt.bookings.map((booking) => {
                         const style = computeBookingStyle(booking)
@@ -524,29 +594,37 @@ export const DailyOperationalCalendar: React.FC = () => {
                               isConfirmed
                                 ? 'bg-emerald-50/95 border-emerald-400 text-neutral-950'
                                 : isBlocked
-                                ? 'bg-neutral-900 text-white border-neutral-800'
+                                ? 'bg-neutral-900 text-white border-neutral-700'
                                 : 'bg-amber-50 border-amber-300 text-neutral-950'
                             }`}
                           >
                             <div className="flex items-start justify-between">
                               <div>
-                                <span className="font-bold block truncate text-sm text-neutral-950">
-                                  {booking.customerName}
+                                <span
+                                  className={`font-bold block truncate text-sm ${
+                                    isBlocked ? 'text-white' : 'text-neutral-950'
+                                  }`}
+                                >
+                                  {isBlocked ? booking.notes || 'Bloqueo Operativo' : booking.customerName}
                                 </span>
-                                <span className="text-xs text-neutral-700 font-medium block truncate mt-0.5">
-                                  {booking.sportName} · {booking.customerPhone}
-                                </span>
+                                {!isBlocked && (
+                                  <span className="text-xs text-neutral-700 font-medium block truncate mt-0.5">
+                                    {booking.sportName} · {booking.customerPhone}
+                                  </span>
+                                )}
                               </div>
                               {booking.isRecurring && (
                                 <Repeat className="h-4 w-4 text-brand-british shrink-0" />
                               )}
                             </div>
 
-                            <div className="flex items-center justify-between text-xs pt-1">
-                              <span className="font-mono font-black text-sm text-neutral-950">
-                                ${booking.totalPrice.toLocaleString('es-AR')}
-                              </span>
-                            </div>
+                            {!isBlocked && (
+                              <div className="flex items-center justify-between text-xs pt-1">
+                                <span className="font-mono font-black text-sm text-neutral-950">
+                                  ${booking.totalPrice.toLocaleString('es-AR')}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         )
                       })}
@@ -576,6 +654,7 @@ export const DailyOperationalCalendar: React.FC = () => {
           setSelectedBookingId(null)
         }}
         bookingId={selectedBookingId}
+        courts={courts}
       />
     </div>
   )

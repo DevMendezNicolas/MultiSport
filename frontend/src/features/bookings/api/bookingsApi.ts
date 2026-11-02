@@ -2,8 +2,10 @@ import api from '@/lib/axios'
 import type {
   DailyGridResponse,
   BookingResponse,
+  PaymentResponse,
   CreateBookingRequest,
   CreateBlockRequest,
+  UpdateBlockRequest,
   RecordPaymentRequest,
   CancelBookingRequest,
   RescheduleBookingRequest,
@@ -32,6 +34,11 @@ export const bookingsApi = {
 
   createBlock: async (payload: CreateBlockRequest): Promise<BookingResponse> => {
     const response = await api.post<BookingResponse>('/bookings/block', payload)
+    return response.data
+  },
+
+  updateBlock: async (id: string, payload: UpdateBlockRequest): Promise<BookingResponse> => {
+    const response = await api.put<BookingResponse>(`/bookings/${id}/block`, payload)
     return response.data
   },
 

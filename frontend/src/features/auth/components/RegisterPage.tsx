@@ -147,9 +147,9 @@ export const RegisterPage: React.FC = () => {
   const hasNumber = /[0-9]/.test(formData.password)
 
   return (
-    <div className="min-h-screen bg-brand-dark text-neutral-50 flex flex-col justify-between selection:bg-brand-sport selection:text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#17181C] text-[#F2F3F5] flex flex-col justify-between selection:bg-[#D46211] selection:text-white relative overflow-hidden font-body">
       {/* Resplandor deportivo de fondo */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-brand-sport/10 blur-[140px] rounded-full pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#D46211]/10 blur-[150px] rounded-full pointer-events-none -z-10" />
 
       {/* Cabecera de navegación */}
       <header className="relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -159,38 +159,38 @@ export const RegisterPage: React.FC = () => {
 
         <Link
           to="/login"
-          className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-neutral-400 hover:text-white transition-colors py-2 px-3 rounded-lg hover:bg-neutral-900 border border-transparent hover:border-neutral-800"
+          className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#9497A1] hover:text-[#F2F3F5] transition-colors py-2 px-3 rounded-lg hover:bg-[#22242B] border border-transparent hover:border-[#31343E]"
         >
-          <ArrowLeft className="h-4 w-4" strokeWidth={2} />
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
           <span>Ya tengo cuenta</span>
         </Link>
       </header>
 
       {/* Contenedor Principal Centrado */}
       <main className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-6 py-8">
-        <div className="w-full max-w-lg bg-neutral-900/80 border border-neutral-800 backdrop-blur-xl rounded-2xl p-6 sm:p-10 shadow-2xl">
+        <div className="w-full max-w-lg bg-[#22242B] border border-[#31343E] backdrop-blur-xl rounded-2xl p-6 sm:p-10 shadow-2xl">
           
           {registeredEmail ? (
             /* Vista de Verificación Pendiente */
             <div className="flex flex-col items-center text-center">
-              <div className="h-16 w-16 rounded-2xl bg-brand-british/60 border border-brand-sport/40 flex items-center justify-center text-brand-soft mb-6">
-                <Mail className="h-8 w-8 text-brand-sport" strokeWidth={2} />
+              <div className="h-16 w-16 rounded-2xl bg-[#327357]/20 border border-[#327357]/40 flex items-center justify-center text-[#92D4B3] mb-6">
+                <Mail className="h-8 w-8 text-[#327357]" strokeWidth={1.75} />
               </div>
 
-              <h1 className="text-2xl font-bold tracking-tight text-white mb-2">
+              <h1 className="text-2xl font-bold tracking-tight text-[#F2F3F5] mb-2 font-headline">
                 Verificá tu correo electrónico
               </h1>
               
-              <p className="text-sm text-neutral-400 leading-relaxed mb-6">
+              <p className="text-sm text-[#9497A1] leading-relaxed mb-6">
                 Enviamos un enlace de activación a{' '}
-                <span className="font-semibold text-neutral-200">{registeredEmail}</span>.
+                <span className="font-semibold text-[#F2F3F5]">{registeredEmail}</span>.
                 Para garantizar la seguridad de tu complejo, hacé clic en el enlace dentro de los próximos 15 minutos.
               </p>
 
               {/* Indicador de Tiempo Restante */}
-              <div className="w-full bg-neutral-950/80 border border-neutral-800 rounded-xl p-4 mb-6 flex items-center justify-between">
-                <span className="text-xs text-neutral-400 font-mono">Validez del enlace:</span>
-                <span className={`text-sm font-mono font-bold ${timeLeft > 120 ? 'text-brand-soft' : 'text-amber-400'}`}>
+              <div className="w-full bg-[#111215] border border-[#31343E] rounded-xl p-4 mb-6 flex items-center justify-between">
+                <span className="text-xs text-[#9497A1] font-mono">Validez del enlace:</span>
+                <span className={`text-sm font-mono font-bold ${timeLeft > 120 ? 'text-[#92D4B3]' : 'text-[#D46211]'}`}>
                   {timeLeft > 0 ? formatCountdown(timeLeft) : 'Expirado'}
                 </span>
               </div>
@@ -201,9 +201,9 @@ export const RegisterPage: React.FC = () => {
                   type="button"
                   onClick={handleResend}
                   disabled={resendCooldown > 0 || resendMutation.isPending}
-                  className="w-full min-h-[44px] rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-700"
+                  className="w-full min-h-[44px] rounded-lg bg-[#111215] hover:bg-[#1d1e24] text-[#F2F3F5] text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-[#31343E]"
                 >
-                  <RefreshCw className={`h-4 w-4 ${resendMutation.isPending ? 'animate-spin' : ''}`} strokeWidth={2} />
+                  <RefreshCw className={`h-4 w-4 ${resendMutation.isPending ? 'animate-spin' : ''}`} strokeWidth={1.75} />
                   <span>
                     {resendCooldown > 0
                       ? `Reenviar en ${resendCooldown}s`
@@ -216,33 +216,41 @@ export const RegisterPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  className="w-full min-h-[48px] rounded-xl bg-brand-sport hover:bg-brand-sport-hover text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-brand-sport/20"
+                  className="w-full min-h-[48px] rounded-lg bg-[#D46211] hover:bg-[#E37A24] text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors shadow-md shadow-[#D46211]/20 cursor-pointer"
                 >
                   <span>Ir a Iniciar Sesión</span>
                   <ArrowRight className="h-4 w-4" strokeWidth={2} />
                 </button>
               </div>
 
-              <div className="mt-6 text-xs text-neutral-500">
+              <div className="mt-6 text-xs text-[#9497A1]">
                 ¿No encontrás el correo? Revisá la carpeta de spam o correo no deseado.
               </div>
             </div>
           ) : (
-            /* Formulario de Registro Simplificado (4 Campos) */
+            /* Formulario de Registro */
             <div>
               <div className="mb-6">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded bg-[#D46211] flex items-center justify-center text-white font-bold text-xs">
+                    M
+                  </div>
+                  <span className="font-mono text-xs uppercase text-[#D46211] tracking-widest font-bold">
+                    Registro de Complejo
+                  </span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#F2F3F5] font-headline">
                   Registrá tu predio en MultiSport
                 </h1>
-                <p className="mt-2 text-sm text-neutral-400 leading-relaxed">
-                  Creá tu cuenta inicial en minutos. Luego podrás configurar datos comerciales y de contacto adicionales de manera opcional.
+                <p className="mt-2 text-sm text-[#9497A1] leading-relaxed">
+                  Creá tu cuenta inicial en minutos. Luego podrás configurar datos comerciales y canchas de manera personalizada.
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 {/* Nombre del Complejo */}
                 <div>
-                  <label htmlFor="name" className="block text-xs font-medium text-neutral-300 mb-1.5">
+                  <label htmlFor="name" className="block text-xs font-medium uppercase tracking-wider text-[#9497A1] mb-1.5">
                     Nombre del complejo deportivo
                   </label>
                   <input
@@ -252,19 +260,19 @@ export const RegisterPage: React.FC = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Ej. Padel & Fútbol San Martín"
-                    className="w-full bg-neutral-950/80 border border-neutral-800 rounded-xl px-4 py-2.5 text-base sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-brand-sport focus:ring-1 focus:ring-brand-sport/30 transition-all"
+                    placeholder="Ej. Pádel & Fútbol San Martín"
+                    className="w-full bg-[#111215] border border-[#31343E] rounded-lg px-4 py-2.5 text-base sm:text-sm text-[#F2F3F5] placeholder-[#9497A1]/60 focus:outline-none focus:border-[#D46211] focus:ring-1 focus:ring-[#D46211]/30 transition-all shadow-inner"
                   />
                 </div>
 
                 {/* Correo Electrónico */}
                 <div>
-                  <label htmlFor="email" className="block text-xs font-medium text-neutral-300 mb-1.5">
+                  <label htmlFor="email" className="block text-xs font-medium uppercase tracking-wider text-[#9497A1] mb-1.5">
                     Correo electrónico
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-500">
-                      <Mail className="h-4 w-4" strokeWidth={2} />
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9497A1]">
+                      <Mail className="h-4 w-4" strokeWidth={1.75} />
                     </div>
                     <input
                       id="email"
@@ -274,19 +282,19 @@ export const RegisterPage: React.FC = () => {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="admin@complejo.com"
-                      className="w-full bg-neutral-950/80 border border-neutral-800 rounded-xl pl-9 pr-4 py-2.5 text-base sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-brand-sport focus:ring-1 focus:ring-brand-sport/30 transition-all"
+                      className="w-full bg-[#111215] border border-[#31343E] rounded-lg pl-10 pr-4 py-2.5 text-base sm:text-sm text-[#F2F3F5] placeholder-[#9497A1]/60 focus:outline-none focus:border-[#D46211] focus:ring-1 focus:ring-[#D46211]/30 transition-all shadow-inner"
                     />
                   </div>
                 </div>
 
                 {/* Contraseña */}
                 <div>
-                  <label htmlFor="password" className="block text-xs font-medium text-neutral-300 mb-1.5">
+                  <label htmlFor="password" className="block text-xs font-medium uppercase tracking-wider text-[#9497A1] mb-1.5">
                     Contraseña
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-500">
-                      <Lock className="h-4 w-4" strokeWidth={2} />
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9497A1]">
+                      <Lock className="h-4 w-4" strokeWidth={1.75} />
                     </div>
                     <input
                       id="password"
@@ -296,30 +304,30 @@ export const RegisterPage: React.FC = () => {
                       value={formData.password}
                       onChange={handleChange}
                       placeholder="Mínimo 8 caracteres"
-                      className="w-full bg-neutral-950/80 border border-neutral-800 rounded-xl pl-9 pr-11 py-2.5 text-base sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-brand-sport focus:ring-1 focus:ring-brand-sport/30 transition-all"
+                      className="w-full bg-[#111215] border border-[#31343E] rounded-lg pl-10 pr-11 py-2.5 text-base sm:text-sm text-[#F2F3F5] placeholder-[#9497A1]/60 focus:outline-none focus:border-[#D46211] focus:ring-1 focus:ring-[#D46211]/30 transition-all shadow-inner"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-500 hover:text-neutral-300 transition-colors"
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#9497A1] hover:text-[#F2F3F5] transition-colors"
                       aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" strokeWidth={2} /> : <Eye className="h-4 w-4" strokeWidth={2} />}
+                      {showPassword ? <EyeOff className="h-4 w-4" strokeWidth={1.75} /> : <Eye className="h-4 w-4" strokeWidth={1.75} />}
                     </button>
                   </div>
 
                   {/* Indicador de requisitos de seguridad */}
                   <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px] font-mono">
-                    <span className={`flex items-center gap-1 ${hasLength ? 'text-brand-soft font-semibold' : 'text-neutral-500'}`}>
+                    <span className={`flex items-center gap-1 ${hasLength ? 'text-[#92D4B3] font-semibold' : 'text-[#9497A1]'}`}>
                       <Check className="h-3 w-3" strokeWidth={2} /> 8+ caract.
                     </span>
-                    <span className={`flex items-center gap-1 ${hasUpper ? 'text-brand-soft font-semibold' : 'text-neutral-500'}`}>
+                    <span className={`flex items-center gap-1 ${hasUpper ? 'text-[#92D4B3] font-semibold' : 'text-[#9497A1]'}`}>
                       <Check className="h-3 w-3" strokeWidth={2} /> Mayúscula
                     </span>
-                    <span className={`flex items-center gap-1 ${hasLower ? 'text-brand-soft font-semibold' : 'text-neutral-500'}`}>
+                    <span className={`flex items-center gap-1 ${hasLower ? 'text-[#92D4B3] font-semibold' : 'text-[#9497A1]'}`}>
                       <Check className="h-3 w-3" strokeWidth={2} /> Minúscula
                     </span>
-                    <span className={`flex items-center gap-1 ${hasNumber ? 'text-brand-soft font-semibold' : 'text-neutral-500'}`}>
+                    <span className={`flex items-center gap-1 ${hasNumber ? 'text-[#92D4B3] font-semibold' : 'text-[#9497A1]'}`}>
                       <Check className="h-3 w-3" strokeWidth={2} /> Número
                     </span>
                   </div>
@@ -327,12 +335,12 @@ export const RegisterPage: React.FC = () => {
 
                 {/* Confirmar Contraseña */}
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-xs font-medium text-neutral-300 mb-1.5">
+                  <label htmlFor="confirmPassword" className="block text-xs font-medium uppercase tracking-wider text-[#9497A1] mb-1.5">
                     Confirmar Contraseña
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-500">
-                      <Lock className="h-4 w-4" strokeWidth={2} />
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9497A1]">
+                      <Lock className="h-4 w-4" strokeWidth={1.75} />
                     </div>
                     <input
                       id="confirmPassword"
@@ -342,15 +350,15 @@ export const RegisterPage: React.FC = () => {
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       placeholder="Repetí tu contraseña"
-                      className="w-full bg-neutral-950/80 border border-neutral-800 rounded-xl pl-9 pr-11 py-2.5 text-base sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-brand-sport focus:ring-1 focus:ring-brand-sport/30 transition-all"
+                      className="w-full bg-[#111215] border border-[#31343E] rounded-lg pl-10 pr-11 py-2.5 text-base sm:text-sm text-[#F2F3F5] placeholder-[#9497A1]/60 focus:outline-none focus:border-[#D46211] focus:ring-1 focus:ring-[#D46211]/30 transition-all shadow-inner"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-500 hover:text-neutral-300 transition-colors"
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#9497A1] hover:text-[#F2F3F5] transition-colors"
                       aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" strokeWidth={2} /> : <Eye className="h-4 w-4" strokeWidth={2} />}
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" strokeWidth={1.75} /> : <Eye className="h-4 w-4" strokeWidth={1.75} />}
                     </button>
                   </div>
                 </div>
@@ -359,7 +367,7 @@ export const RegisterPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={registerMutation.isPending}
-                  className="mt-3 w-full min-h-[48px] rounded-xl bg-brand-sport hover:bg-brand-sport-hover text-white font-bold flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-brand-sport/20"
+                  className="mt-3 w-full min-h-[48px] rounded-lg bg-[#D46211] hover:bg-[#E37A24] text-white font-semibold flex items-center justify-center gap-2 transition-all transform active:scale-[0.99] disabled:opacity-50 shadow-md shadow-[#D46211]/20 cursor-pointer"
                 >
                   {registerMutation.isPending ? (
                     <span>Registrando predio...</span>
@@ -373,9 +381,9 @@ export const RegisterPage: React.FC = () => {
               </form>
 
               {/* Pie de Formulario */}
-              <div className="mt-8 pt-6 border-t border-neutral-800/80 text-center text-xs text-neutral-400">
+              <div className="mt-8 pt-6 border-t border-[#31343E] text-center text-xs text-[#9497A1]">
                 ¿Ya tenés una cuenta registrada?{' '}
-                <Link to="/login" className="text-brand-soft font-semibold hover:underline transition-colors">
+                <Link to="/login" className="text-[#D46211] font-semibold hover:text-[#E37A24] hover:underline transition-colors">
                   Iniciá sesión acá
                 </Link>
               </div>
@@ -386,8 +394,8 @@ export const RegisterPage: React.FC = () => {
       </main>
 
       {/* Pie de Página */}
-      <footer className="relative z-10 py-6 px-4 text-center text-xs text-neutral-500 font-mono flex items-center justify-center gap-2">
-        <ShieldCheck className="h-3.5 w-3.5 text-neutral-600" strokeWidth={2} />
+      <footer className="relative z-10 py-6 px-4 text-center text-xs text-[#9497A1] font-mono flex items-center justify-center gap-2">
+        <ShieldCheck className="h-3.5 w-3.5 text-[#327357]" strokeWidth={2} />
         <span>MultiSport 2026 &bull; Conexión segura TLS &bull; Todos los derechos reservados</span>
       </footer>
     </div>

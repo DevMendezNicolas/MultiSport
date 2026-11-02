@@ -11,10 +11,29 @@ public sealed class BookingRepository : IBookingRepository
 {
     private readonly IDbConnectionFactory _connectionFactory;
 
+    private sealed record CourtOperatingSlotRow(
+        Guid SportId,
+        int DayOfWeek,
+        TimeOnly StartTime,
+        TimeOnly EndTime,
+        decimal Price,
+        int DurationMinutes
+    );
+
     public BookingRepository(IDbConnectionFactory connectionFactory)
     {
         _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
     }
+
+    private sealed record ComplexCourtOperatingSlotRow(
+        Guid CourtId,
+        Guid SportId,
+        int DayOfWeek,
+        TimeOnly StartTime,
+        TimeOnly EndTime,
+        decimal Price,
+        int DurationMinutes
+    );
 
     public async Task<IReadOnlyList<DailyGridCourtItem>> GetComplexCourtsWithSportsAsync(Guid complexId, CancellationToken ct)
     {
@@ -37,8 +56,43 @@ public sealed class BookingRepository : IBookingRepository
               AND s.is_active = TRUE
             ORDER BY c.name ASC, s.name ASC;";
 
+        const string operatingRulesSql = @"
+            SELECT
+                cs.court_id AS CourtId,
+                cs.sport_id AS SportId,
+                cpr.day_of_week AS DayOfWeek,
+                cpr.start_time AS StartTime,
+                cpr.end_time AS EndTime,
+                cpr.price AS Price,
+                cpr.duration_minutes AS DurationMinutes
+            FROM court_pricing_rules cpr
+            JOIN courts_sports cs ON cs.id = cpr.court_sport_id
+            JOIN courts c ON c.id = cs.court_id
+            WHERE c.complex_id = @ComplexId
+              AND c.deleted_at IS NULL
+            ORDER BY cpr.day_of_week ASC, cpr.start_time ASC;";
+
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
         var rows = await connection.QueryAsync<dynamic>(new CommandDefinition(sql, new { ComplexId = complexId }, cancellationToken: ct));
+        var ruleRows = await connection.QueryAsync<ComplexCourtOperatingSlotRow>(new CommandDefinition(
+            operatingRulesSql,
+            new { ComplexId = complexId },
+            cancellationToken: ct));
+
+        var windowsByCourt = ruleRows
+            .GroupBy(r => r.CourtId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<GridOperatingWindowItem>)g.Select(r => new GridOperatingWindowItem(
+                    r.SportId,
+                    r.DayOfWeek,
+                    r.StartTime.ToString("HH:mm"),
+                    r.EndTime == TimeOnly.MinValue && r.StartTime > TimeOnly.MinValue
+                        ? "24:00"
+                        : r.EndTime.ToString("HH:mm"),
+                    r.Price,
+                    r.DurationMinutes
+                )).ToList());
 
         var courtMap = new Dictionary<Guid, (DailyGridCourtItem Court, List<GridSportItem> Sports)>();
 
@@ -53,7 +107,8 @@ public sealed class BookingRepository : IBookingRepository
                     (string)row.surface,
                     (bool)row.isindoor,
                     Array.Empty<GridSportItem>(),
-                    Array.Empty<GridBookingItem>()
+                    Array.Empty<GridBookingItem>(),
+                    Array.Empty<GridOperatingWindowItem>()
                 );
                 entry = (court, new List<GridSportItem>());
                 courtMap[courtId] = entry;
@@ -67,7 +122,13 @@ public sealed class BookingRepository : IBookingRepository
             ));
         }
 
-        return courtMap.Values.Select(v => v.Court with { Sports = v.Sports }).ToList();
+        return courtMap.Values.Select(v => v.Court with
+        {
+            Sports = v.Sports,
+            OperatingWindows = windowsByCourt.TryGetValue(v.Court.CourtId, out var windows)
+                ? windows
+                : Array.Empty<GridOperatingWindowItem>()
+        }).ToList();
     }
 
     public async Task<IReadOnlyList<GridBookingItem>> GetBookingsForDateRangeAsync(
@@ -94,8 +155,8 @@ public sealed class BookingRepository : IBookingRepository
             FROM bookings b
             JOIN sports s ON s.id = b.sport_id
             WHERE b.complex_id = @ComplexId
-              AND b.start_time_utc >= @StartUtc
               AND b.start_time_utc < @EndUtc
+              AND b.end_time_utc > @StartUtc
               AND b.deleted_at IS NULL
               AND b.status NOT IN ('cancelled', 'expired')
             ORDER BY b.start_time_utc ASC;";
@@ -114,6 +175,8 @@ public sealed class BookingRepository : IBookingRepository
         int dayOfWeek,
         CancellationToken ct)
     {
+        var previousDayOfWeek = (dayOfWeek + 6) % 7;
+
         const string sql = @"
             SELECT 
                 id AS Id,
@@ -137,14 +200,17 @@ public sealed class BookingRepository : IBookingRepository
                 deleted_by AS DeletedBy
             FROM recurring_booking_rules
             WHERE complex_id = @ComplexId
-              AND day_of_week = @DayOfWeek
               AND is_active = TRUE
-              AND deleted_at IS NULL;";
+              AND deleted_at IS NULL
+              AND (
+                  day_of_week = @DayOfWeek
+                  OR (day_of_week = @PreviousDayOfWeek AND end_time < start_time AND end_time > '00:00:00'::time)
+              );";
 
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
         var rules = await connection.QueryAsync<RecurringBookingRule>(new CommandDefinition(
             sql,
-            new { ComplexId = complexId, DayOfWeek = dayOfWeek },
+            new { ComplexId = complexId, DayOfWeek = dayOfWeek, PreviousDayOfWeek = previousDayOfWeek },
             cancellationToken: ct));
 
         return rules.AsList();
@@ -292,10 +358,237 @@ public sealed class BookingRepository : IBookingRepository
         return payments.AsList();
     }
 
-    public async Task<Booking> CreateBookingWithOptionalPaymentAsync(
+    private static async Task<bool> LockCourtsInDeterministicOrderAsync(
+        DbConnection connection,
+        DbTransaction transaction,
+        Guid complexId,
+        IEnumerable<Guid> courtIds,
+        CancellationToken ct)
+    {
+        var distinctOrderedIds = courtIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .OrderBy(id => id)
+            .ToArray();
+
+        if (distinctOrderedIds.Length == 0)
+        {
+            return false;
+        }
+
+        const string lockSql = @"
+            SELECT id
+            FROM courts
+            WHERE id = ANY(@CourtIds)
+              AND complex_id = @ComplexId
+              AND deleted_at IS NULL
+              AND is_active = TRUE
+            ORDER BY id ASC
+            FOR UPDATE;";
+
+        var lockedIds = (await connection.QueryAsync<Guid>(new CommandDefinition(
+            lockSql,
+            new { CourtIds = distinctOrderedIds, ComplexId = complexId },
+            transaction: transaction,
+            cancellationToken: ct))).AsList();
+
+        return lockedIds.Count == distinctOrderedIds.Length;
+    }
+
+    private static async Task<List<CourtOperatingSlotRow>> GetCourtOperatingRulesInternalAsync(
+        DbConnection connection,
+        DbTransaction transaction,
+        Guid courtId,
+        CancellationToken ct)
+    {
+        const string sql = @"
+            SELECT
+                cs.sport_id AS SportId,
+                cpr.day_of_week AS DayOfWeek,
+                cpr.start_time AS StartTime,
+                cpr.end_time AS EndTime,
+                cpr.price AS Price,
+                cpr.duration_minutes AS DurationMinutes
+            FROM court_pricing_rules cpr
+            JOIN courts_sports cs ON cs.id = cpr.court_sport_id
+            WHERE cs.court_id = @CourtId
+            ORDER BY cpr.day_of_week ASC, cpr.start_time ASC;";
+
+        var rows = await connection.QueryAsync<CourtOperatingSlotRow>(new CommandDefinition(
+            sql,
+            new { CourtId = courtId },
+            transaction: transaction,
+            cancellationToken: ct));
+
+        return rows.AsList();
+    }
+
+    private static async Task<List<Guid>> GetCourtSportIdsInternalAsync(
+        DbConnection connection,
+        DbTransaction transaction,
+        Guid courtId,
+        CancellationToken ct)
+    {
+        const string sql = @"
+            SELECT sport_id
+            FROM courts_sports
+            WHERE court_id = @CourtId;";
+
+        var sportIds = await connection.QueryAsync<Guid>(new CommandDefinition(
+            sql,
+            new { CourtId = courtId },
+            transaction: transaction,
+            cancellationToken: ct));
+
+        return sportIds.AsList();
+    }
+
+    private static async Task<List<RecurringBookingRule>> GetActiveRecurringRulesForCourtInternalAsync(
+        DbConnection connection,
+        DbTransaction transaction,
+        Guid complexId,
+        Guid courtId,
+        CancellationToken ct)
+    {
+        const string sql = @"
+            SELECT 
+                id AS Id,
+                complex_id AS ComplexId,
+                court_id AS CourtId,
+                sport_id AS SportId,
+                customer_id AS CustomerId,
+                customer_name AS CustomerName,
+                customer_phone AS CustomerPhone,
+                day_of_week AS DayOfWeek,
+                start_time AS StartTime,
+                end_time AS EndTime,
+                price AS Price,
+                is_active AS IsActive,
+                notes AS Notes,
+                created_at AS CreatedAt,
+                created_by AS CreatedBy,
+                updated_at AS UpdatedAt,
+                updated_by AS UpdatedBy,
+                deleted_at AS DeletedAt,
+                deleted_by AS DeletedBy
+            FROM recurring_booking_rules
+            WHERE complex_id = @ComplexId
+              AND court_id = @CourtId
+              AND is_active = TRUE
+              AND deleted_at IS NULL;";
+
+        var rules = await connection.QueryAsync<RecurringBookingRule>(new CommandDefinition(
+            sql,
+            new { ComplexId = complexId, CourtId = courtId },
+            transaction: transaction,
+            cancellationToken: ct));
+
+        return rules.AsList();
+    }
+
+    private static string FormatSliceTime(TimeSpan ts) =>
+        ts >= ComplexTimeHelper.EndOfDayTimeSpan
+            ? "24:00"
+            : $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}";
+
+    private static BookingWriteResult? ValidateOperatingScheduleAndRecurringRules(
+        DateTimeOffset startTimeUtc,
+        DateTimeOffset endTimeUtc,
+        bool isBlock,
+        Guid sportId,
+        IReadOnlyList<Guid> courtSportIds,
+        IReadOnlyList<CourtOperatingSlotRow> operatingRules,
+        IReadOnlyList<RecurringBookingRule> activeRecurringRules)
+    {
+        if (!isBlock && !courtSportIds.Contains(sportId))
+        {
+            return new BookingWriteResult(
+                BookingWriteStatus.SportNotAvailableOnCourt,
+                "La disciplina seleccionada no se encuentra habilitada en esta cancha.");
+        }
+
+        var slices = ComplexTimeHelper.SplitIntoComplexLocalDaySlices(startTimeUtc, endTimeUtc);
+        if (slices.Count == 0)
+        {
+            return new BookingWriteResult(
+                BookingWriteStatus.OutsideOperatingHours,
+                "El rango horario solicitado es inválido.");
+        }
+
+        if (slices.Count > 1)
+        {
+            for (var i = 0; i < slices.Count - 1; i++)
+            {
+                if (slices[i].SliceEnd != ComplexTimeHelper.EndOfDayTimeSpan ||
+                    slices[i + 1].SliceStart != TimeSpan.Zero)
+                {
+                    return new BookingWriteResult(
+                        BookingWriteStatus.OutsideOperatingHours,
+                        "El rango que cruza medianoche debe mantener continuidad operativa ininterrumpida entre el cierre a las 24:00 y la apertura a las 00:00 del día siguiente.");
+                }
+            }
+        }
+
+        foreach (var slice in slices)
+        {
+            var dayRules = isBlock
+                ? operatingRules.Where(r => r.DayOfWeek == slice.DayOfWeek)
+                : operatingRules.Where(r => r.DayOfWeek == slice.DayOfWeek && r.SportId == sportId);
+
+            var availableIntervals = dayRules.Select(r => (
+                Start: r.StartTime.ToTimeSpan(),
+                End: ComplexTimeHelper.NormalizeEndTimeSpan(r.EndTime)
+            ));
+
+            var isCovered = ComplexTimeHelper.IsSliceCoveredByContinuousIntervals(
+                slice.SliceStart,
+                slice.SliceEnd,
+                availableIntervals);
+
+            if (!isCovered)
+            {
+                var dayName = ComplexTimeHelper.GetDayOfWeekName(slice.DayOfWeek);
+                var startLabel = FormatSliceTime(slice.SliceStart);
+                var endLabel = FormatSliceTime(slice.SliceEnd);
+                var message = isBlock
+                    ? $"El bloqueo solicitado para el día {dayName} ({startLabel} a {endLabel} hs) excede el horario de apertura/cierre configurado para la cancha o atraviesa un cierre intermedio."
+                    : $"El turno solicitado para el día {dayName} ({startLabel} a {endLabel} hs) se encuentra fuera del horario operativo continuo configurado para esta disciplina.";
+
+                return new BookingWriteResult(BookingWriteStatus.OutsideOperatingHours, message);
+            }
+
+            // Verificar colisión contra reglas fijas (tanto del mismo día como derrames nocturnos del día anterior)
+            foreach (var rule in activeRecurringRules)
+            {
+                var projectedIntervals = ComplexTimeHelper.ProjectRecurringRuleOntoLocalDay(
+                    rule.DayOfWeek,
+                    rule.StartTime.ToTimeSpan(),
+                    rule.EndTime.ToTimeSpan(),
+                    slice.DayOfWeek);
+
+                foreach (var projected in projectedIntervals)
+                {
+                    if (slice.SliceStart < projected.End && slice.SliceEnd > projected.Start)
+                    {
+                        var dayName = ComplexTimeHelper.GetDayOfWeekName(slice.DayOfWeek);
+                        var pStart = FormatSliceTime(projected.Start);
+                        var pEnd = FormatSliceTime(projected.End);
+                        return new BookingWriteResult(
+                            BookingWriteStatus.RecurringRuleConflict,
+                            $"El horario solicitado el día {dayName} se superpone con el turno fijo de {rule.CustomerName} ({pStart} a {pEnd} hs).");
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public async Task<BookingWriteResult> CreateBookingWithOptionalPaymentAsync(
         Booking booking,
         Payment? payment,
         Customer? customer,
+        RecurringBookingRule? recurringRule,
         CancellationToken ct)
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
@@ -303,7 +596,62 @@ public sealed class BookingRepository : IBookingRepository
 
         try
         {
-            // 1. Resolver o registrar cliente en el complejo si se proporcionó
+            // 1. Bloquear la fila de la cancha en orden determinístico
+            var courtLocked = await LockCourtsInDeterministicOrderAsync(
+                connection,
+                transaction,
+                booking.ComplexId,
+                [booking.CourtId],
+                ct);
+
+            if (!courtLocked)
+            {
+                await transaction.RollbackAsync(ct);
+                return new BookingWriteResult(
+                    BookingWriteStatus.CourtNotFound,
+                    "La cancha especificada no existe o no se encuentra activa en el complejo.");
+            }
+
+            var isBlock = booking.Status == "blocked";
+            var courtSportIds = await GetCourtSportIdsInternalAsync(connection, transaction, booking.CourtId, ct);
+            if (courtSportIds.Count == 0)
+            {
+                await transaction.RollbackAsync(ct);
+                return new BookingWriteResult(
+                    BookingWriteStatus.SportNotAvailableOnCourt,
+                    "La cancha no posee disciplinas configuradas.");
+            }
+
+            if (isBlock && booking.SportId == Guid.Empty)
+            {
+                booking.SportId = courtSportIds[0];
+            }
+
+            var operatingRules = await GetCourtOperatingRulesInternalAsync(connection, transaction, booking.CourtId, ct);
+            var activeRecurringRules = await GetActiveRecurringRulesForCourtInternalAsync(
+                connection,
+                transaction,
+                booking.ComplexId,
+                booking.CourtId,
+                ct);
+
+            // 2. Validar cobertura continua de horario operativo y ausencia de colisiones con turnos fijos
+            var validationError = ValidateOperatingScheduleAndRecurringRules(
+                booking.StartTimeUtc,
+                booking.EndTimeUtc,
+                isBlock,
+                booking.SportId,
+                courtSportIds,
+                operatingRules,
+                activeRecurringRules);
+
+            if (validationError is not null)
+            {
+                await transaction.RollbackAsync(ct);
+                return validationError;
+            }
+
+            // 3. Resolver o registrar cliente si es reserva comercial
             if (customer != null)
             {
                 const string customerLookupSql = @"
@@ -369,7 +717,32 @@ public sealed class BookingRepository : IBookingRepository
                 }
             }
 
-            // 2. Insertar reserva (protegida por GiST exc_bookings_no_overlap)
+            // 4. Si incluye regla de turno fijo, insertarla dentro de la misma transacción
+            if (recurringRule != null)
+            {
+                recurringRule.CustomerId = booking.CustomerId;
+
+                const string insertRecurringRuleSql = @"
+                    INSERT INTO recurring_booking_rules (
+                        id, complex_id, court_id, sport_id, customer_id, customer_name, customer_phone,
+                        day_of_week, start_time, end_time, price, is_active, notes,
+                        created_at, created_by, updated_at, updated_by
+                    ) VALUES (
+                        @Id, @ComplexId, @CourtId, @SportId, @CustomerId, @CustomerName, @CustomerPhone,
+                        @DayOfWeek, @StartTime, @EndTime, @Price, @IsActive, @Notes,
+                        @CreatedAt, @CreatedBy, @UpdatedAt, @UpdatedBy
+                    );";
+
+                await connection.ExecuteAsync(new CommandDefinition(
+                    insertRecurringRuleSql,
+                    recurringRule,
+                    transaction,
+                    cancellationToken: ct));
+
+                booking.RecurringGroupId = recurringRule.Id;
+            }
+
+            // 5. Insertar reserva o bloqueo (protegido por GiST exc_bookings_no_overlap)
             const string insertBookingSql = @"
                 INSERT INTO bookings (
                     id, complex_id, court_id, sport_id, customer_id, customer_name, customer_phone,
@@ -389,7 +762,7 @@ public sealed class BookingRepository : IBookingRepository
                 transaction,
                 cancellationToken: ct));
 
-            // 3. Registrar pago o seña inicial si corresponde
+            // 6. Registrar pago o seña inicial si corresponde
             if (payment != null)
             {
                 payment.BookingId = booking.Id;
@@ -411,7 +784,7 @@ public sealed class BookingRepository : IBookingRepository
             }
 
             await transaction.CommitAsync(ct);
-            return booking;
+            return new BookingWriteResult(BookingWriteStatus.Success, Booking: booking);
         }
         catch
         {
@@ -551,43 +924,215 @@ public sealed class BookingRepository : IBookingRepository
         }
     }
 
-    public async Task<bool> RescheduleBookingAsync(
+    public async Task<BookingWriteResult> RescheduleBookingAsync(
         Guid bookingId,
         Guid complexId,
+        Guid sourceCourtId,
         Guid newCourtId,
+        Guid sportId,
         DateTimeOffset newStartUtc,
         DateTimeOffset newEndUtc,
         Guid userId,
         DateTimeOffset now,
         CancellationToken ct)
     {
-        const string sql = @"
-            UPDATE bookings
-            SET court_id = @NewCourtId,
-                start_time_utc = @NewStartUtc,
-                end_time_utc = @NewEndUtc,
-                updated_at = @Now,
-                updated_by = @UserId
-            WHERE id = @BookingId 
-              AND complex_id = @ComplexId 
-              AND deleted_at IS NULL;";
-
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
-        var affected = await connection.ExecuteAsync(new CommandDefinition(
-            sql,
-            new
-            {
-                BookingId = bookingId,
-                ComplexId = complexId,
-                NewCourtId = newCourtId,
-                NewStartUtc = newStartUtc,
-                NewEndUtc = newEndUtc,
-                Now = now,
-                UserId = userId
-            },
-            cancellationToken: ct));
+        await using var transaction = await connection.BeginTransactionAsync(ct);
 
-        return affected > 0;
+        try
+        {
+            // Bloquear tanto la cancha de origen como la de destino en orden determinístico ascendente
+            var courtsLocked = await LockCourtsInDeterministicOrderAsync(
+                connection,
+                transaction,
+                complexId,
+                [sourceCourtId, newCourtId],
+                ct);
+
+            if (!courtsLocked)
+            {
+                await transaction.RollbackAsync(ct);
+                return new BookingWriteResult(
+                    BookingWriteStatus.CourtNotFound,
+                    "La cancha seleccionada no existe o no se encuentra activa en el complejo.");
+            }
+
+            var targetCourtSportIds = await GetCourtSportIdsInternalAsync(connection, transaction, newCourtId, ct);
+            var operatingRules = await GetCourtOperatingRulesInternalAsync(connection, transaction, newCourtId, ct);
+            var activeRecurringRules = await GetActiveRecurringRulesForCourtInternalAsync(
+                connection,
+                transaction,
+                complexId,
+                newCourtId,
+                ct);
+
+            var validationError = ValidateOperatingScheduleAndRecurringRules(
+                newStartUtc,
+                newEndUtc,
+                isBlock: false,
+                sportId,
+                targetCourtSportIds,
+                operatingRules,
+                activeRecurringRules);
+
+            if (validationError is not null)
+            {
+                await transaction.RollbackAsync(ct);
+                return validationError;
+            }
+
+            const string sql = @"
+                UPDATE bookings
+                SET court_id = @NewCourtId,
+                    start_time_utc = @NewStartUtc,
+                    end_time_utc = @NewEndUtc,
+                    updated_at = @Now,
+                    updated_by = @UserId
+                WHERE id = @BookingId 
+                  AND complex_id = @ComplexId 
+                  AND deleted_at IS NULL;";
+
+            var affected = await connection.ExecuteAsync(new CommandDefinition(
+                sql,
+                new
+                {
+                    BookingId = bookingId,
+                    ComplexId = complexId,
+                    NewCourtId = newCourtId,
+                    NewStartUtc = newStartUtc,
+                    NewEndUtc = newEndUtc,
+                    Now = now,
+                    UserId = userId
+                },
+                transaction: transaction,
+                cancellationToken: ct));
+
+            if (affected == 0)
+            {
+                await transaction.RollbackAsync(ct);
+                return new BookingWriteResult(BookingWriteStatus.NotFound, "La reserva no fue encontrada.");
+            }
+
+            await transaction.CommitAsync(ct);
+            return new BookingWriteResult(BookingWriteStatus.Success);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
+    }
+
+    public async Task<BookingWriteResult> UpdateBlockAsync(
+        Guid bookingId,
+        Guid complexId,
+        Guid sourceCourtId,
+        Guid newCourtId,
+        DateTimeOffset newStartUtc,
+        DateTimeOffset newEndUtc,
+        string reason,
+        Guid userId,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(ct);
+
+        try
+        {
+            // Bloquear tanto la cancha de origen como la de destino en orden determinístico ascendente
+            var courtsLocked = await LockCourtsInDeterministicOrderAsync(
+                connection,
+                transaction,
+                complexId,
+                [sourceCourtId, newCourtId],
+                ct);
+
+            if (!courtsLocked)
+            {
+                await transaction.RollbackAsync(ct);
+                return new BookingWriteResult(
+                    BookingWriteStatus.CourtNotFound,
+                    "La cancha seleccionada no existe o no se encuentra activa en el complejo.");
+            }
+
+            var targetCourtSportIds = await GetCourtSportIdsInternalAsync(connection, transaction, newCourtId, ct);
+            if (targetCourtSportIds.Count == 0)
+            {
+                await transaction.RollbackAsync(ct);
+                return new BookingWriteResult(
+                    BookingWriteStatus.SportNotAvailableOnCourt,
+                    "La cancha seleccionada no tiene disciplinas configuradas.");
+            }
+
+            var operatingRules = await GetCourtOperatingRulesInternalAsync(connection, transaction, newCourtId, ct);
+            var activeRecurringRules = await GetActiveRecurringRulesForCourtInternalAsync(
+                connection,
+                transaction,
+                complexId,
+                newCourtId,
+                ct);
+
+            var validationError = ValidateOperatingScheduleAndRecurringRules(
+                newStartUtc,
+                newEndUtc,
+                isBlock: true,
+                targetCourtSportIds[0],
+                targetCourtSportIds,
+                operatingRules,
+                activeRecurringRules);
+
+            if (validationError is not null)
+            {
+                await transaction.RollbackAsync(ct);
+                return validationError;
+            }
+
+            const string sql = @"
+                UPDATE bookings
+                SET court_id = @NewCourtId,
+                    sport_id = @NewSportId,
+                    start_time_utc = @NewStartUtc,
+                    end_time_utc = @NewEndUtc,
+                    notes = @Reason,
+                    updated_at = @Now,
+                    updated_by = @UserId
+                WHERE id = @BookingId 
+                  AND complex_id = @ComplexId 
+                  AND status = 'blocked'
+                  AND deleted_at IS NULL;";
+
+            var affected = await connection.ExecuteAsync(new CommandDefinition(
+                sql,
+                new
+                {
+                    BookingId = bookingId,
+                    ComplexId = complexId,
+                    NewCourtId = newCourtId,
+                    NewSportId = targetCourtSportIds[0],
+                    NewStartUtc = newStartUtc,
+                    NewEndUtc = newEndUtc,
+                    Reason = reason.Trim(),
+                    Now = now,
+                    UserId = userId
+                },
+                transaction: transaction,
+                cancellationToken: ct));
+
+            if (affected == 0)
+            {
+                await transaction.RollbackAsync(ct);
+                return new BookingWriteResult(BookingWriteStatus.NotFound, "El bloqueo operativo no fue encontrado.");
+            }
+
+            await transaction.CommitAsync(ct);
+            return new BookingWriteResult(BookingWriteStatus.Success);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
     }
 
     public async Task<IReadOnlyList<CustomerLookupDto>> SearchCustomersAsync(
@@ -629,11 +1174,10 @@ public sealed class BookingRepository : IBookingRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
 
-        // 1. Buscar regla específica en court_pricing_rules
         const string ruleSql = @"
             SELECT 
                 cpr.price AS Price,
-                'Tarifa Diferencial' AS RuleName
+                'Tarifa de Franja Horaria' AS RuleName
             FROM court_pricing_rules cpr
             JOIN courts_sports cs ON cs.id = cpr.court_sport_id
             WHERE cs.court_id = @CourtId 
@@ -643,6 +1187,7 @@ public sealed class BookingRepository : IBookingRepository
                   (@StartTime >= cpr.start_time AND @StartTime < cpr.end_time)
                   OR (cpr.end_time = '00:00:00'::time AND @StartTime >= cpr.start_time)
               )
+            ORDER BY cpr.start_time ASC
             LIMIT 1;";
 
         var ruleResult = await connection.QuerySingleOrDefaultAsync<dynamic>(new CommandDefinition(
@@ -661,7 +1206,6 @@ public sealed class BookingRepository : IBookingRepository
             return ((decimal)ruleResult.price, (string)ruleResult.rulename, true);
         }
 
-        // 2. Si no hay regla horaria, consultar base_price en courts_sports
         const string basePriceSql = @"
             SELECT cs.base_price 
             FROM courts_sports cs
@@ -674,25 +1218,5 @@ public sealed class BookingRepository : IBookingRepository
             cancellationToken: ct));
 
         return (basePrice ?? 0m, "Tarifa Base", false);
-    }
-
-    public async Task<RecurringBookingRule> CreateRecurringBookingRuleAsync(
-        RecurringBookingRule rule,
-        CancellationToken ct)
-    {
-        const string sql = @"
-            INSERT INTO recurring_booking_rules (
-                id, complex_id, court_id, sport_id, customer_id, customer_name, customer_phone,
-                day_of_week, start_time, end_time, price, is_active, notes,
-                created_at, created_by, updated_at, updated_by
-            ) VALUES (
-                @Id, @ComplexId, @CourtId, @SportId, @CustomerId, @CustomerName, @CustomerPhone,
-                @DayOfWeek, @StartTime, @EndTime, @Price, @IsActive, @Notes,
-                @CreatedAt, @CreatedBy, @UpdatedAt, @UpdatedBy
-            );";
-
-        await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
-        await connection.ExecuteAsync(new CommandDefinition(sql, rule, cancellationToken: ct));
-        return rule;
     }
 }

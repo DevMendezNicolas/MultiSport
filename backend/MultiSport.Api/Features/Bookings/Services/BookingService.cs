@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using MultiSport.Api.Common;
 using MultiSport.Api.Features.Bookings.Models.Dtos;
 using MultiSport.Api.Features.Bookings.Models.Entities;
 using MultiSport.Api.Features.Bookings.Repositories;
@@ -26,11 +27,11 @@ public sealed class BookingService : IBookingService
     {
         var courts = await _repository.GetComplexCourtsWithSportsAsync(complexId, ct);
 
-        var startOfDayUtc = new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
-        var endOfDayUtc = startOfDayUtc.AddDays(1);
+        var (startOfDayUtc, endOfDayUtc) = ComplexTimeHelper.GetComplexDayBoundsUtc(date);
+        var targetDayOfWeek = (int)date.DayOfWeek;
 
         var actualBookings = await _repository.GetBookingsForDateRangeAsync(complexId, startOfDayUtc, endOfDayUtc, ct);
-        var recurringRules = await _repository.GetActiveRecurringRulesForDayAsync(complexId, (int)date.DayOfWeek, ct);
+        var recurringRules = await _repository.GetActiveRecurringRulesForDayAsync(complexId, targetDayOfWeek, ct);
 
         var courtItems = new List<DailyGridCourtItem>();
 
@@ -40,34 +41,42 @@ public sealed class BookingService : IBookingService
                 .Where(b => b.CourtId == court.CourtId)
                 .ToList();
 
-            // Proyectar reglas recurrentes si no hay colisión con turnos reales
             var courtRules = recurringRules.Where(r => r.CourtId == court.CourtId);
             foreach (var rule in courtRules)
             {
-                var ruleStartUtc = new DateTimeOffset(date.ToDateTime(rule.StartTime), TimeSpan.Zero);
-                var ruleEndUtc = new DateTimeOffset(date.ToDateTime(rule.EndTime), TimeSpan.Zero);
+                var projectedSlices = ComplexTimeHelper.ProjectRecurringRuleOntoLocalDay(
+                    rule.DayOfWeek,
+                    rule.StartTime.ToTimeSpan(),
+                    rule.EndTime.ToTimeSpan(),
+                    targetDayOfWeek);
 
-                bool overlapsExisting = courtBookings.Any(b =>
-                    b.StartTimeUtc < ruleEndUtc && b.EndTimeUtc > ruleStartUtc);
-
-                if (!overlapsExisting)
+                foreach (var slice in projectedSlices)
                 {
-                    var sport = court.Sports.FirstOrDefault(s => s.SportId == rule.SportId);
-                    courtBookings.Add(new GridBookingItem(
-                        Id: rule.Id,
-                        CourtId: court.CourtId,
-                        SportId: rule.SportId,
-                        SportName: sport?.Name ?? "Deporte",
-                        CustomerName: rule.CustomerName,
-                        CustomerPhone: rule.CustomerPhone,
-                        StartTimeUtc: ruleStartUtc,
-                        EndTimeUtc: ruleEndUtc,
-                        TotalPrice: rule.Price,
-                        DepositAmount: 0m,
-                        Status: "confirmed",
-                        IsRecurring: true,
-                        Notes: rule.Notes
-                    ));
+                    var ruleStartUtc = ComplexTimeHelper.CombineComplexLocalToUtc(date, slice.Start);
+                    var ruleEndUtc = ComplexTimeHelper.CombineComplexLocalToUtc(date, slice.End);
+
+                    var overlapsExisting = courtBookings.Any(b =>
+                        b.StartTimeUtc < ruleEndUtc && b.EndTimeUtc > ruleStartUtc);
+
+                    if (!overlapsExisting)
+                    {
+                        var sport = court.Sports.FirstOrDefault(s => s.SportId == rule.SportId);
+                        courtBookings.Add(new GridBookingItem(
+                            Id: rule.Id,
+                            CourtId: court.CourtId,
+                            SportId: rule.SportId,
+                            SportName: sport?.Name ?? "Deporte",
+                            CustomerName: rule.CustomerName,
+                            CustomerPhone: rule.CustomerPhone,
+                            StartTimeUtc: ruleStartUtc,
+                            EndTimeUtc: ruleEndUtc,
+                            TotalPrice: rule.Price,
+                            DepositAmount: 0m,
+                            Status: "confirmed",
+                            IsRecurring: true,
+                            Notes: rule.Notes
+                        ));
+                    }
                 }
             }
 
@@ -100,7 +109,10 @@ public sealed class BookingService : IBookingService
         CreateBookingRequest request,
         CancellationToken ct)
     {
-        // 1. Obtener o cotizar precio
+        var localStartTime = ComplexTimeHelper.ToComplexLocal(request.StartTimeUtc);
+        var localEndTime = ComplexTimeHelper.ToComplexLocal(request.EndTimeUtc);
+
+        // 1. Obtener o cotizar precio según la franja en la que comienza el turno
         decimal totalPrice;
         if (request.CustomPrice.HasValue)
         {
@@ -111,10 +123,20 @@ public sealed class BookingService : IBookingService
             var (quotedPrice, _, _) = await _repository.GetPriceQuoteAsync(
                 request.CourtId,
                 request.SportId,
-                (int)request.StartTimeUtc.DayOfWeek,
-                TimeOnly.FromTimeSpan(request.StartTimeUtc.TimeOfDay),
+                (int)localStartTime.DayOfWeek,
+                TimeOnly.FromTimeSpan(localStartTime.TimeOfDay),
                 ct);
             totalPrice = quotedPrice;
+        }
+
+        if (request.DepositAmount > totalPrice)
+        {
+            return TypedResults.BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Monto de seña inválido",
+                Detail = "El monto de la seña o pago inicial no puede superar el valor total del turno."
+            });
         }
 
         // 2. Determinar estado inicial
@@ -172,9 +194,10 @@ public sealed class BookingService : IBookingService
             Email = string.IsNullOrWhiteSpace(request.CustomerEmail) ? null : request.CustomerEmail.Trim()
         };
 
+        RecurringBookingRule? recurringRule = null;
         if (request.IsRecurring)
         {
-            var recurringRule = new RecurringBookingRule
+            recurringRule = new RecurringBookingRule
             {
                 Id = Guid.NewGuid(),
                 ComplexId = complexId,
@@ -182,9 +205,9 @@ public sealed class BookingService : IBookingService
                 SportId = request.SportId,
                 CustomerName = request.CustomerName.Trim(),
                 CustomerPhone = request.CustomerPhone.Trim(),
-                DayOfWeek = (int)request.StartTimeUtc.DayOfWeek,
-                StartTime = TimeOnly.FromTimeSpan(request.StartTimeUtc.TimeOfDay),
-                EndTime = TimeOnly.FromTimeSpan(request.EndTimeUtc.TimeOfDay),
+                DayOfWeek = (int)localStartTime.DayOfWeek,
+                StartTime = TimeOnly.FromTimeSpan(localStartTime.TimeOfDay),
+                EndTime = TimeOnly.FromTimeSpan(localEndTime.TimeOfDay),
                 Price = totalPrice,
                 IsActive = true,
                 Notes = request.Notes?.Trim(),
@@ -193,14 +216,37 @@ public sealed class BookingService : IBookingService
                 UpdatedAt = now,
                 UpdatedBy = userId
             };
-
-            await _repository.CreateRecurringBookingRuleAsync(recurringRule, ct);
-            booking.RecurringGroupId = recurringRule.Id;
         }
 
         try
         {
-            await _repository.CreateBookingWithOptionalPaymentAsync(booking, payment, customer, ct);
+            var writeResult = await _repository.CreateBookingWithOptionalPaymentAsync(
+                booking,
+                payment,
+                customer,
+                recurringRule,
+                ct);
+
+            if (writeResult.Status != BookingWriteStatus.Success)
+            {
+                if (writeResult.Status == BookingWriteStatus.RecurringRuleConflict)
+                {
+                    return TypedResults.Conflict(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status409Conflict,
+                        Title = "Conflicto con turno fijo",
+                        Detail = writeResult.ErrorMessage
+                    });
+                }
+
+                return TypedResults.BadRequest(new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Horario o configuración no disponible",
+                    Detail = writeResult.ErrorMessage
+                });
+            }
+
             _logger.LogInformation("Reserva creada exitosamente {BookingId} para complejo {ComplexId}", booking.Id, complexId);
         }
         catch (PostgresException ex) when (ex.SqlState == "23P01")
@@ -224,36 +270,13 @@ public sealed class BookingService : IBookingService
         CreateBlockRequest request,
         CancellationToken ct)
     {
-        var courts = await _repository.GetComplexCourtsWithSportsAsync(complexId, ct);
-        var court = courts.FirstOrDefault(c => c.CourtId == request.CourtId);
-        if (court is null)
-        {
-            return TypedResults.BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Cancha no encontrada",
-                Detail = "La cancha especificada no pertenece al complejo."
-            });
-        }
-
-        var sportId = court.Sports.FirstOrDefault()?.SportId;
-        if (!sportId.HasValue)
-        {
-            return TypedResults.BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Cancha sin disciplinas",
-                Detail = "La cancha no tiene deportes configurados para aplicar el bloqueo."
-            });
-        }
-
         var now = DateTimeOffset.UtcNow;
         var blockBooking = new Booking
         {
             Id = Guid.NewGuid(),
             ComplexId = complexId,
             CourtId = request.CourtId,
-            SportId = sportId.Value,
+            SportId = Guid.Empty,
             CustomerId = null,
             CustomerName = "Bloqueo Operativo",
             CustomerPhone = "0000000000",
@@ -273,7 +296,33 @@ public sealed class BookingService : IBookingService
 
         try
         {
-            await _repository.CreateBookingWithOptionalPaymentAsync(blockBooking, null, null, ct);
+            var writeResult = await _repository.CreateBookingWithOptionalPaymentAsync(
+                blockBooking,
+                null,
+                null,
+                null,
+                ct);
+
+            if (writeResult.Status != BookingWriteStatus.Success)
+            {
+                if (writeResult.Status == BookingWriteStatus.RecurringRuleConflict)
+                {
+                    return TypedResults.Conflict(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status409Conflict,
+                        Title = "Conflicto con turno fijo",
+                        Detail = writeResult.ErrorMessage
+                    });
+                }
+
+                return TypedResults.BadRequest(new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Bloqueo fuera de horario operativo",
+                    Detail = writeResult.ErrorMessage
+                });
+            }
+
             _logger.LogInformation("Bloqueo operativo creado {BookingId} en cancha {CourtId}", blockBooking.Id, request.CourtId);
         }
         catch (PostgresException ex) when (ex.SqlState == "23P01")
@@ -283,12 +332,93 @@ public sealed class BookingService : IBookingService
             {
                 Status = StatusCodes.Status409Conflict,
                 Title = "Horario no disponible para bloqueo",
-                Detail = "No se puede bloquear este rango horario porque ya posee un turno confirmado o bloqueo."
+                Detail = "No se puede bloquear este rango horario porque ya posee un turno confirmado o bloqueo activo."
             });
         }
 
         var createdDetail = await _repository.GetBookingDetailByIdAsync(blockBooking.Id, complexId, ct);
         return TypedResults.Created($"/api/v1/bookings/{blockBooking.Id}", createdDetail!);
+    }
+
+    public async Task<Results<Ok<BookingResponse>, NotFound, Conflict<ProblemDetails>, BadRequest<ProblemDetails>, UnauthorizedHttpResult>> UpdateBlockAsync(
+        Guid bookingId,
+        Guid complexId,
+        Guid userId,
+        UpdateBlockRequest request,
+        CancellationToken ct)
+    {
+        var existing = await _repository.GetBookingEntityByIdAsync(bookingId, complexId, ct);
+        if (existing is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (existing.Status != "blocked")
+        {
+            return TypedResults.BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Operación no válida",
+                Detail = "El registro seleccionado no corresponde a un bloqueo operativo activo."
+            });
+        }
+
+        var now = DateTimeOffset.UtcNow;
+
+        try
+        {
+            var writeResult = await _repository.UpdateBlockAsync(
+                bookingId,
+                complexId,
+                existing.CourtId,
+                request.CourtId,
+                request.StartTimeUtc,
+                request.EndTimeUtc,
+                request.Reason,
+                userId,
+                now,
+                ct);
+
+            if (writeResult.Status == BookingWriteStatus.NotFound)
+            {
+                return TypedResults.NotFound();
+            }
+
+            if (writeResult.Status != BookingWriteStatus.Success)
+            {
+                if (writeResult.Status == BookingWriteStatus.RecurringRuleConflict)
+                {
+                    return TypedResults.Conflict(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status409Conflict,
+                        Title = "Conflicto con turno fijo",
+                        Detail = writeResult.ErrorMessage
+                    });
+                }
+
+                return TypedResults.BadRequest(new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Bloqueo fuera de horario operativo",
+                    Detail = writeResult.ErrorMessage
+                });
+            }
+
+            _logger.LogInformation("Bloqueo operativo {BookingId} actualizado exitosamente en cancha {CourtId}", bookingId, request.CourtId);
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23P01")
+        {
+            _logger.LogWarning("Conflicto al actualizar bloqueo operativo {BookingId}: {Message}", bookingId, ex.Message);
+            return TypedResults.Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "Horario no disponible para bloqueo",
+                Detail = "El nuevo rango horario seleccionado se superpone con un turno confirmado u otro bloqueo activo."
+            });
+        }
+
+        var updatedDetail = await _repository.GetBookingDetailByIdAsync(bookingId, complexId, ct);
+        return TypedResults.Ok(updatedDetail!);
     }
 
     public async Task<Results<Ok<PaymentResponse>, NotFound, BadRequest<ProblemDetails>, UnauthorizedHttpResult>> RecordPaymentAsync(
@@ -304,13 +434,15 @@ public sealed class BookingService : IBookingService
             return TypedResults.NotFound();
         }
 
-        if (booking.Status == "cancelled")
+        if (booking.Status == "cancelled" || booking.Status == "blocked")
         {
             return TypedResults.BadRequest(new ProblemDetails
             {
                 Status = StatusCodes.Status400BadRequest,
                 Title = "Operación no permitida",
-                Detail = "No se pueden registrar pagos en reservas canceladas."
+                Detail = booking.Status == "blocked"
+                    ? "No se pueden registrar pagos sobre un bloqueo operativo."
+                    : "No se pueden registrar pagos en reservas canceladas."
             });
         }
 
@@ -366,15 +498,16 @@ public sealed class BookingService : IBookingService
             return TypedResults.Conflict(new ProblemDetails
             {
                 Status = StatusCodes.Status409Conflict,
-                Title = "Reserva ya cancelada",
-                Detail = "Esta reserva ya se encuentra en estado cancelado."
+                Title = "Registro ya cancelado",
+                Detail = "Este turno o bloqueo ya se encuentra cancelado."
             });
         }
 
         var now = DateTimeOffset.UtcNow;
         Payment? refundPayment = null;
 
-        if (request.RefundDeposit && booking.DepositAmount > 0)
+        // Los bloqueos operativos nunca generan reembolsos ni movimientos financieros
+        if (booking.Status != "blocked" && request.RefundDeposit && booking.DepositAmount > 0)
         {
             refundPayment = new Payment
             {
@@ -396,7 +529,7 @@ public sealed class BookingService : IBookingService
             return TypedResults.NotFound();
         }
 
-        _logger.LogInformation("Reserva {BookingId} cancelada exitosamente con reembolso {HadRefund}", bookingId, refundPayment != null);
+        _logger.LogInformation("Registro {BookingId} ({Status}) cancelado exitosamente", bookingId, booking.Status);
         return TypedResults.NoContent();
     }
 
@@ -423,23 +556,55 @@ public sealed class BookingService : IBookingService
             });
         }
 
+        if (booking.Status == "blocked")
+        {
+            return TypedResults.BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Operación no válida para bloqueos",
+                Detail = "Para modificar un bloqueo operativo utilice la edición de bloqueos."
+            });
+        }
+
         var now = DateTimeOffset.UtcNow;
 
         try
         {
-            var success = await _repository.RescheduleBookingAsync(
+            var writeResult = await _repository.RescheduleBookingAsync(
                 bookingId,
                 complexId,
+                booking.CourtId,
                 request.CourtId,
+                booking.SportId,
                 request.NewStartTimeUtc,
                 request.NewEndTimeUtc,
                 userId,
                 now,
                 ct);
 
-            if (!success)
+            if (writeResult.Status == BookingWriteStatus.NotFound)
             {
                 return TypedResults.NotFound();
+            }
+
+            if (writeResult.Status != BookingWriteStatus.Success)
+            {
+                if (writeResult.Status == BookingWriteStatus.RecurringRuleConflict)
+                {
+                    return TypedResults.Conflict(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status409Conflict,
+                        Title = "Conflicto con turno fijo",
+                        Detail = writeResult.ErrorMessage
+                    });
+                }
+
+                return TypedResults.BadRequest(new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Horario no disponible",
+                    Detail = writeResult.ErrorMessage
+                });
             }
 
             _logger.LogInformation("Reserva {BookingId} reprogramada a cancha {CourtId} en {StartTime}", bookingId, request.CourtId, request.NewStartTimeUtc);
@@ -464,11 +629,12 @@ public sealed class BookingService : IBookingService
         PriceQuoteRequest request,
         CancellationToken ct)
     {
+        var localStartTime = ComplexTimeHelper.ToComplexLocal(request.StartTimeUtc);
         var (price, ruleName, hasRule) = await _repository.GetPriceQuoteAsync(
             request.CourtId,
             request.SportId,
-            (int)request.StartTimeUtc.DayOfWeek,
-            TimeOnly.FromTimeSpan(request.StartTimeUtc.TimeOfDay),
+            (int)localStartTime.DayOfWeek,
+            TimeOnly.FromTimeSpan(localStartTime.TimeOfDay),
             ct);
 
         return TypedResults.Ok(new PriceQuoteResponse(price, ruleName, hasRule));

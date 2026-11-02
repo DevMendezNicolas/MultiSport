@@ -72,35 +72,40 @@ export const CourtsManagementPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Cabecera Principal */}
-      <section className="bg-white border border-neutral-300 p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-neutral-200">
+      <section className="bg-[#16181D] border border-[#31343E] rounded-2xl p-6 sm:p-8 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#31343E]">
           <div>
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-neutral-950 uppercase">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#F2F3F5] uppercase font-headline">
               Gestión de Canchas
             </h1>
+            <p className="text-xs sm:text-sm text-[#9497A1] mt-1 font-medium">
+              Administrá la infraestructura deportiva, disciplinas permitidas y esquemas tarifarios de tu predio.
+            </p>
           </div>
 
-          <div className="flex flex-col sm:items-end gap-1 flex-shrink-0">
-            <span className="text-xs font-mono font-bold text-neutral-700 uppercase">
-              Canchas Registradas
-            </span>
-            <span className="text-2xl font-black text-neutral-950 font-mono">
-              {isLoadingCourts ? '...' : courts.length}
-            </span>
+          <div className="flex items-center gap-3 self-start sm:self-auto">
+            <div className="bg-[#22242B] border border-[#31343E] px-4 py-2 rounded-xl text-left sm:text-right">
+              <span className="text-[10px] font-mono font-bold text-[#9497A1] uppercase block">
+                Canchas Registradas
+              </span>
+              <span className="text-2xl font-black text-[#F2F3F5] font-mono">
+                {isLoadingCourts ? '...' : courts.length}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Selector de Acciones Principales en Orden Natural */}
+        {/* Selector de Acciones Principales */}
         <div className="pt-6 flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={() => handleTabChange('list')}
-            className={`min-h-[44px] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-2 cursor-pointer ${
+            className={`min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-2 cursor-pointer ${
               activeTab === 'list'
-                ? 'bg-brand-sport text-white shadow-sm hover:bg-brand-sport-hover'
-                : 'bg-white text-neutral-950 border border-neutral-300 hover:border-neutral-950'
+                ? 'bg-[#258653] text-white shadow-md shadow-[#258653]/20'
+                : 'bg-[#22242B] text-[#9497A1] border border-[#31343E] hover:text-[#F2F3F5] hover:bg-[#2d3039]'
             }`}
           >
             <SlidersHorizontal className="h-4 w-4" strokeWidth={2} />
@@ -110,10 +115,10 @@ export const CourtsManagementPage: React.FC = () => {
           <button
             type="button"
             onClick={() => handleTabChange('create')}
-            className={`min-h-[44px] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-2 cursor-pointer ${
+            className={`min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-2 cursor-pointer ${
               activeTab === 'create'
-                ? 'bg-brand-sport text-white shadow-sm hover:bg-brand-sport-hover'
-                : 'bg-white text-neutral-950 border border-neutral-300 hover:border-neutral-950'
+                ? 'bg-[#258653] text-white shadow-md shadow-[#258653]/20'
+                : 'bg-[#22242B] text-[#9497A1] border border-[#31343E] hover:text-[#F2F3F5] hover:bg-[#2d3039]'
             }`}
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
@@ -127,34 +132,36 @@ export const CourtsManagementPage: React.FC = () => {
         <CreateCourtForm onSuccess={() => handleTabChange('list')} />
       ) : (
         /* Vista de Listado / Consulta de Canchas Existentes */
-        <section className="bg-white border border-neutral-300 p-6 sm:p-8 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-neutral-200 pb-4">
-            <h2 className="text-xl sm:text-2xl font-black text-neutral-950 uppercase tracking-tight">
-              Canchas Existentes
-            </h2>
-            <span className="text-xs font-mono font-bold text-neutral-700">
+        <section className="bg-[#16181D] border border-[#31343E] rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#31343E] pb-4">
+            <div>
+              <h2 className="text-xl font-black text-[#F2F3F5] uppercase tracking-tight font-headline">
+                Canchas Existentes
+              </h2>
+            </div>
+            <span className="text-xs font-mono font-bold text-[#9497A1]">
               {filteredCourts.length} de {courts.length} {courts.length === 1 ? 'espacio' : 'espacios'}
             </span>
           </div>
 
           {/* Barra de Herramientas: Búsqueda y Filtros de Disciplinas */}
           {!isLoadingCourts && courts.length > 0 && (
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-[#FAF8F5] p-4 border border-neutral-200">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-[#22242B] p-3.5 sm:p-4 rounded-xl border border-[#31343E]">
               {/* Buscador */}
               <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9497A1]" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar por nombre de cancha..."
-                  className="w-full bg-white border border-neutral-300 pl-10 pr-9 py-2 text-sm font-medium text-neutral-950 placeholder-neutral-500 focus:outline-none focus:border-neutral-950 transition-colors"
+                  className="w-full bg-[#16181D] border border-[#31343E] rounded-xl pl-10 pr-9 py-2 text-sm font-medium text-[#F2F3F5] placeholder-[#9497A1] focus:outline-hidden focus:border-[#258653] transition-colors"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-950 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9497A1] hover:text-[#F2F3F5] cursor-pointer"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -164,16 +171,16 @@ export const CourtsManagementPage: React.FC = () => {
               {/* Filtro por Deporte */}
               {availableSports.length > 1 && (
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-xs font-mono font-bold text-neutral-700 uppercase mr-1">
+                  <span className="text-xs font-mono font-bold text-[#9497A1] uppercase mr-1">
                     Disciplina:
                   </span>
                   <button
                     type="button"
                     onClick={() => setSelectedSportFilter('all')}
-                    className={`min-h-[36px] px-3.5 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    className={`min-h-[36px] px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
                       selectedSportFilter === 'all'
-                        ? 'bg-neutral-950 text-white'
-                        : 'bg-white text-neutral-800 border border-neutral-300 hover:border-neutral-950'
+                        ? 'bg-[#258653] text-white shadow-xs'
+                        : 'bg-[#16181D] text-[#9497A1] border border-[#31343E] hover:text-[#F2F3F5] hover:bg-[#22242B]'
                     }`}
                   >
                     Todas ({courts.length})
@@ -187,10 +194,10 @@ export const CourtsManagementPage: React.FC = () => {
                         key={sport}
                         type="button"
                         onClick={() => setSelectedSportFilter(sport)}
-                        className={`min-h-[36px] px-3.5 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                        className={`min-h-[36px] px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
                           selectedSportFilter === sport
-                            ? 'bg-neutral-950 text-white'
-                            : 'bg-white text-neutral-800 border border-neutral-300 hover:border-neutral-950'
+                            ? 'bg-[#258653] text-white shadow-xs'
+                            : 'bg-[#16181D] text-[#9497A1] border border-[#31343E] hover:text-[#F2F3F5] hover:bg-[#22242B]'
                         }`}
                       >
                         {sport} ({count})
@@ -202,64 +209,64 @@ export const CourtsManagementPage: React.FC = () => {
             </div>
           )}
 
-          {/* Estado de Carga con Tarjetas Skeleton Proporcionales (Regla 5 de AGENTS.md) */}
+          {/* Estado de Carga con Tarjetas Skeleton */}
           {isLoadingCourts ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="border border-neutral-300 p-5 bg-[#FAF8F5] flex flex-col justify-between space-y-5 shadow-sm animate-pulse"
+                  className="border border-[#31343E] rounded-2xl p-5 bg-[#1E2027] flex flex-col justify-between space-y-5 shadow-sm animate-pulse"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="h-4 w-24 bg-neutral-200" />
-                      <div className="h-4 w-12 bg-neutral-200" />
+                      <div className="h-4 w-24 bg-[#22242B] rounded" />
+                      <div className="h-4 w-12 bg-[#22242B] rounded" />
                     </div>
-                    <div className="h-6 w-3/4 bg-neutral-200" />
-                    <div className="h-4 w-1/2 bg-neutral-200" />
+                    <div className="h-6 w-3/4 bg-[#22242B] rounded" />
+                    <div className="h-4 w-1/2 bg-[#22242B] rounded" />
                   </div>
-                  <div className="space-y-2 border-t border-neutral-200 pt-3">
-                    <div className="h-3 w-28 bg-neutral-200" />
+                  <div className="space-y-2 border-t border-[#31343E] pt-3">
+                    <div className="h-3 w-28 bg-[#22242B] rounded" />
                     <div className="flex gap-1.5">
-                      <div className="h-5 w-8 bg-neutral-200" />
-                      <div className="h-5 w-8 bg-neutral-200" />
-                      <div className="h-5 w-8 bg-neutral-200" />
+                      <div className="h-5 w-8 bg-[#22242B] rounded" />
+                      <div className="h-5 w-8 bg-[#22242B] rounded" />
+                      <div className="h-5 w-8 bg-[#22242B] rounded" />
                     </div>
                   </div>
-                  <div className="pt-3 border-t border-neutral-200 space-y-2">
-                    <div className="h-3 w-32 bg-neutral-200" />
-                    <div className="h-10 bg-neutral-200" />
+                  <div className="pt-3 border-t border-[#31343E] space-y-2">
+                    <div className="h-3 w-32 bg-[#22242B] rounded" />
+                    <div className="h-10 bg-[#22242B] rounded" />
                   </div>
-                  <div className="pt-4 border-t border-neutral-200 flex gap-2">
-                    <div className="h-10 flex-1 bg-neutral-200" />
-                    <div className="h-10 flex-1 bg-neutral-200" />
-                    <div className="h-10 w-10 bg-neutral-200" />
+                  <div className="pt-4 border-t border-[#31343E] flex gap-2">
+                    <div className="h-10 flex-1 bg-[#22242B] rounded" />
+                    <div className="h-10 flex-1 bg-[#22242B] rounded" />
+                    <div className="h-10 w-10 bg-[#22242B] rounded" />
                   </div>
                 </div>
               ))}
             </div>
           ) : courts.length === 0 ? (
-            /* Estado Vacío Global (Sin canchas registradas en el predio) */
-            <div className="text-center py-12 border border-dashed border-neutral-300 bg-[#FAF8F5] p-6 space-y-3">
-              <p className="text-base font-bold text-neutral-950">No hay canchas registradas todavía.</p>
-              <p className="text-sm font-medium text-neutral-700">
+            /* Estado Vacío Global */
+            <div className="text-center py-12 border border-dashed border-[#31343E] rounded-2xl bg-[#1E2027]/50 p-6 space-y-3">
+              <p className="text-base font-bold text-[#F2F3F5]">No hay canchas registradas todavía.</p>
+              <p className="text-sm font-medium text-[#9497A1]">
                 Utilizá la acción &quot;Crear Cancha&quot; para registrar el primer espacio de tu predio.
               </p>
               <button
                 type="button"
                 onClick={() => handleTabChange('create')}
-                className="mt-2 min-h-[44px] px-6 py-2.5 rounded-full bg-brand-sport text-white text-xs font-bold uppercase tracking-wider hover:bg-brand-sport-hover transition-colors cursor-pointer"
+                className="mt-2 min-h-[44px] px-6 py-2.5 rounded-xl bg-[#258653] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#1E6E44] transition-colors cursor-pointer shadow-md"
               >
                 Comenzar con Alta de Cancha
               </button>
             </div>
           ) : filteredCourts.length === 0 ? (
             /* Estado Vacío de Búsqueda / Filtro */
-            <div className="text-center py-12 border border-dashed border-neutral-300 bg-[#FAF8F5] p-6 space-y-3">
-              <p className="text-base font-bold text-neutral-950">
+            <div className="text-center py-12 border border-dashed border-[#31343E] rounded-2xl bg-[#1E2027]/50 p-6 space-y-3">
+              <p className="text-base font-bold text-[#F2F3F5]">
                 No se encontraron canchas que coincidan con los filtros aplicados.
               </p>
-              <p className="text-sm font-medium text-neutral-700">
+              <p className="text-sm font-medium text-[#9497A1]">
                 Probá buscando con otro nombre o seleccionando otra disciplina deportiva.
               </p>
               <button
@@ -268,7 +275,7 @@ export const CourtsManagementPage: React.FC = () => {
                   setSearchQuery('')
                   setSelectedSportFilter('all')
                 }}
-                className="mt-2 min-h-[44px] px-5 py-2 text-xs font-bold uppercase tracking-wider text-neutral-950 border border-neutral-400 hover:border-neutral-950 transition-colors cursor-pointer"
+                className="mt-2 min-h-[44px] px-5 py-2 text-xs font-bold uppercase tracking-wider text-[#F2F3F5] border border-[#31343E] bg-[#22242B] hover:bg-[#2d3039] rounded-xl transition-colors cursor-pointer"
               >
                 Limpiar Filtros
               </button>
@@ -287,40 +294,48 @@ export const CourtsManagementPage: React.FC = () => {
                 return (
                   <article
                     key={court.id}
-                    className="border border-neutral-300 p-5 bg-[#FAF8F5] flex flex-col justify-between space-y-5 shadow-sm"
+                    className="border border-[#31343E] rounded-2xl p-5 sm:p-6 bg-[#1E2027] flex flex-col justify-between space-y-5 shadow-lg hover:border-[#327357]/60 transition-all"
                   >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold uppercase bg-neutral-950 text-white px-2.5 py-1 tracking-wider">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-mono font-bold uppercase bg-[#258653]/15 text-[#327357] border border-[#327357]/30 px-2.5 py-1 rounded-md tracking-wider">
                           {court.surfaceType}
                         </span>
-                        <span className="text-xs font-mono text-emerald-800 font-black">
-                          {court.isActive ? 'Activa' : 'Inactiva'}
+                        <span className="text-xs font-mono font-bold flex items-center gap-1.5">
+                          <span
+                            className={`h-2 w-2 rounded-full ${
+                              court.isActive ? 'bg-emerald-400' : 'bg-neutral-500'
+                            }`}
+                          />
+                          <span className={court.isActive ? 'text-emerald-400' : 'text-[#9497A1]'}>
+                            {court.isActive ? 'Activa' : 'Inactiva'}
+                          </span>
                         </span>
                       </div>
-                      <h3 className="text-lg sm:text-xl font-black text-neutral-950 tracking-tight">
+
+                      <h3 className="text-xl font-black text-[#F2F3F5] tracking-tight">
                         {court.name}
                       </h3>
-                      <div className="text-xs font-medium text-neutral-800 space-y-0.5">
-                        <p>
-                          {court.isCovered ? 'Techada' : 'Al aire libre'} ·{' '}
-                          {court.hasLighting ? 'Con iluminación' : 'Sin iluminación'}
-                        </p>
+
+                      <div className="text-xs font-medium text-[#9497A1] flex items-center gap-2">
+                        <span>{court.isCovered ? 'Techada' : 'Al aire libre'}</span>
+                        <span>·</span>
+                        <span>{court.hasLighting ? 'Con iluminación' : 'Sin iluminación'}</span>
                       </div>
                     </div>
 
                     {/* Días Operativos */}
                     {uniqueDays.length > 0 && (
-                      <div className="space-y-1.5 border-t border-neutral-200 pt-3">
-                        <div className="text-xs font-mono font-bold text-neutral-700 uppercase flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5" strokeWidth={2} />
+                      <div className="space-y-2 border-t border-[#31343E] pt-3">
+                        <div className="text-[11px] font-mono font-bold text-[#9497A1] uppercase flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-[#327357]" strokeWidth={2} />
                           <span>Días Habilitados ({uniqueDays.length}):</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {uniqueDays.map((dayNum) => (
                             <span
                               key={dayNum}
-                              className="text-xs font-mono bg-neutral-200 px-2 py-0.5 text-neutral-950 font-bold border border-neutral-300"
+                              className="text-xs font-mono bg-[#16181D] px-2 py-0.5 text-[#F2F3F5] font-bold border border-[#31343E] rounded-md"
                             >
                               {DAY_NAMES[dayNum]}
                             </span>
@@ -330,20 +345,20 @@ export const CourtsManagementPage: React.FC = () => {
                     )}
 
                     {/* Deportes y Tarifas */}
-                    <div className="pt-3 border-t border-neutral-200 space-y-2">
-                      <div className="text-xs font-mono font-bold text-neutral-700 uppercase flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5" strokeWidth={2} />
-                        <span>Disciplinas y Tarifas:</span>
+                    <div className="pt-3 border-t border-[#31343E] space-y-2">
+                      <div className="text-[11px] font-mono font-bold text-[#9497A1] uppercase flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-[#327357]" strokeWidth={2} />
+                        <span>Disciplinas y Tarifas Base:</span>
                       </div>
                       <div className="space-y-1.5">
                         {court.sports.map((s) => (
                           <div
                             key={s.courtSportId || s.sportId}
-                            className="bg-white border border-neutral-300 p-2.5 text-xs flex items-center justify-between"
+                            className="bg-[#16181D] border border-[#31343E] p-2.5 rounded-xl text-xs flex items-center justify-between"
                           >
-                            <span className="text-sm font-bold text-neutral-950">{s.sportName}</span>
-                            <span className="font-mono text-xs font-bold text-neutral-800">
-                              ${s.basePrice} · {s.durationMinutes} min
+                            <span className="text-sm font-bold text-[#F2F3F5]">{s.sportName}</span>
+                            <span className="font-mono text-xs font-bold text-[#327357]">
+                              ${Number(s.basePrice).toLocaleString('es-AR')} · {s.durationMinutes} min
                             </span>
                           </div>
                         ))}
@@ -351,21 +366,21 @@ export const CourtsManagementPage: React.FC = () => {
                     </div>
 
                     {/* Barra de Acciones de Administración */}
-                    <div className="pt-4 border-t border-neutral-200 flex items-center justify-between gap-2">
+                    <div className="pt-4 border-t border-[#31343E] flex items-center justify-between gap-2">
                       <button
                         type="button"
                         onClick={() => navigate(`/admin/bookings?courtId=${court.id}`)}
                         title="Ver agenda de reservas de esta cancha"
-                        className="flex-1 min-h-[44px] px-2.5 py-2 bg-brand-sport/10 hover:bg-brand-sport/20 text-[#164734] border border-brand-sport/40 text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="flex-1 min-h-[44px] px-3 py-2 bg-[#258653]/15 hover:bg-[#258653]/25 text-emerald-400 border border-[#258653]/40 rounded-xl text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <Calendar className="h-4 w-4" strokeWidth={2} />
-                        <span>Agenda</span>
+                        <span>Ver Agenda</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleOpenEdit(court.id)}
-                        className="flex-1 min-h-[44px] px-2.5 py-2 bg-white border border-neutral-400 hover:border-neutral-950 text-neutral-950 text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="flex-1 min-h-[44px] px-3 py-2 bg-[#22242B] border border-[#31343E] hover:bg-[#2d3039] text-[#F2F3F5] rounded-xl text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <SlidersHorizontal className="h-4 w-4" strokeWidth={2} />
                         <span>Modificar</span>
@@ -375,7 +390,7 @@ export const CourtsManagementPage: React.FC = () => {
                         type="button"
                         onClick={() => setDeletingCourt(court)}
                         title="Dar de baja cancha"
-                        className="min-h-[44px] min-w-[44px] px-2.5 py-2 border border-neutral-400 hover:border-red-600 hover:bg-red-50 text-neutral-700 hover:text-red-700 inline-flex items-center justify-center transition-colors cursor-pointer"
+                        className="min-h-[44px] min-w-[44px] px-3 py-2 bg-[#22242B] border border-[#31343E] hover:border-red-500/50 hover:bg-red-950/30 text-[#9497A1] hover:text-red-400 rounded-xl inline-flex items-center justify-center transition-colors cursor-pointer"
                       >
                         <Trash2 className="h-4 w-4" strokeWidth={2} />
                       </button>
@@ -397,4 +412,3 @@ export const CourtsManagementPage: React.FC = () => {
     </div>
   )
 }
-

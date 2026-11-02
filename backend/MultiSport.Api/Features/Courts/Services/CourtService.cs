@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using MultiSport.Api.Common;
 using MultiSport.Api.Features.Courts.Models.Dtos;
 using MultiSport.Api.Features.Courts.Models.Entities;
 using MultiSport.Api.Features.Courts.Repositories;
@@ -75,14 +76,20 @@ public sealed class CourtService : ICourtService
             UpdatedBy = userId
         };
 
-        var customConfigsMap = request.CustomSportPrices?.ToDictionary(c => c.SportId) 
-                               ?? new Dictionary<Guid, CourtSportConfigDto>();
+        var isCustomSportModality = request.CustomSportPrices is { Count: > 0 };
+        var customConfigsMap = isCustomSportModality
+            ? request.CustomSportPrices!.ToDictionary(c => c.SportId)
+            : new Dictionary<Guid, CourtSportConfigDto>();
 
         var courtSports = request.SportIds.Select(sportId =>
         {
             customConfigsMap.TryGetValue(sportId, out var custom);
-            var basePrice = custom?.BasePrice ?? request.BasePrice;
-            var durationMinutes = custom?.DurationMinutes ?? request.DurationMinutes;
+            var basePrice = isCustomSportModality
+                ? (custom?.BasePrice ?? request.BasePrice)
+                : request.BasePrice;
+            var durationMinutes = isCustomSportModality
+                ? (custom?.DurationMinutes ?? request.DurationMinutes)
+                : request.DurationMinutes;
 
             return new CourtSport
             {
@@ -96,7 +103,7 @@ public sealed class CourtService : ICourtService
             };
         }).ToList();
 
-        var pricingRules = GeneratePricingRules(courtSports, request.PricingTiers, now);
+        var pricingRules = GeneratePricingRules(courtSports, request.PricingTiers, isCustomSportModality, now);
 
         if (HasOverlappingRules(pricingRules, out var conflictDetail))
         {
@@ -118,6 +125,7 @@ public sealed class CourtService : ICourtService
         var sportsMap = allActiveSports.ToDictionary(s => s.Id);
 
         var sportsResponseList = BuildCourtSportsResponse(courtSports, pricingRules, sportsMap);
+        var firstSport = courtSports.FirstOrDefault();
 
         var courtResponse = new CourtResponse(
             Id: court.Id,
@@ -126,8 +134,8 @@ public sealed class CourtService : ICourtService
             SurfaceType: court.SurfaceType,
             IsCovered: court.IsCovered,
             HasLighting: court.HasLighting,
-            BasePrice: request.BasePrice,
-            DurationMinutes: request.DurationMinutes,
+            BasePrice: firstSport?.BasePrice ?? request.BasePrice,
+            DurationMinutes: firstSport?.DurationMinutes ?? request.DurationMinutes,
             IsActive: court.IsActive,
             Sports: sportsResponseList,
             CreatedAt: court.CreatedAt
@@ -199,7 +207,6 @@ public sealed class CourtService : ICourtService
 
         var normalizedName = request.Name.Trim();
 
-        // Validar unicidad de nombre excluyendo la cancha actual
         if (await _courtRepository.CourtNameExistsInComplexExcludingCourtAsync(complexId, normalizedName, courtId, ct))
         {
             _logger.LogWarning("Conflicto al actualizar cancha: nombre '{CourtName}' ya en uso en el complejo {ComplexId}", normalizedName, complexId);
@@ -224,7 +231,7 @@ public sealed class CourtService : ICourtService
         var allActiveSports = await _courtRepository.GetActiveSportsAsync(ct);
         var sportsMap = allActiveSports.ToDictionary(s => s.Id);
 
-        // 1. Validar que no se desvinculen disciplinas con turnos futuros agendados
+        // 1. Validar que no se desvinculen disciplinas con turnos futuros agendados (excluyendo bloqueos operativos)
         var removedSports = currentCourtSports.Where(cs => !request.SportIds.Contains(cs.SportId)).ToList();
         foreach (var removed in removedSports)
         {
@@ -259,15 +266,21 @@ public sealed class CourtService : ICourtService
             UpdatedBy = userId
         };
 
-        var customConfigsMap = request.CustomSportPrices?.ToDictionary(c => c.SportId) 
-                               ?? new Dictionary<Guid, CourtSportConfigDto>();
+        var isCustomSportModality = request.CustomSportPrices is { Count: > 0 };
+        var customConfigsMap = isCustomSportModality
+            ? request.CustomSportPrices!.ToDictionary(c => c.SportId)
+            : new Dictionary<Guid, CourtSportConfigDto>();
 
         var updatedCourtSports = request.SportIds.Select(sportId =>
         {
             var existingCs = currentCourtSports.FirstOrDefault(cs => cs.SportId == sportId);
             customConfigsMap.TryGetValue(sportId, out var custom);
-            var basePrice = custom?.BasePrice ?? request.BasePrice;
-            var durationMinutes = custom?.DurationMinutes ?? request.DurationMinutes;
+            var basePrice = isCustomSportModality
+                ? (custom?.BasePrice ?? request.BasePrice)
+                : request.BasePrice;
+            var durationMinutes = isCustomSportModality
+                ? (custom?.DurationMinutes ?? request.DurationMinutes)
+                : request.DurationMinutes;
 
             return new CourtSport
             {
@@ -281,7 +294,7 @@ public sealed class CourtService : ICourtService
             };
         }).ToList();
 
-        var newPricingRules = GeneratePricingRules(updatedCourtSports, request.PricingTiers, now);
+        var newPricingRules = GeneratePricingRules(updatedCourtSports, request.PricingTiers, isCustomSportModality, now);
 
         if (HasOverlappingRules(newPricingRules, out var conflictDetail))
         {
@@ -293,7 +306,7 @@ public sealed class CourtService : ICourtService
             });
         }
 
-        // 2. Validar que no queden turnos futuros desamparados fuera del nuevo horario comercial (Decisión 1: Alternativa A)
+        // 2. Validar que no queden turnos futuros desamparados fuera del nuevo horario comercial (en hora local UTC-3 y unión continua)
         var futureBookings = await _courtRepository.GetActiveFutureBookingsAsync(courtId, ct);
         if (HasUncoveredFutureBookings(futureBookings, updatedCourtSports, newPricingRules, out var uncoveredCount))
         {
@@ -312,6 +325,7 @@ public sealed class CourtService : ICourtService
             updatedCourt.Name, courtId, complexId);
 
         var sportsResponseList = BuildCourtSportsResponse(updatedCourtSports, newPricingRules, sportsMap);
+        var firstSport = updatedCourtSports.FirstOrDefault();
 
         var courtResponse = new CourtResponse(
             Id: updatedCourt.Id,
@@ -320,8 +334,8 @@ public sealed class CourtService : ICourtService
             SurfaceType: updatedCourt.SurfaceType,
             IsCovered: updatedCourt.IsCovered,
             HasLighting: updatedCourt.HasLighting,
-            BasePrice: request.BasePrice,
-            DurationMinutes: request.DurationMinutes,
+            BasePrice: firstSport?.BasePrice ?? request.BasePrice,
+            DurationMinutes: firstSport?.DurationMinutes ?? request.DurationMinutes,
             IsActive: updatedCourt.IsActive,
             Sports: sportsResponseList,
             CreatedAt: updatedCourt.CreatedAt
@@ -456,6 +470,7 @@ public sealed class CourtService : ICourtService
     private static List<CourtPricingRule> GeneratePricingRules(
         IEnumerable<CourtSport> courtSports,
         IReadOnlyList<CourtPricingTierDto> pricingTiers,
+        bool isCustomSportModality,
         DateTimeOffset now)
     {
         var rules = new List<CourtPricingRule>();
@@ -466,12 +481,14 @@ public sealed class CourtService : ICourtService
 
         foreach (var courtSport in courtSportsList)
         {
-            var sportSpecific = specificTiers.Where(t => t.SportId == courtSport.SportId).ToList();
-            var effectiveTiers = sportSpecific.Count > 0 ? sportSpecific : generalTiers;
+            var effectiveTiers = isCustomSportModality
+                ? specificTiers.Where(t => t.SportId == courtSport.SportId).ToList()
+                : generalTiers;
 
             foreach (var tier in effectiveTiers)
             {
-                var effectivePrice = tier.Price;
+                // Respetar siempre el precio explícito configurado en la franja horaria (general o por deporte)
+                var effectivePrice = tier.Price > 0 ? tier.Price : courtSport.BasePrice;
                 var effectiveDuration = tier.DurationMinutes ?? courtSport.DurationMinutes;
 
                 var start = tier.StartTime;
@@ -496,8 +513,7 @@ public sealed class CourtService : ICourtService
                 }
                 else
                 {
-                    // Cruza medianoche: representar inequívocamente mediante dos reglas contiguas
-                    // Regla 1 (Día de inicio): desde start hasta medianoche (00:00)
+                    // Cruza medianoche: dividir en dos reglas contiguas
                     rules.Add(new CourtPricingRule
                     {
                         Id = Guid.NewGuid(),
@@ -511,7 +527,6 @@ public sealed class CourtService : ICourtService
                         UpdatedAt = now
                     });
 
-                    // Regla 2 (Día siguiente): desde medianoche (00:00) hasta end
                     var nextDayOfWeek = (tier.DayOfWeek + 1) % 7;
                     rules.Add(new CourtPricingRule
                     {
@@ -554,7 +569,7 @@ public sealed class CourtService : ICourtService
 
                     if (Math.Max(r1Start, r2Start) < Math.Min(r1End, r2End))
                     {
-                        var dayName = GetDayOfWeekName(group.Key.DayOfWeek);
+                        var dayName = ComplexTimeHelper.GetDayOfWeekName(group.Key.DayOfWeek);
                         conflictDescription = $"Existe una superposición horaria en las reglas configuradas para el día {dayName}.";
                         return true;
                     }
@@ -582,17 +597,28 @@ public sealed class CourtService : ICourtService
                 continue;
             }
 
-            var dayOfWeek = (int)booking.StartTimeUtc.DayOfWeek;
-            var bookingStart = TimeOnly.FromTimeSpan(booking.StartTimeUtc.TimeOfDay);
-            var bookingEnd = TimeOnly.FromTimeSpan(booking.EndTimeUtc.TimeOfDay);
+            var slices = ComplexTimeHelper.SplitIntoComplexLocalDaySlices(booking.StartTimeUtc, booking.EndTimeUtc);
+            if (slices.Count == 0)
+            {
+                uncoveredCount++;
+                continue;
+            }
 
-            var covers = pricingRules.Any(r =>
-                r.CourtSportId == courtSportId &&
-                r.DayOfWeek == dayOfWeek &&
-                r.StartTime <= bookingStart &&
-                (r.EndTime == TimeOnly.MinValue || r.EndTime >= bookingEnd));
+            var bookingCovered = true;
+            foreach (var slice in slices)
+            {
+                var availableIntervals = pricingRules
+                    .Where(r => r.CourtSportId == courtSportId && r.DayOfWeek == slice.DayOfWeek)
+                    .Select(r => (Start: r.StartTime.ToTimeSpan(), End: ComplexTimeHelper.NormalizeEndTimeSpan(r.EndTime)));
 
-            if (!covers)
+                if (!ComplexTimeHelper.IsSliceCoveredByContinuousIntervals(slice.SliceStart, slice.SliceEnd, availableIntervals))
+                {
+                    bookingCovered = false;
+                    break;
+                }
+            }
+
+            if (!bookingCovered)
             {
                 uncoveredCount++;
             }
@@ -600,16 +626,4 @@ public sealed class CourtService : ICourtService
 
         return uncoveredCount > 0;
     }
-
-    private static string GetDayOfWeekName(int dayOfWeek) => dayOfWeek switch
-    {
-        0 => "Domingo",
-        1 => "Lunes",
-        2 => "Martes",
-        3 => "Miércoles",
-        4 => "Jueves",
-        5 => "Viernes",
-        6 => "Sábado",
-        _ => "Día desconocido"
-    };
 }

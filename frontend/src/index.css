@@ -102,4 +102,13 @@
   .border-brand-soft {
     border-color: #A7B9A5 !important;
   }
+
+  /* Stitch Design Utilities */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

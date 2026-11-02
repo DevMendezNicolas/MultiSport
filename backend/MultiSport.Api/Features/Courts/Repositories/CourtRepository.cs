@@ -251,7 +251,7 @@ public sealed class CourtRepository : ICourtRepository
             FROM bookings
             WHERE court_id = @CourtId
               AND deleted_at IS NULL
-              AND status NOT IN ('cancelled', 'expired')
+              AND status NOT IN ('cancelled', 'expired', 'blocked')
               AND start_time_utc > CURRENT_TIMESTAMP;";
 
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
@@ -269,7 +269,7 @@ public sealed class CourtRepository : ICourtRepository
             WHERE court_id = @CourtId
               AND sport_id = @SportId
               AND deleted_at IS NULL
-              AND status NOT IN ('cancelled', 'expired')
+              AND status NOT IN ('cancelled', 'expired', 'blocked')
               AND start_time_utc > CURRENT_TIMESTAMP;";
 
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
@@ -286,7 +286,7 @@ public sealed class CourtRepository : ICourtRepository
             FROM bookings
             WHERE court_id = @CourtId
               AND deleted_at IS NULL
-              AND status NOT IN ('cancelled', 'expired')
+              AND status NOT IN ('cancelled', 'expired', 'blocked')
               AND start_time_utc > CURRENT_TIMESTAMP
             ORDER BY start_time_utc ASC;";
 
@@ -306,6 +306,18 @@ public sealed class CourtRepository : ICourtRepository
     {
         await using var connection = await _connectionFactory.CreateConnectionAsync(ct);
         await using var transaction = await connection.BeginTransactionAsync(ct);
+
+        const string lockCourtSql = @"
+            SELECT id
+            FROM courts
+            WHERE id = @Id AND complex_id = @ComplexId AND deleted_at IS NULL
+            FOR UPDATE;";
+
+        await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
+            lockCourtSql,
+            new { court.Id, court.ComplexId },
+            transaction: transaction,
+            cancellationToken: ct));
 
         const string updateCourtSql = @"
             UPDATE courts
